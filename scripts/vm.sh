@@ -6,7 +6,7 @@
 #   stop         Shut down the development VM
 #   ssh          Open an interactive SSH session into the VM
 #   mount-share  Mount the repository into the VM via 9p/virtfs
-#   status       Print "running" or "stopped" and exit 0
+#   status       Print detailed VM status (process, disk, SSH reachability)
 #   delete       Stop the VM (if running) and remove the disk image
 #
 # Configurable environment variables (with defaults):
@@ -44,11 +44,39 @@ _vm_is_running() {
 }
 
 cmd_status() {
+    local state pid_info disk_info ssh_info
+
     if _vm_is_running; then
-        echo "running"
+        local pid
+        pid="$(cat "$VM_PID_FILE")"
+        state="running"
+        pid_info="(pid=$pid)"
     else
-        echo "stopped"
+        state="stopped"
+        pid_info=""
     fi
+
+    if [ -f "$VM_DISK" ]; then
+        disk_info="$VM_DISK (exists)"
+    else
+        disk_info="$VM_DISK (not found — run 'make vm-build')"
+    fi
+
+    # Check whether the SSH port is accepting TCP connections.
+    # Uses only bash builtins (/dev/tcp); no external tools required.
+    if [ "$state" = "running" ]; then
+        if (echo >/dev/tcp/127.0.0.1/"$VM_SSH_PORT") 2>/dev/null; then
+            ssh_info="port $VM_SSH_PORT — reachable (VM has booted)"
+        else
+            ssh_info="port $VM_SSH_PORT — not yet reachable (VM may still be booting)"
+        fi
+    else
+        ssh_info="port $VM_SSH_PORT — not checked (VM is stopped)"
+    fi
+
+    echo "VM status: $state $pid_info"
+    echo "  disk:    $disk_info"
+    echo "  ssh:     $ssh_info"
 }
 
 cmd_start() {

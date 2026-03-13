@@ -1,4 +1,6 @@
 import importlib.util
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -177,6 +179,7 @@ class TestMakefileTargets(unittest.TestCase):
             "vm-start",
             "vm-stop",
             "vm-ssh",
+            "vm-status",
             "vm-delete",
             "install",
             "logs",
@@ -186,7 +189,6 @@ class TestMakefileTargets(unittest.TestCase):
                 self.assertIn(target, result.stdout)
 
     def test_vm_target_fails_with_descriptive_message_when_vm_script_missing(self):
-        import shutil
         with tempfile.TemporaryDirectory() as tmp:
             # Copy only the Makefile so that scripts/vm.sh is absent
             shutil.copy(REPO_ROOT / "Makefile", tmp)
@@ -227,6 +229,36 @@ class TestVMScript(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("stopped", result.stdout)
 
+    def test_status_shows_disk_info_when_stopped(self):
+        """status should report the disk path regardless of whether the VM is running."""
+        env = {**os.environ, "VM_DISK": "/tmp/nonexistent-cafebox.qcow2"}
+        result = subprocess.run(
+            ["bash", str(self.VM_SCRIPT), "status"],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        # The disk path must appear in the output so the user knows where to look.
+        self.assertIn("/tmp/nonexistent-cafebox.qcow2", result.stdout)
+        # When the disk is absent the output must say so.
+        self.assertIn("not found", result.stdout)
+
+    def test_status_shows_ssh_port_not_checked_when_stopped(self):
+        """status should report the SSH port and note it was not checked when VM is stopped."""
+        env = {**os.environ, "VM_SSH_PORT": "9876"}
+        result = subprocess.run(
+            ["bash", str(self.VM_SCRIPT), "status"],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("9876", result.stdout)
+        self.assertIn("not checked", result.stdout)
+
     def test_unknown_subcommand_exits_nonzero(self):
         result = subprocess.run(
             ["bash", str(self.VM_SCRIPT), "bogus-command"],
@@ -238,9 +270,6 @@ class TestVMScript(unittest.TestCase):
 
     def test_vm_disk_and_ssh_port_configurable_via_env(self):
         """start sub-command should honour VM_DISK / VM_SSH_PORT env vars."""
-        import os
-        import tempfile
-
         # Stub qemu-system-aarch64 so the prerequisite check passes and the
         # script reaches the disk-existence check (which is what we're testing).
         with tempfile.TemporaryDirectory() as stub_bin:
@@ -269,7 +298,6 @@ class TestVMScript(unittest.TestCase):
 
     def test_delete_removes_disk_image(self):
         """delete sub-command should remove an existing disk image."""
-        import os
         with tempfile.TemporaryDirectory() as tmp:
             disk = Path(tmp) / "cafebox-dev.qcow2"
             disk.write_bytes(b"fake-qcow2-data")
@@ -287,7 +315,6 @@ class TestVMScript(unittest.TestCase):
 
     def test_delete_when_no_disk_prints_info_and_exits_zero(self):
         """delete sub-command should exit 0 with an INFO message when no disk exists."""
-        import os
         env = {**os.environ, "VM_DISK": "/nonexistent/no-disk.qcow2"}
         result = subprocess.run(
             ["bash", str(self.VM_SCRIPT), "delete"],
