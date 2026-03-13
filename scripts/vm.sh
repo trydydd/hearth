@@ -11,10 +11,6 @@
 #
 # Configurable environment variables (with defaults):
 #   VM_DISK      Path to the VM disk image  (default: vm/cafebox-dev.qcow2)
-#   VM_KERNEL    Path to the extracted ARM64 kernel for direct-kernel boot
-#                (default: vm/vm-kernel — produced by make vm-build)
-#   VM_INITRD    Path to the extracted initrd for direct-kernel boot
-#                (default: vm/vm-initrd — produced by make vm-build; optional)
 #   VM_SSH_PORT  Host port forwarded to VM SSH (default: 2222)
 
 set -euo pipefail
@@ -122,39 +118,22 @@ cmd_start() {
         echo "       Run 'make vm-build' to download and create it." >&2
         exit 1
     fi
-    # Architecture fixed at ARM64 to match the Raspberry Pi 3/4 target hardware.
-    # Adjust VM_MACHINE / VM_CPU overrides if you need a different arch locally.
-    VM_MACHINE="${VM_MACHINE:-virt}"
+    # raspi3b is natively supported by qemu-system-aarch64 and includes the
+    # Raspberry Pi firmware, so the RPi OS bootloader chain works without any
+    # direct-kernel-boot workarounds.
+    VM_MACHINE="${VM_MACHINE:-raspi3b}"
     VM_CPU="${VM_CPU:-cortex-a53}"
-    VM_KERNEL="${VM_KERNEL:-vm/vm-kernel}"
-    VM_INITRD="${VM_INITRD:-vm/vm-initrd}"
-    # QEMU's -machine virt has no built-in firmware and cannot run the
-    # Raspberry Pi-specific bootloader (start4.elf).  Direct-kernel boot is
-    # required: the kernel and optional initrd are produced by make vm-build.
-    if [ ! -f "$VM_KERNEL" ]; then
-        echo "ERROR: VM kernel not found: $VM_KERNEL" >&2
-        echo "       Rebuild the VM disk with: make vm-build" >&2
-        exit 1
-    fi
-    # Build the QEMU argument list, conditionally appending the initrd.
-    local qemu_args=(
-        -machine "$VM_MACHINE"
-        -cpu "$VM_CPU"
-        -m 1024
-        -display none
-        -kernel "$VM_KERNEL"
-        -append "rw root=/dev/vda2 rootfstype=ext4 fsck.repair=yes rootwait console=ttyAMA0 loglevel=3 net.ifnames=0"
-        -drive "file=$VM_DISK,format=qcow2,if=virtio"
-        -netdev "user,id=net0,hostfwd=tcp::${VM_SSH_PORT}-:22"
-        -device virtio-net-pci,netdev=net0
-        -daemonize
-        -pidfile "$VM_PID_FILE"
-    )
-    if [ -f "$VM_INITRD" ]; then
-        qemu_args+=(-initrd "$VM_INITRD")
-    fi
     echo "Starting development VM (disk=$VM_DISK, ssh-port=$VM_SSH_PORT)…"
-    qemu-system-aarch64 "${qemu_args[@]}"
+    qemu-system-aarch64 \
+        -machine "$VM_MACHINE" \
+        -cpu "$VM_CPU" \
+        -m 1024 \
+        -display none \
+        -drive "file=$VM_DISK,format=qcow2,if=sd" \
+        -netdev "user,id=net0,hostfwd=tcp::${VM_SSH_PORT}-:22" \
+        -device virtio-net-pci,netdev=net0 \
+        -daemonize \
+        -pidfile "$VM_PID_FILE"
     echo "VM started. Use 'make vm-ssh' to connect (first boot may take a few minutes)."
 }
 
