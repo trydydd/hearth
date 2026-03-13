@@ -9,7 +9,7 @@
 #   RPIOS_URL  Download URL for the image archive
 #              (default: https://downloads.raspberrypi.com/raspios_lite_arm64_latest)
 #
-# Prerequisites: curl, xz, qemu-img
+# Prerequisites: curl, xz, qemu-img, mcopy (mtools)
 
 set -euo pipefail
 
@@ -32,8 +32,9 @@ declare -A TOOL_HINTS=(
     [curl]="sudo apt install curl"
     [xz]="sudo apt install xz-utils"
     [qemu-img]="sudo apt install qemu-utils"
+    [mcopy]="sudo apt install mtools"
 )
-for tool in curl xz qemu-img; do
+for tool in curl xz qemu-img mcopy; do
     if ! command -v "$tool" &>/dev/null; then
         echo "ERROR: Required tool not found: $tool" >&2
         echo "       Install it with: ${TOOL_HINTS[$tool]}" >&2
@@ -59,6 +60,24 @@ if [ "${#imgs[@]}" -eq 0 ]; then
     exit 1
 fi
 IMG_FILE="${imgs[0]}"
+
+echo "==> Enabling SSH on first boot..."
+# Raspberry Pi OS disables SSH by default.  Placing an empty 'ssh' file in the
+# FAT32 boot partition tells the OS to start the SSH daemon on first boot.
+BOOT_START=$(sfdisk -d "$IMG_FILE" 2>/dev/null \
+    | awk -F'start=' '/start=/{gsub(/,.*/, "", $2); print $2+0; exit}')
+if [[ -z "$BOOT_START" || "$BOOT_START" -eq 0 ]]; then
+    echo "ERROR: Could not determine boot partition offset from image: $IMG_FILE" >&2
+    echo "       Ensure sfdisk is installed and the image has a valid partition table." >&2
+    exit 1
+fi
+BOOT_OFFSET_BYTES=$(( BOOT_START * 512 ))
+touch "$TMP_DIR/ssh"
+if ! MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" "$TMP_DIR/ssh" ::/ssh; then
+    echo "ERROR: Failed to write ssh file into the boot partition." >&2
+    echo "       Check that mtools is installed (sudo apt install mtools) and the image is valid." >&2
+    exit 1
+fi
 
 echo "==> Converting to qcow2: $VM_DISK"
 qemu-img convert -f raw -O qcow2 "$IMG_FILE" "$VM_DISK"

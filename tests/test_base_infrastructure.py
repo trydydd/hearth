@@ -267,5 +267,32 @@ class TestVMScript(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
 
 
+class TestBuildVMDiskScript(unittest.TestCase):
+    BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-vm-disk.sh"
+
+    def test_build_script_syntax(self):
+        result = subprocess.run(
+            ["bash", "-n", str(self.BUILD_SCRIPT)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+    def test_build_script_requires_mtools(self):
+        content = self.BUILD_SCRIPT.read_text()
+        self.assertIn(
+            "mcopy", content,
+            "build-vm-disk.sh should check for mcopy (mtools)",
+        )
+
+    def test_build_script_enables_ssh(self):
+        content = self.BUILD_SCRIPT.read_text()
+        self.assertIn(
+            "::/ssh", content,
+            "build-vm-disk.sh should write an ssh file into the boot partition",
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
