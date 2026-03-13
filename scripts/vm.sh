@@ -11,6 +11,10 @@
 #
 # Configurable environment variables (with defaults):
 #   VM_DISK      Path to the VM disk image  (default: vm/cafebox-dev.qcow2)
+#   VM_KERNEL    Path to the extracted ARM64 kernel for direct-kernel boot
+#                (default: vm/vm-kernel — produced by make vm-build)
+#   VM_INITRD    Path to the extracted initrd for direct-kernel boot
+#                (default: vm/vm-initrd — produced by make vm-build; optional)
 #   VM_SSH_PORT  Host port forwarded to VM SSH (default: 2222)
 
 set -euo pipefail
@@ -40,6 +44,33 @@ _vm_is_running() {
         fi
         rm -f "$VM_PID_FILE"
     fi
+    return 1
+}
+
+# Poll for the SSH banner (sent immediately by a running sshd) and return 0
+# once it is detected, or 1 after MAX_SSH_WAIT seconds (default 120).
+# Uses ssh-keyscan so the check is both reliable and side-effect free.
+_wait_for_ssh() {
+    local max_wait="${MAX_SSH_WAIT:-120}"
+    local interval=5
+    local elapsed=0
+    if ! command -v ssh-keyscan &>/dev/null; then
+        # ssh-keyscan unavailable — skip the wait; let ssh fail normally.
+        return 0
+    fi
+    printf "Waiting for SSH on port %s" "$VM_SSH_PORT"
+    while (( elapsed < max_wait )); do
+        if ssh-keyscan -T 3 -p "$VM_SSH_PORT" 127.0.0.1 >/dev/null 2>&1; then
+            printf " ready (%ds).\n" "$elapsed"
+            return 0
+        fi
+        sleep "$interval"
+        elapsed=$(( elapsed + interval ))
+        printf "."
+    done
+    printf "\n"
+    echo "WARNING: SSH did not become available after ${max_wait}s." >&2
+    echo "         The VM may still be completing first-boot setup." >&2
     return 1
 }
 
@@ -91,22 +122,40 @@ cmd_start() {
         echo "       Run 'make vm-build' to download and create it." >&2
         exit 1
     fi
-    echo "Starting development VM (disk=$VM_DISK, ssh-port=$VM_SSH_PORT)…"
     # Architecture fixed at ARM64 to match the Raspberry Pi 3/4 target hardware.
     # Adjust VM_MACHINE / VM_CPU overrides if you need a different arch locally.
     VM_MACHINE="${VM_MACHINE:-virt}"
     VM_CPU="${VM_CPU:-cortex-a53}"
-    qemu-system-aarch64 \
-        -machine "$VM_MACHINE" \
-        -cpu "$VM_CPU" \
-        -m 1024 \
-        -display none \
-        -drive "file=$VM_DISK,format=qcow2" \
-        -netdev "user,id=net0,hostfwd=tcp::${VM_SSH_PORT}-:22" \
-        -device virtio-net-pci,netdev=net0 \
-        -daemonize \
+    VM_KERNEL="${VM_KERNEL:-vm/vm-kernel}"
+    VM_INITRD="${VM_INITRD:-vm/vm-initrd}"
+    # QEMU's -machine virt has no built-in firmware and cannot run the
+    # Raspberry Pi-specific bootloader (start4.elf).  Direct-kernel boot is
+    # required: the kernel and optional initrd are produced by make vm-build.
+    if [ ! -f "$VM_KERNEL" ]; then
+        echo "ERROR: VM kernel not found: $VM_KERNEL" >&2
+        echo "       Rebuild the VM disk with: make vm-build" >&2
+        exit 1
+    fi
+    # Build the QEMU argument list, conditionally appending the initrd.
+    local qemu_args=(
+        -machine "$VM_MACHINE"
+        -cpu "$VM_CPU"
+        -m 1024
+        -display none
+        -kernel "$VM_KERNEL"
+        -append "rw root=/dev/vda2 rootfstype=ext4 fsck.repair=yes rootwait console=ttyAMA0 loglevel=3 net.ifnames=0"
+        -drive "file=$VM_DISK,format=qcow2,if=virtio"
+        -netdev "user,id=net0,hostfwd=tcp::${VM_SSH_PORT}-:22"
+        -device virtio-net-pci,netdev=net0
+        -daemonize
         -pidfile "$VM_PID_FILE"
-    echo "VM started. SSH available on port $VM_SSH_PORT."
+    )
+    if [ -f "$VM_INITRD" ]; then
+        qemu_args+=(-initrd "$VM_INITRD")
+    fi
+    echo "Starting development VM (disk=$VM_DISK, ssh-port=$VM_SSH_PORT)…"
+    qemu-system-aarch64 "${qemu_args[@]}"
+    echo "VM started. Use 'make vm-ssh' to connect (first boot may take a few minutes)."
 }
 
 cmd_stop() {
@@ -127,6 +176,10 @@ cmd_ssh() {
         echo "ERROR: VM is not running. Start it first with: $0 start" >&2
         exit 1
     fi
+    # Wait until sshd is accepting connections (first boot can take several
+    # minutes for key generation and first-run setup).  _wait_for_ssh is a
+    # no-op if ssh-keyscan is unavailable.
+    _wait_for_ssh || true
     # StrictHostKeyChecking is disabled for development convenience: the VM
     # is ephemeral and its host key changes on every rebuild.  Do NOT use
     # these flags against production or untrusted hosts.

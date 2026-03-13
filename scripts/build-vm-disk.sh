@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # scripts/build-vm-disk.sh — Download and prepare the development VM disk image
 #
-# Downloads Raspberry Pi OS Lite 64-bit and converts it to a qcow2 image
-# ready for use by scripts/vm.sh.
+# Downloads Raspberry Pi OS Lite 64-bit, converts it to a qcow2 image, and
+# extracts the ARM64 kernel (vm-kernel) and initrd (vm-initrd) needed for
+# QEMU direct-kernel boot, all ready for use by scripts/vm.sh.
 #
 # Configurable environment variables (with defaults):
 #   VM_DISK      Destination qcow2 path  (default: vm/cafebox-dev.qcow2)
@@ -114,9 +115,29 @@ if ! MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" "$TMP_DIR/us
     exit 1
 fi
 
+echo "==> Extracting kernel and initrd for QEMU direct-kernel boot..."
+# QEMU's -machine virt has no built-in firmware and cannot execute the
+# Raspberry Pi-specific bootloader (start4.elf).  Direct-kernel boot is the
+# standard approach: we pass the ARM64 kernel and initrd extracted from the
+# boot partition directly to QEMU via -kernel / -initrd.
+if ! MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" ::/kernel8.img "$VM_DIR/vm-kernel"; then
+    echo "ERROR: Could not extract kernel8.img from the boot partition." >&2
+    echo "       Check that the image has a valid FAT32 boot partition." >&2
+    exit 1
+fi
+# initramfs8 is included in 64-bit RPi OS Lite for loading virtio modules;
+# tolerate image variants that do not include it.
+if MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" ::/initramfs8 "$VM_DIR/vm-initrd" 2>/dev/null; then
+    echo "    Initrd extracted: $VM_DIR/vm-initrd"
+else
+    rm -f "$VM_DIR/vm-initrd"
+    echo "    No initramfs8 found; VM will boot without initrd."
+fi
+
 echo "==> Converting to qcow2: $VM_DISK"
 qemu-img convert -f raw -O qcow2 "$IMG_FILE" "$VM_DISK"
 
 echo ""
-echo "VM disk image ready: $VM_DISK"
+echo "VM disk image ready:  $VM_DISK"
+echo "VM kernel extracted:  $VM_DIR/vm-kernel"
 echo "Run 'make vm-start' to boot the VM."

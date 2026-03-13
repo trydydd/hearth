@@ -326,6 +326,70 @@ class TestVMScript(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("INFO", result.stdout)
 
+    def test_vm_start_uses_direct_kernel_boot(self):
+        """vm.sh start must pass -kernel to QEMU (direct-kernel boot)."""
+        content = self.VM_SCRIPT.read_text()
+        self.assertIn(
+            "-kernel",
+            content,
+            "vm.sh should use -kernel for direct-kernel boot on -machine virt",
+        )
+        self.assertIn(
+            "-append",
+            content,
+            "vm.sh should pass a kernel command line via -append",
+        )
+        self.assertIn(
+            "root=/dev/vda2",
+            content,
+            "vm.sh kernel cmdline should specify root=/dev/vda2 (virtio disk, partition 2)",
+        )
+
+    def test_vm_start_fails_when_kernel_missing(self):
+        """start sub-command must exit non-zero with a descriptive message
+        when VM_KERNEL does not exist (i.e. make vm-build has not been run)."""
+        with tempfile.TemporaryDirectory() as stub_bin:
+            stub = Path(stub_bin) / "qemu-system-aarch64"
+            stub.write_text("#!/bin/sh\nexit 0\n")
+            stub.chmod(0o755)
+            with tempfile.TemporaryDirectory() as tmp:
+                # Provide a disk but deliberately omit the kernel file.
+                disk = Path(tmp) / "cafebox-dev.qcow2"
+                disk.write_bytes(b"fake")
+                env = {
+                    **os.environ,
+                    "VM_DISK": str(disk),
+                    "VM_KERNEL": str(Path(tmp) / "vm-kernel"),  # does not exist
+                    "PATH": f"{stub_bin}:{os.environ.get('PATH', '')}",
+                }
+                result = subprocess.run(
+                    ["bash", str(self.VM_SCRIPT), "start"],
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    check=False,
+                )
+        self.assertNotEqual(result.returncode, 0)
+        combined = f"{result.stdout}\n{result.stderr}"
+        self.assertIn(
+            "vm-build", combined,
+            "error message should tell user to run make vm-build",
+        )
+
+    def test_vm_ssh_waits_for_ssh_readiness(self):
+        """vm.sh must call _wait_for_ssh before connecting."""
+        content = self.VM_SCRIPT.read_text()
+        self.assertIn(
+            "_wait_for_ssh",
+            content,
+            "vm.sh should define and call a _wait_for_ssh helper",
+        )
+        self.assertIn(
+            "ssh-keyscan",
+            content,
+            "vm.sh _wait_for_ssh should use ssh-keyscan to detect a live sshd",
+        )
+
 
 class TestBuildVMDiskScript(unittest.TestCase):
     BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-vm-disk.sh"
@@ -393,6 +457,44 @@ class TestBuildVMDiskScript(unittest.TestCase):
         self.assertIn(
             "vm/rpios-cache", gitignore,
             ".gitignore should exclude the RPi OS image cache directory",
+        )
+
+    def test_build_script_extracts_kernel(self):
+        content = self.BUILD_SCRIPT.read_text()
+        # The script must copy kernel8.img out of the boot partition.
+        self.assertIn(
+            "kernel8.img",
+            content,
+            "build-vm-disk.sh should extract kernel8.img from the boot partition",
+        )
+        self.assertIn(
+            "vm-kernel",
+            content,
+            "build-vm-disk.sh should save the extracted kernel as vm-kernel",
+        )
+
+    def test_build_script_extracts_initrd(self):
+        content = self.BUILD_SCRIPT.read_text()
+        self.assertIn(
+            "initramfs8",
+            content,
+            "build-vm-disk.sh should attempt to extract initramfs8 from the boot partition",
+        )
+        self.assertIn(
+            "vm-initrd",
+            content,
+            "build-vm-disk.sh should save the extracted initrd as vm-initrd",
+        )
+
+    def test_vm_kernel_and_initrd_are_gitignored(self):
+        gitignore = (REPO_ROOT / ".gitignore").read_text()
+        self.assertIn(
+            "vm/vm-kernel", gitignore,
+            ".gitignore should exclude the extracted QEMU kernel (vm/vm-kernel)",
+        )
+        self.assertIn(
+            "vm/vm-initrd", gitignore,
+            ".gitignore should exclude the extracted QEMU initrd (vm/vm-initrd)",
         )
 
 
