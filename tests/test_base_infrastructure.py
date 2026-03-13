@@ -353,6 +353,23 @@ class TestBuildVMDiskScript(unittest.TestCase):
             "build-vm-disk.sh should write an ssh file into the boot partition",
         )
 
+    def test_build_script_writes_userconf(self):
+        content = self.BUILD_SCRIPT.read_text()
+        self.assertIn(
+            "::/userconf.txt", content,
+            "build-vm-disk.sh should write a userconf.txt file into the boot partition",
+        )
+        # The file must set up the 'pi' user.
+        self.assertIn(
+            "pi:", content,
+            "build-vm-disk.sh should configure the 'pi' user in userconf.txt",
+        )
+        # The password must be hashed via openssl, not stored in plain text inside the file.
+        self.assertIn(
+            "openssl passwd", content,
+            "build-vm-disk.sh should use openssl passwd to hash the password",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

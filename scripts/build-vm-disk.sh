@@ -5,11 +5,12 @@
 # ready for use by scripts/vm.sh.
 #
 # Configurable environment variables (with defaults):
-#   VM_DISK    Destination qcow2 path  (default: vm/cafebox-dev.qcow2)
-#   RPIOS_URL  Download URL for the image archive
-#              (default: https://downloads.raspberrypi.com/raspios_lite_arm64_latest)
+#   VM_DISK      Destination qcow2 path  (default: vm/cafebox-dev.qcow2)
+#   VM_PASSWORD  Password for the default 'pi' user (default: admin)
+#   RPIOS_URL    Download URL for the image archive
+#                (default: https://downloads.raspberrypi.com/raspios_lite_arm64_latest)
 #
-# Prerequisites: curl, xz, qemu-img, mcopy (mtools)
+# Prerequisites: curl, xz, qemu-img, mcopy (mtools), openssl
 
 set -euo pipefail
 
@@ -33,8 +34,9 @@ declare -A TOOL_HINTS=(
     [xz]="sudo apt install xz-utils"
     [qemu-img]="sudo apt install qemu-utils"
     [mcopy]="sudo apt install mtools"
+    [openssl]="sudo apt install openssl"
 )
-for tool in curl xz qemu-img mcopy; do
+for tool in curl xz qemu-img mcopy openssl; do
     if ! command -v "$tool" &>/dev/null; then
         echo "ERROR: Required tool not found: $tool" >&2
         echo "       Install it with: ${TOOL_HINTS[$tool]}" >&2
@@ -75,6 +77,21 @@ BOOT_OFFSET_BYTES=$(( BOOT_START * 512 ))
 touch "$TMP_DIR/ssh"
 if ! MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" "$TMP_DIR/ssh" ::/ssh; then
     echo "ERROR: Failed to write ssh file into the boot partition." >&2
+    echo "       Check that mtools is installed (sudo apt install mtools) and the image is valid." >&2
+    exit 1
+fi
+
+echo "==> Creating default user (pi) via userconf.txt..."
+# Raspberry Pi OS 12+ requires a userconf.txt in the boot partition to
+# create the initial user on first boot.  The file must contain a single
+# line in the form  username:hashed_password  where the hash is a standard
+# SHA-512 crypt hash produced by openssl passwd.
+# Override VM_PASSWORD to change the default password.
+VM_PASSWORD="${VM_PASSWORD:-admin}"
+HASHED_PW="$(openssl passwd -6 "$VM_PASSWORD")"
+printf 'pi:%s\n' "$HASHED_PW" > "$TMP_DIR/userconf.txt"
+if ! MTOOLS_SKIP_CHECK=1 mcopy -i "$IMG_FILE@@${BOOT_OFFSET_BYTES}" "$TMP_DIR/userconf.txt" ::/userconf.txt; then
+    echo "ERROR: Failed to write userconf.txt into the boot partition." >&2
     echo "       Check that mtools is installed (sudo apt install mtools) and the image is valid." >&2
     exit 1
 fi
