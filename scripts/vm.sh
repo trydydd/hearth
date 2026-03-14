@@ -11,11 +11,15 @@
 #
 # Configurable environment variables (with defaults):
 #   VM_DISK      Path to the VM disk image  (default: vm/cafebox-dev.qcow2)
+#   VM_SEED      Path to the cloud-init seed image  (default: vm/cafebox-seed.img)
+#   VM_BIOS      Path to the UEFI firmware blob  (default: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd)
 #   VM_SSH_PORT  Host port forwarded to VM SSH (default: 2222)
 
 set -euo pipefail
 
 VM_DISK="${VM_DISK:-vm/cafebox-dev.qcow2}"
+VM_SEED="${VM_SEED:-vm/cafebox-seed.img}"
+VM_BIOS="${VM_BIOS:-/usr/share/qemu-efi-aarch64/QEMU_EFI.fd}"
 VM_SSH_PORT="${VM_SSH_PORT:-2222}"
 VM_PID_FILE="/tmp/cafebox-vm.pid"
 VM_LOG_FILE="${VM_LOG_FILE:-/tmp/cafebox-vm.log}"
@@ -27,6 +31,17 @@ _require_cmd() {
     local cmd="$1" hint="$2"
     if ! command -v "$cmd" &>/dev/null; then
         echo "ERROR: Required command not found: $cmd" >&2
+        echo "       $hint" >&2
+        exit 1
+    fi
+}
+
+# Print an error and exit if a required file does not exist.
+# The second argument is a human-readable hint.
+_require_file() {
+    local path="$1" hint="$2"
+    if [ ! -f "$path" ]; then
+        echo "ERROR: Required file not found: $path" >&2
         echo "       $hint" >&2
         exit 1
     fi
@@ -109,20 +124,21 @@ cmd_status() {
 
 cmd_start() {
     _require_cmd qemu-system-aarch64 \
-        "Install QEMU ARM emulation (provides qemu-system-aarch64): sudo apt install qemu-system-arm qemu-efi-aarch64"
+        "Install QEMU ARM emulation (provides qemu-system-aarch64): sudo apt install qemu-system-arm"
     if _vm_is_running; then
         echo "INFO: VM is already running."
         return 0
     fi
-    if [ ! -f "$VM_DISK" ]; then
-        echo "ERROR: VM disk image not found: $VM_DISK" >&2
-        echo "       Run 'make vm-build' to download and create it." >&2
-        exit 1
-    fi
-    # raspi3b is natively supported by qemu-system-aarch64 and includes the
-    # Raspberry Pi firmware, so the RPi OS bootloader chain works without any
-    # direct-kernel-boot workarounds.
-    VM_MACHINE="${VM_MACHINE:-raspi3b}"
+    _require_file "$VM_DISK" \
+        "Run 'make vm-build' to download and create the VM disk image."
+    _require_file "$VM_BIOS" \
+        "Install the UEFI firmware: sudo apt install qemu-efi-aarch64"
+    _require_file "$VM_SEED" \
+        "Run 'make vm-build' to create the cloud-init seed image."
+    # Use the generic QEMU 'virt' machine for aarch64 — it provides a full
+    # PCI bus, virtio-mmio, and UEFI boot, and runs any standard ARM64 OS
+    # (Debian, Ubuntu, etc.) without board-specific firmware quirks.
+    VM_MACHINE="${VM_MACHINE:-virt}"
     VM_CPU="${VM_CPU:-cortex-a53}"
     echo "Starting development VM (disk=$VM_DISK, ssh-port=$VM_SSH_PORT)…"
     qemu-system-aarch64 \
@@ -130,9 +146,11 @@ cmd_start() {
         -cpu "$VM_CPU" \
         -m 1024 \
         -display none \
-        -drive "file=$VM_DISK,format=qcow2,if=sd" \
+        -bios "$VM_BIOS" \
+        -drive "file=$VM_DISK,format=qcow2,if=virtio" \
+        -drive "file=$VM_SEED,format=raw,if=virtio,readonly=on" \
         -netdev "user,id=net0,hostfwd=tcp::${VM_SSH_PORT}-:22" \
-        -device usb-net,netdev=net0 \
+        -device virtio-net-pci,netdev=net0 \
         -serial "file:${VM_LOG_FILE}" \
         -daemonize \
         -pidfile "$VM_PID_FILE"
@@ -194,6 +212,10 @@ cmd_delete() {
     fi
     rm -f "$VM_DISK"
     echo "Deleted VM disk image: $VM_DISK"
+    if [ -f "$VM_SEED" ]; then
+        rm -f "$VM_SEED"
+        echo "Deleted cloud-init seed: $VM_SEED"
+    fi
     echo "Run 'make vm-build' (or 'make vm-start') to create a fresh image."
 }
 

@@ -7,6 +7,8 @@
 
 # Default disk path — overridable via environment or make variable: VM_DISK=path/to/disk.qcow2
 VM_DISK ?= vm/cafebox-dev.qcow2
+# Default cloud-init seed path — created alongside the disk by vm-build
+VM_SEED ?= vm/cafebox-seed.img
 
 .PHONY: help vm-build vm-start vm-stop vm-ssh vm-status vm-delete install logs generate-configs test
 
@@ -14,7 +16,7 @@ VM_DISK ?= vm/cafebox-dev.qcow2
 help:
 	@echo "CafeBox developer shortcuts"
 	@echo ""
-	@echo "  make vm-build         Download RPi OS Lite 64-bit and create vm/cafebox-dev.qcow2"
+	@echo "  make vm-build         Download Debian 12 (Bookworm) ARM64 cloud image and create vm/cafebox-dev.qcow2"
 	@echo "  make vm-start         Start the development VM (builds disk first if missing)"
 	@echo "  make vm-stop          Stop the development VM"
 	@echo "  make vm-ssh           Open an SSH session into the development VM"
@@ -27,12 +29,12 @@ help:
 
 vm-build:
 	@test -f scripts/build-vm-disk.sh || { echo "ERROR: scripts/build-vm-disk.sh not found."; exit 1; }
-	VM_DISK="$(VM_DISK)" bash scripts/build-vm-disk.sh
+	VM_DISK="$(VM_DISK)" VM_SEED="$(VM_SEED)" bash scripts/build-vm-disk.sh
 
 vm-start:
 	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	@test -f "$(VM_DISK)" || $(MAKE) vm-build VM_DISK="$(VM_DISK)"
-	VM_DISK="$(VM_DISK)" bash scripts/vm.sh start
+	@test -f "$(VM_DISK)" || $(MAKE) vm-build VM_DISK="$(VM_DISK)" VM_SEED="$(VM_SEED)"
+	VM_DISK="$(VM_DISK)" VM_SEED="$(VM_SEED)" bash scripts/vm.sh start
 
 vm-stop:
 	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
@@ -44,7 +46,7 @@ vm-status:
 
 vm-delete:
 	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	VM_DISK="$(VM_DISK)" bash scripts/vm.sh delete
+	VM_DISK="$(VM_DISK)" VM_SEED="$(VM_SEED)" bash scripts/vm.sh delete
 
 vm-ssh:
 	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }

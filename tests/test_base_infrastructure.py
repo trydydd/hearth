@@ -326,34 +326,33 @@ class TestVMScript(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("INFO", result.stdout)
 
-    def test_vm_start_uses_raspi3b_machine(self):
-        """vm.sh start must default to -machine raspi3b (natively supported by
-        qemu-system-aarch64 with built-in RPi firmware)."""
+    def test_vm_start_uses_virt_machine(self):
+        """vm.sh start must default to -machine virt (generic QEMU virtual machine
+        for aarch64 that provides a full PCI bus and UEFI boot)."""
         content = self.VM_SCRIPT.read_text()
         self.assertIn(
+            "virt",
+            content,
+            "vm.sh should default VM_MACHINE to virt",
+        )
+        self.assertNotIn(
             "raspi3b",
             content,
-            "vm.sh should default VM_MACHINE to raspi3b",
+            "vm.sh must not use raspi3b: switch to the generic virt machine",
         )
 
-    def test_vm_start_uses_usb_net_not_virtio(self):
-        """raspi3b has no PCI or virtio-mmio bus; network must use usb-net
-        (USB controller), not virtio-net-pci or virtio-net-device."""
+    def test_vm_start_uses_virtio_net(self):
+        """virt machine has a full PCI bus; network must use virtio-net-pci."""
         content = self.VM_SCRIPT.read_text()
         self.assertIn(
-            "usb-net",
-            content,
-            "vm.sh should use usb-net for raspi3b (no PCI/virtio-mmio bus)",
-        )
-        self.assertNotIn(
             "virtio-net-pci",
             content,
-            "vm.sh must not use virtio-net-pci: raspi3b has no PCI bus",
+            "vm.sh should use virtio-net-pci with the virt machine",
         )
         self.assertNotIn(
-            "virtio-net-device",
+            "usb-net",
             content,
-            "vm.sh must not use virtio-net-device: raspi3b has no virtio-mmio bus",
+            "vm.sh must not use usb-net: that was only needed for raspi3b",
         )
 
     def test_vm_ssh_waits_for_ssh_readiness(self):
@@ -420,25 +419,46 @@ class TestBuildVMDiskScript(unittest.TestCase):
             "build-vm-disk.sh should check for mcopy (mtools)",
         )
 
-    def test_build_script_enables_ssh(self):
+    def test_build_script_creates_cloud_init_seed(self):
+        """build-vm-disk.sh must create a cloud-init nocloud seed image so that
+        the Debian cloud image can configure the pi user on first boot."""
         content = self.BUILD_SCRIPT.read_text()
+        # The seed image must be referenced via a variable.
         self.assertIn(
-            "::/ssh", content,
-            "build-vm-disk.sh should write an ssh file into the boot partition",
+            "VM_SEED", content,
+            "build-vm-disk.sh should define a VM_SEED variable for the seed image path",
+        )
+        # The cloud-init seed needs a FAT filesystem labelled 'cidata'.
+        self.assertIn(
+            "cidata", content,
+            "build-vm-disk.sh should create a FAT image labelled 'cidata' for cloud-init",
+        )
+        # The seed must contain a user-data file (cloud-config).
+        self.assertIn(
+            "user-data", content,
+            "build-vm-disk.sh should write a user-data file into the seed image",
+        )
+        # The seed must contain a meta-data file.
+        self.assertIn(
+            "meta-data", content,
+            "build-vm-disk.sh should write a meta-data file into the seed image",
         )
 
-    def test_build_script_writes_userconf(self):
+    def test_build_script_configures_pi_user_via_cloud_init(self):
+        """build-vm-disk.sh must configure the pi user in cloud-init user-data
+        with a properly hashed password."""
         content = self.BUILD_SCRIPT.read_text()
+        # The user-data must set up the 'pi' user.
         self.assertIn(
-            "::/userconf.txt", content,
-            "build-vm-disk.sh should write a userconf.txt file into the boot partition",
+            "pi", content,
+            "build-vm-disk.sh should configure the 'pi' user in user-data",
         )
-        # The file must set up the 'pi' user.
+        # SSH password authentication must be enabled.
         self.assertIn(
-            "pi:", content,
-            "build-vm-disk.sh should configure the 'pi' user in userconf.txt",
+            "ssh_pwauth", content,
+            "build-vm-disk.sh should enable ssh_pwauth in user-data",
         )
-        # The password must be hashed via openssl, not stored in plain text inside the file.
+        # The password must be hashed via openssl, not stored in plain text.
         self.assertIn(
             "openssl passwd", content,
             "build-vm-disk.sh should use openssl passwd to hash the password",
@@ -446,27 +466,27 @@ class TestBuildVMDiskScript(unittest.TestCase):
 
     def test_build_script_caches_image(self):
         content = self.BUILD_SCRIPT.read_text()
-        # The script must declare a RPIOS_CACHE variable.
+        # The script must declare a DEBIAN_CACHE variable.
         self.assertIn(
-            "RPIOS_CACHE", content,
-            "build-vm-disk.sh should declare a RPIOS_CACHE variable",
+            "DEBIAN_CACHE", content,
+            "build-vm-disk.sh should declare a DEBIAN_CACHE variable",
         )
-        # The script must skip the download when a cached archive is present.
+        # The script must skip the download when a cached image is present.
         self.assertIn(
-            '-f "$CACHED_ARCHIVE"', content,
-            "build-vm-disk.sh should test for the cached archive file before downloading",
+            '-f "$CACHED_IMAGE"', content,
+            "build-vm-disk.sh should test for the cached image file before downloading",
         )
-        # The script must save the downloaded archive to the cache.
+        # The script must save the downloaded image to the cache.
         self.assertIn(
-            "CACHED_ARCHIVE", content,
-            "build-vm-disk.sh should save the downloaded archive to the cache",
+            "CACHED_IMAGE", content,
+            "build-vm-disk.sh should save the downloaded image to the cache",
         )
 
-    def test_rpios_cache_dir_is_gitignored(self):
+    def test_debian_cache_dir_is_gitignored(self):
         gitignore = (REPO_ROOT / ".gitignore").read_text()
         self.assertIn(
-            "vm/rpios-cache", gitignore,
-            ".gitignore should exclude the RPi OS image cache directory",
+            "vm/debian-cache", gitignore,
+            ".gitignore should exclude the Debian cloud image cache directory",
         )
 
     def test_build_script_resizes_image_to_16g(self):
