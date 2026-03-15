@@ -1,42 +1,48 @@
 # Makefile — CafeBox developer shortcuts
 #
 # Prerequisites:
-#   scripts/vm.sh   — for vm-* targets
+#   vagrant          — for vm-* targets (https://www.vagrantup.com)
+#   ansible-playbook — for install / vm-provision targets (https://www.ansible.com)
 #   scripts/config.py + scripts/generate-configs.py — for generate-configs
-#   install.sh      — for the install target
 
-.PHONY: help vm-start vm-stop vm-ssh install logs generate-configs
+.PHONY: help vm-start vm-stop vm-ssh vm-provision install logs generate-configs
 
 # Default target: print help
 help:
 	@echo "CafeBox developer shortcuts"
 	@echo ""
-	@echo "  make vm-start         Start the development VM (QEMU/libvirt)"
-	@echo "  make vm-stop          Stop the development VM"
-	@echo "  make vm-ssh           Open an SSH session into the development VM"
-	@echo "  make install          Run install.sh inside the VM (or locally)"
+	@echo "  make vm-start         Start the Vagrant dev VM (Debian 13 trixie)"
+	@echo "  make vm-stop          Stop the Vagrant dev VM"
+	@echo "  make vm-ssh           Open an SSH session into the dev VM"
+	@echo "  make vm-provision     Re-run Ansible provisioning inside the dev VM"
+	@echo "  make install          Run Ansible playbook (provision VM or local host)"
 	@echo "  make logs             Tail journald logs for all cafebox services"
 	@echo "  make generate-configs Render all Jinja2 templates from cafe.yaml"
 
 vm-start:
-	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	bash scripts/vm.sh start
+	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See README.md."; exit 1; }
+	vagrant up
 
 vm-stop:
-	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	bash scripts/vm.sh stop
+	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See README.md."; exit 1; }
+	vagrant halt
 
 vm-ssh:
-	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	bash scripts/vm.sh ssh
+	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See README.md."; exit 1; }
+	vagrant ssh
+
+vm-provision:
+	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See README.md."; exit 1; }
+	vagrant provision
 
 install:
-	@test -f install.sh || { echo "ERROR: install.sh not found."; exit 1; }
-	bash install.sh
+	@command -v ansible-playbook >/dev/null 2>&1 || { echo "ERROR: ansible-playbook is not installed. See README.md."; exit 1; }
+	@test -f ansible/playbook.yml || { echo "ERROR: ansible/playbook.yml not found."; exit 1; }
+	ansible-playbook ansible/playbook.yml -i ansible/inventory.yml
 
 logs:
-	@test -f scripts/vm.sh || { echo "ERROR: scripts/vm.sh not found."; exit 1; }
-	bash scripts/vm.sh ssh -- journalctl -f -u 'cafebox-*'
+	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See README.md."; exit 1; }
+	vagrant ssh -c "journalctl -f -u 'cafebox-*'"
 
 generate-configs:
 	@test -f scripts/generate-configs.py || { echo "ERROR: scripts/generate-configs.py not found."; exit 1; }

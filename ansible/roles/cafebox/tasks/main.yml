@@ -1,0 +1,18 @@
+---
+# ansible/roles/cafebox/tasks/main.yml
+# CafeBox-specific setup: generate configs, install services, and bootstrap
+# the application from the shared /vagrant directory.
+
+- name: Generate system configs from cafe.yaml
+  ansible.builtin.command:
+    cmd: python3 scripts/generate-configs.py
+    chdir: /vagrant
+  register: generate_result
+  changed_when: "'Written:' in generate_result.stdout"
+
+- name: Run CafeBox install script
+  ansible.builtin.command:
+    cmd: bash install.sh
+    chdir: /vagrant
+  register: install_result
+  changed_when: install_result.rc == 0

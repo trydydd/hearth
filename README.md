@@ -36,8 +36,9 @@ using the values from `cafe.yaml`.
 ### 3 — Bootstrap the VM or Pi
 
 ```bash
-make vm-start      # start the dev VM
-make install       # run install.sh inside the VM (or directly on a Pi)
+make vm-start         # create and start the Vagrant dev VM (Debian 13 trixie)
+make vm-provision     # re-run Ansible provisioning inside the dev VM
+make install          # run the Ansible playbook directly (VM or Pi)
 ```
 
 ### 4 — (Optional) Build a flashable image
@@ -58,8 +59,14 @@ cafebox/
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, install, logs...
+├── Vagrantfile                 # Debian 13 "trixie" headless VM definition
+├── ansible/
+│   ├── playbook.yml            # Main provisioning playbook
+│   ├── inventory.yml           # Vagrant-managed SSH inventory
+│   └── roles/
+│       ├── common/             # System baseline: packages, locale, time
+│       └── cafebox/            # CafeBox-specific: configs, services, storage
 ├── scripts/
-│   ├── vm.sh                   # VM lifecycle: start, stop, ssh, mount-share, status
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
 │   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
@@ -125,15 +132,24 @@ All services are reverse-proxied through nginx on port 80 and reachable at
 
 ## Developer Workflow
 
+### Prerequisites
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| [Vagrant](https://www.vagrantup.com) | Provision the Debian 13 "trixie" dev VM | `brew install vagrant` / package manager |
+| [VirtualBox](https://www.virtualbox.org) | VM provider used by Vagrant | see website |
+| [Ansible](https://www.ansible.com) | Configuration and orchestration inside the VM | `pip install ansible` |
+
 ```bash
 make help              # List all available targets
 
-make vm-start          # Start the QEMU/libvirt dev VM
-make vm-stop           # Stop the dev VM
-make vm-ssh            # SSH into the dev VM
+make vm-start          # Create and start the Vagrant dev VM (Debian 13 trixie)
+make vm-stop           # Halt the dev VM
+make vm-ssh            # Open a shell inside the dev VM
+make vm-provision      # Re-run Ansible provisioning inside the dev VM
 
 make generate-configs  # Render system/templates/ → system/generated/
-make install           # Run install.sh (inside VM or on a Pi)
+make install           # Run the Ansible playbook (VM or Pi)
 make logs              # Tail journald logs for all cafebox-* services
 ```
 

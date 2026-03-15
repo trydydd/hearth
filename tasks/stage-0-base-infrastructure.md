@@ -88,18 +88,27 @@ Jinja2 template in `system/templates/` into `system/generated/`.
 
 ## Task 0.05 — `Makefile` Dev Shortcuts ✅
 
-Add the developer convenience targets described in `PLAN.md`:
-`vm-start`, `vm-stop`, `vm-ssh`, `install`, `logs`, `generate-configs`.
+Add the developer convenience targets described in `PLAN.md`, using **Vagrant**
+to provision a Debian 13 "trixie" headless VM and **Ansible** for configuration
+and orchestration:
+`vm-start`, `vm-stop`, `vm-ssh`, `vm-provision`, `install`, `logs`, `generate-configs`.
 
 **Deliverables:**
-- `Makefile` with each target delegating to the appropriate script.
+- `Makefile` with each target delegating to `vagrant` or `ansible-playbook`.
 - `.PHONY` declaration for all targets.
+- `Vagrantfile` configuring a headless Debian 13 "trixie" VM with an Ansible
+  provisioner.
+- `ansible/playbook.yml` — main provisioning playbook.
+- `ansible/inventory.yml` — Vagrant-managed inventory.
+- `ansible/roles/common/` — system baseline role (packages).
+- `ansible/roles/cafebox/` — application setup role.
 
 **Acceptance criteria:**
-- `make help` (or `make` with a default help target) lists all targets with
-  one-line descriptions.
-- Each target fails with a descriptive message if its prerequisite (e.g., `vm.sh`)
-  does not exist yet.
+- `make help` lists all targets with one-line descriptions and mentions Vagrant.
+- VM targets fail with a descriptive message if `vagrant` is not installed.
+- `install` target fails with a descriptive message if `ansible-playbook` is
+  not installed.
+- `make generate-configs` is unchanged and delegates to `scripts/generate-configs.py`.
 
 **Status: Complete**
 

@@ -1,0 +1,21 @@
+---
+# ansible/roles/common/tasks/main.yml
+# System baseline: update packages and install shared dependencies.
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - python3
+      - python3-pip
+      - python3-yaml
+      - python3-jinja2
+      - nginx
+      - nftables
+    state: present

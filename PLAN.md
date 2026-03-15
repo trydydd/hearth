@@ -24,8 +24,14 @@ cafebox/
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, install, logs...
+├── Vagrantfile                 # Debian 13 "trixie" headless VM definition
+├── ansible/
+│   ├── playbook.yml            # Main provisioning playbook
+│   ├── inventory.yml           # Vagrant-managed SSH inventory
+│   └── roles/
+│       ├── common/             # System baseline: packages, locale, time
+│       └── cafebox/            # CafeBox-specific: configs, services, storage
 ├── scripts/
-│   ├── vm.sh                   # VM lifecycle: start, stop, ssh, mount-share, status
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
 │   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml

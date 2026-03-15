@@ -1,0 +1,23 @@
+---
+# ansible/playbook.yml — CafeBox main provisioning playbook
+#
+# Applies to the development VM (Debian 13 "trixie") provisioned by Vagrant.
+# The same roles can be used for direct provisioning of a Raspberry Pi by
+# pointing the inventory at the Pi's SSH address.
+#
+# Usage (via Vagrant):
+#   vagrant provision
+#
+# Usage (direct / Pi):
+#   ansible-playbook ansible/playbook.yml -i ansible/inventory.yml
+
+- name: Provision CafeBox
+  hosts: all
+  become: true
+
+  vars_files:
+    - ../cafe.yaml
+
+  roles:
+    - common
+    - cafebox

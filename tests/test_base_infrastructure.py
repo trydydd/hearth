@@ -1,4 +1,6 @@
 import importlib.util
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -183,17 +185,49 @@ class TestTask005MakefileTargets(unittest.TestCase):
             with self.subTest(target=target):
                 self.assertIn(target, result.stdout)
 
-    def test_vm_target_fails_with_descriptive_message_when_vm_script_missing(self):
+    def test_help_mentions_vagrant(self):
         result = subprocess.run(
-            ["make", "vm-start"],
+            ["make", "help"],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
             check=False,
         )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Vagrant", result.stdout)
+
+    def test_vm_target_fails_with_descriptive_message_when_vagrant_missing(self):
+        # Run make vm-start from a temp directory that has a copy of the
+        # Makefile but no vagrant binary on PATH, so the prerequisite check
+        # must produce a helpful error message.
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copy(REPO_ROOT / "Makefile", Path(tmp) / "Makefile")
+            result = subprocess.run(
+                ["make", "vm-start"],
+                cwd=tmp,
+                env={**os.environ, "PATH": "/usr/bin:/bin"},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
         self.assertNotEqual(result.returncode, 0)
         combined = f"{result.stdout}\n{result.stderr}"
-        self.assertIn("scripts/vm.sh not found", combined)
+        self.assertIn("vagrant", combined.lower())
+
+    def test_install_target_fails_with_descriptive_message_when_ansible_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copy(REPO_ROOT / "Makefile", Path(tmp) / "Makefile")
+            result = subprocess.run(
+                ["make", "install"],
+                cwd=tmp,
+                env={**os.environ, "PATH": "/usr/bin:/bin"},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        combined = f"{result.stdout}\n{result.stderr}"
+        self.assertIn("ansible", combined.lower())
 
 
 if __name__ == "__main__":
