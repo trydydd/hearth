@@ -21,7 +21,7 @@ This project is a spiritual descendant of **PirateBox**:
 ```
 cafebox/
 ├── README.md
-├── Vagrantfile                 # Dev VM definition (Vagrant / debian/bookworm64)
+├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...
@@ -114,7 +114,7 @@ location /generate_204 { return 302 http://{{ box.domain }}/; }
 ### 0.5 — Development VM (Vagrant)
 
 The development VM is managed with **Vagrant**. A `Vagrantfile` at the repo root
-defines a `debian/bookworm64` box (same OS base as Raspberry Pi OS Lite 64-bit)
+defines a `debian/trixie64` box (same OS base as Raspberry Pi OS Lite 64-bit)
 so `install.sh` behaves identically in the VM and on real hardware.
 
 ```

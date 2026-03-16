@@ -55,7 +55,7 @@ See [`image/README.md`](image/README.md) for build prerequisites and flashing in
 ```
 cafebox/
 ├── README.md
-├── Vagrantfile                 # Dev VM definition (Vagrant / debian/bookworm64)
+├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...

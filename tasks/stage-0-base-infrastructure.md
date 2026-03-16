@@ -113,12 +113,12 @@ identical environment with a single command. Vagrant replaces the QEMU/libvirt
 `scripts/vm.sh` approach: the `Vagrantfile` at the repo root is the single
 source of truth for the dev environment.
 
-**Box choice:** `debian/bookworm64` — the same OS base as Raspberry Pi OS Lite
+**Box choice:** `debian/trixie64` — the same OS base as Raspberry Pi OS Lite
 64-bit, so `install.sh` behaves identically in the VM and on real hardware.
 
 **Deliverables:**
 - `Vagrantfile` at the repository root with:
-  - `config.vm.box = "debian/bookworm64"`, hostname `cafebox-dev`
+  - `config.vm.box = "debian/trixie64"`, hostname `cafebox-dev`
   - Forwarded ports: guest 80 → host 8080 (portal), guest 8000 → host 8000
     (admin backend), both bound to `127.0.0.1`
   - Synced folder: repo root → `/vagrant` inside the VM
