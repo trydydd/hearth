@@ -89,18 +89,24 @@ Jinja2 template in `system/templates/` into `system/generated/`.
 ## Task 0.05 — `Makefile` Dev Shortcuts ✅
 
 Add the developer convenience targets described in `PLAN.md`:
-`vm-start`, `vm-stop`, `vm-ssh`, `install`, `logs`, `generate-configs`.
+`vm-start`, `vm-stop`, `vm-ssh`, `vm-destroy`, `logs`.
+
+`install` and `generate-configs` are intentionally **not** exposed as Makefile
+targets. Both are invoked automatically by `vagrant provision` (via the
+Vagrantfile shell provisioner), so there is no need for a developer to call them
+directly. Exposing them as top-level targets would create a parallel, out-of-band
+code path that could diverge from the provisioning workflow.
 
 **Deliverables:**
-- `Makefile` with each target delegating to the appropriate script.
+- `Makefile` with each target delegating directly to `vagrant`.
 - `.PHONY` declaration for all targets.
 
 **Acceptance criteria:**
 - `make help` (or `make` with a default help target) lists all targets with
   one-line descriptions.
-- Each target fails with a descriptive message if its prerequisite is absent
-  (e.g., `vagrant` not installed for `vm-start`, script not found for
-  `generate-configs`).
+- Each target fails with a descriptive message if vagrant is not installed.
+- `make vm-start` exits non-zero with a message mentioning "vagrant" when vagrant
+  is not installed.
 
 **Status: Complete**
 

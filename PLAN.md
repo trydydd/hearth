@@ -24,7 +24,7 @@ cafebox/
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
-├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...
+├── Makefile                    # Dev shortcuts: vm-start, vm-stop, vm-ssh, vm-destroy, logs
 ├── scripts/
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
