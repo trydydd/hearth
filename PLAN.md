@@ -21,11 +21,11 @@ This project is a spiritual descendant of **PirateBox**:
 ```
 cafebox/
 ├── README.md
+├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
-├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, install, logs...
+├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...
 ├── scripts/
-│   ├── vm.sh                   # VM lifecycle: start, stop, ssh, mount-share, status
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
 │   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
@@ -110,6 +110,22 @@ Change Android `/generate_204` handler to redirect to the portal:
 ```nginx
 location /generate_204 { return 302 http://{{ box.domain }}/; }
 ```
+
+### 0.5 — Development VM (Vagrant)
+
+The development VM is managed with **Vagrant**. A `Vagrantfile` at the repo root
+defines a `debian/trixie64` box (same OS base as Raspberry Pi OS Lite 64-bit)
+so `install.sh` behaves identically in the VM and on real hardware.
+
+```
+vagrant up       # start (provisions on first run via install.sh)
+vagrant halt     # stop
+vagrant ssh      # shell into the VM
+vagrant destroy  # delete and start fresh
+```
+
+`Makefile` targets (`make vm-start`, `make vm-stop`, `make vm-ssh`,
+`make vm-destroy`) delegate directly to vagrant. There is no `scripts/vm.sh`.
 
 ### 0.6 — Landing Portal
 

@@ -98,26 +98,47 @@ Add the developer convenience targets described in `PLAN.md`:
 **Acceptance criteria:**
 - `make help` (or `make` with a default help target) lists all targets with
   one-line descriptions.
-- Each target fails with a descriptive message if its prerequisite (e.g., `vm.sh`)
-  does not exist yet.
+- Each target fails with a descriptive message if its prerequisite is absent
+  (e.g., `vagrant` not installed for `vm-start`, script not found for
+  `generate-configs`).
 
 **Status: Complete**
 
 ---
 
-## Task 0.06 — `scripts/vm.sh` — VM Lifecycle Management
+## Task 0.06 — `Vagrantfile` — Dev VM Definition
 
-Write the shell script that manages a QEMU/libvirt development VM: `start`,
-`stop`, `ssh`, `mount-share`, `status` sub-commands.
+Define the development VM using **Vagrant** so every contributor can spin up an
+identical environment with a single command. Vagrant replaces the QEMU/libvirt
+`scripts/vm.sh` approach: the `Vagrantfile` at the repo root is the single
+source of truth for the dev environment.
+
+**Box choice:** `debian/trixie64` — the same OS base as Raspberry Pi OS Lite
+64-bit, so `install.sh` behaves identically in the VM and on real hardware.
 
 **Deliverables:**
-- `scripts/vm.sh` with the sub-commands listed above.
-- VM disk image path and SSH port configurable via environment variables with
-  documented defaults.
+- `Vagrantfile` at the repository root with:
+  - `config.vm.box = "debian/trixie64"`, hostname `cafebox-dev`
+  - Forwarded ports: guest 80 → host 8080 (portal), guest 8000 → host 8000
+    (admin backend), both bound to `127.0.0.1`
+  - Synced folder: repo root → `/vagrant` inside the VM
+  - VirtualBox provider: 1 GB RAM, 2 CPUs, name `cafebox-dev`
+  - Shell provisioner: `cd /vagrant && bash install.sh`
+- Updated `Makefile` `vm-*` targets that delegate to `vagrant` commands:
+  - `vm-start` → `vagrant up`
+  - `vm-stop` → `vagrant halt`
+  - `vm-ssh` → `vagrant ssh`
+  - `vm-destroy` → `vagrant destroy -f`
+  - `logs` → `vagrant ssh -c "journalctl -f -u 'cafebox-*'"`
+  - Each target checks `command -v vagrant` and exits with a descriptive
+    error message if vagrant is not installed.
 
 **Acceptance criteria:**
-- `scripts/vm.sh status` exits 0 and prints "stopped" when no VM is running.
-- Script is POSIX-compatible (`bash -n scripts/vm.sh` passes).
+- `vagrant validate` passes against the `Vagrantfile` (requires vagrant installed).
+- `make vm-start` exits non-zero with a message mentioning "vagrant" when vagrant
+  is not installed.
+- `make help` lists `vm-destroy` as a target.
+- `scripts/vm.sh` is **not** created; vagrant is the only VM management layer.
 
 ---
 
