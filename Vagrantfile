@@ -27,5 +27,5 @@ Vagrant.configure("2") do |config|
   end
 
   # Bootstrap the box the same way install.sh runs on real Pi hardware
-  config.vm.provision "shell", inline: "bash /vagrant/install.sh"
+  config.vm.provision "shell", inline: "cd /vagrant && bash install.sh"
 end

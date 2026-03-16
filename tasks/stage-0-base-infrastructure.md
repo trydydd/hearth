@@ -112,7 +112,7 @@ code path that could diverge from the provisioning workflow.
 
 ---
 
-## Task 0.06 — `Vagrantfile` — Dev VM Definition
+## Task 0.06 — `Vagrantfile` — Dev VM Definition ✅
 
 Define the development VM using **Vagrant** so every contributor can spin up an
 identical environment with a single command. Vagrant replaces the QEMU/libvirt
@@ -146,9 +146,11 @@ source of truth for the dev environment.
 - `make help` lists `vm-destroy` as a target.
 - `scripts/vm.sh` is **not** created; vagrant is the only VM management layer.
 
+**Status: Complete**
+
 ---
 
-## Task 0.07 — `scripts/dev-hosts.sh` — Local DNS Entries
+## Task 0.07 — `scripts/dev-hosts.sh` — Local DNS Entries ✅
 
 Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
 `/etc/hosts` so the developer's browser resolves the box domain locally.
@@ -160,6 +162,8 @@ Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
 **Acceptance criteria:**
 - Running `add` twice does not duplicate entries.
 - Script requires `sudo` and exits with a helpful message if not run as root.
+
+**Status: Complete**
 
 ---
 

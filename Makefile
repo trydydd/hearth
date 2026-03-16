@@ -33,7 +33,7 @@ vm-destroy: _require-vagrant
 	vagrant destroy -f
 
 logs: _require-vagrant
-	vagrant ssh -- journalctl -f -u 'cafebox-*'
+	vagrant ssh -c "journalctl -f -u 'cafebox-*'"
 
 _require-vagrant:
 	@command -v vagrant >/dev/null 2>&1 || { echo "ERROR: vagrant is not installed. See https://developer.hashicorp.com/vagrant/downloads"; exit 1; }
