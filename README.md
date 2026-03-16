@@ -55,11 +55,11 @@ See [`image/README.md`](image/README.md) for build prerequisites and flashing in
 ```
 cafebox/
 ├── README.md
+├── Vagrantfile                 # Dev VM definition (Vagrant / debian/bookworm64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
-├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, install, logs...
+├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...
 ├── scripts/
-│   ├── vm.sh                   # VM lifecycle: start, stop, ssh, mount-share, status
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
 │   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
@@ -128,9 +128,10 @@ All services are reverse-proxied through nginx on port 80 and reachable at
 ```bash
 make help              # List all available targets
 
-make vm-start          # Start the QEMU/libvirt dev VM
+make vm-start          # Start the dev VM (Vagrant)
 make vm-stop           # Stop the dev VM
 make vm-ssh            # SSH into the dev VM
+make vm-destroy        # Delete the dev VM
 
 make generate-configs  # Render system/templates/ → system/generated/
 make install           # Run install.sh (inside VM or on a Pi)
