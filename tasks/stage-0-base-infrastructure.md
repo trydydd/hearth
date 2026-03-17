@@ -16,14 +16,12 @@ to land.
 
 **Deliverables:**
 - Empty `cafe.yaml` (with `# TODO` comment)
-- Empty `install.sh` (shebang only)
 - Empty `Makefile`
-- Directories: `scripts/`, `image/`, `system/templates/`, `system/generated/`,
-  `storage/`, `services/conduit/`, `services/element-web/`, `services/calibre-web/`,
-  `services/kiwix/`, `services/navidrome/`, `admin/backend/`, `admin/frontend/`,
-  `portal/`
-- `portal/index.html` (HTML stub)
-- `image/README.md` (one-line stub)
+- Directories: `scripts/`, `system/templates/`, `system/generated/`
+
+**Note:** `admin/`, `image/`, `portal/`, `services/`, and `storage/` were initially
+scaffolded here but have since been removed — their content will live inside the
+`ansible/roles/` directory structure instead.
 
 **Acceptance criteria:** `tree -L 3` matches the layout in `PLAN.md`.
 
@@ -218,21 +216,21 @@ Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
 
 ---
 
-## Task 0.08 — `install.sh` Bootstrap Script
+## Task 0.08 — `ansible/roles/common` Bootstrap Tasks
 
-Write the main bootstrap script that runs identically on a Raspberry Pi and on
-the development VM. It should: install system packages, call
-`generate-configs.py`, enable systemd units, and run `storage/setup-symlinks.py`.
+Implement the `common` Ansible role to bootstrap the box: install system packages,
+create the `cafebox` system user, set up the `/srv/cafebox` directory layout, call
+`scripts/generate-configs.py`, and enable systemd units.
 
 **Deliverables:**
-- `install.sh` with clearly separated phases: package installation, config
-  generation, service enablement, storage setup.
-- Script detects whether it is running on Pi hardware vs. VM and logs accordingly.
+- `ansible/roles/common/tasks/main.yml` with clearly separated phases: package
+  installation, user/directory setup, config generation, service enablement.
+- Role detects whether it is running on Pi hardware vs. VM and logs accordingly.
 
 **Acceptance criteria:**
-- `bash -n install.sh` passes (syntax check).
-- Script is idempotent: running it twice does not break a working installation.
-- Each phase is guarded so a failure stops the script immediately (`set -e`).
+- `ansible-playbook --syntax-check -i ansible/inventory/development ansible/site.yml` passes.
+- Role is idempotent: running it twice does not break a working installation.
+- Each phase uses `block/rescue` or `failed_when` so a failure stops the play immediately.
 
 ---
 
@@ -250,8 +248,8 @@ Rules must enforce:
 
 **Deliverables:**
 - `system/templates/nftables.conf.j2` (or `iptables.rules.j2`)
-- Section in `install.sh` (or a separate `scripts/firewall.sh`) that applies rules
-  and persists them across reboots.
+- `ansible/roles/firewall/tasks/main.yml` that deploys the rendered rules and
+  ensures they persist across reboots.
 
 **Acceptance criteria:**
 - Rules template renders without Jinja2 errors.
@@ -297,7 +295,7 @@ Create a Jinja2 template for the main `nginx.conf` that:
 
 ---
 
-## Task 0.12 — `portal/index.html` Landing Page
+## Task 0.12 — Portal Landing Page (`ansible/roles/nginx`)
 
 Build the portal landing page. It must:
 - Call `GET /api/public/services/status` on page load.
@@ -307,7 +305,8 @@ Build the portal landing page. It must:
 - Work with no JavaScript frameworks (vanilla JS acceptable; no CDN fetches).
 
 **Deliverables:**
-- `portal/index.html` (self-contained: inline CSS + JS or local assets only)
+- Portal `index.html` managed by the `nginx` role (e.g. as a file in
+  `ansible/roles/nginx/files/index.html` or a template in `templates/`)
 
 **Acceptance criteria:**
 - Page renders correctly with a hard-coded mock API response (no server needed).
@@ -317,7 +316,7 @@ Build the portal landing page. It must:
 
 ---
 
-## Task 0.13 — `image/first-boot.sh` + `image/first-boot.service`
+## Task 0.13 — First-Boot Credential Generation (`ansible/roles/common`)
 
 Implement the one-shot first-boot credential generator:
 - Generate a random 12-character alphanumeric admin password.
@@ -328,8 +327,9 @@ Implement the one-shot first-boot credential generator:
   can display it (e.g., `/run/cafebox/initial-password`).
 
 **Deliverables:**
-- `image/first-boot.sh`
-- `image/first-boot.service` (systemd oneshot, `Before=nginx.service`)
+- `ansible/roles/common/files/first-boot.sh` (deployed to the target by the role)
+- `ansible/roles/common/files/first-boot.service` (systemd oneshot, `Before=nginx.service`)
+- Task in `ansible/roles/common/tasks/main.yml` that installs and enables the unit.
 
 **Acceptance criteria:**
 - Script is idempotent: second run exits 0 and does nothing.
@@ -338,43 +338,40 @@ Implement the one-shot first-boot credential generator:
   read it. The portal landing page reads the flag via the
   `/api/public/services/status` API — not by accessing the file directly —
   so nginx's process user does not need read access to this file.
-- `bash -n image/first-boot.sh` passes.
+- `bash -n` passes on the deployed script.
 
 ---
 
-## Task 0.14 — `storage/setup-symlinks.py` Storage Layout
+## Task 0.14 — Storage Layout (`ansible/roles/common`)
 
-Write the script that creates the storage symlinks so each service's writable
-data lives under a single top-level `storage/` mount point (easy to back up or
-move to external media).
+Create the storage symlinks so each service's writable data lives under a single
+top-level mount point (easy to back up or move to external media).
 
 **Deliverables:**
-- `storage/setup-symlinks.py` that reads storage paths from `cafe.yaml` and
-  creates/updates symlinks under `/srv/cafebox/` (or configurable base).
+- Task in `ansible/roles/common/tasks/main.yml` that creates `/srv/cafebox/`
+  subdirectories and symlinks for each service based on variables in
+  `ansible/group_vars/all.yml`.
 
 **Acceptance criteria:**
-- Script is idempotent.
-- `python storage/setup-symlinks.py --dry-run` prints what it would do without
-  making changes.
+- Role is idempotent.
 - Missing target directories are created automatically.
 
 ---
 
-## Task 0.15 — `image/build.sh` — Flashable Image Builder
+## Task 0.15 — Flashable Image Builder (`scripts/build-image.sh`)
 
-Write the script that produces a flashable `.img.xz` Raspberry Pi image.
-It should use `pi-gen` (or a minimal custom loop-mount approach) to:
+Write the script that produces a flashable `.img.xz` Raspberry Pi image by
+running the Ansible playbook against a loop-mounted disk image (or via pi-gen):
 1. Start from a Raspberry Pi OS Lite base.
-2. Copy repository files into the image.
-3. Pre-install system packages offline (using a pre-downloaded package cache).
-4. Enable `first-boot.service`.
+2. Run `ansible/site.yml` against the image (chroot or direct provisioning).
+3. Compress the result to `.img.xz`.
 
 **Deliverables:**
-- `image/build.sh`
+- `scripts/build-image.sh`
 - `image/README.md` with instructions for building and flashing
 
 **Acceptance criteria:**
-- `bash -n image/build.sh` passes.
+- `bash -n scripts/build-image.sh` passes.
 - README documents required host tools and estimated build time.
 
 ---
@@ -383,7 +380,7 @@ It should use `pi-gen` (or a minimal custom loop-mount approach) to:
 
 Create a GitHub Actions workflow that:
 - Triggers on tag push (`v*`).
-- Runs `image/build.sh`.
+- Runs `scripts/build-image.sh`.
 - Uploads the resulting `.img.xz` as a release asset.
 
 **Deliverables:**
