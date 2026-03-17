@@ -1,0 +1,6 @@
+---
+# roles/firewall/tasks/main.yml
+# TODO (Task 0.09): Install and configure nftables firewall rules.
+- name: Placeholder — firewall role tasks not yet implemented
+  debug:
+    msg: "firewall role: nftables firewall rules"

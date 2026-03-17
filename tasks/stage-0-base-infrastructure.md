@@ -119,8 +119,12 @@ identical environment with a single command. Vagrant replaces the QEMU/libvirt
 `scripts/vm.sh` approach: the `Vagrantfile` at the repo root is the single
 source of truth for the dev environment.
 
-**Box choice:** `debian/trixie64` — the same OS base as Raspberry Pi OS Lite
-64-bit, so `install.sh` behaves identically in the VM and on real hardware.
+**Box choice:** `debian/trixie64` — a Debian base compatible with Raspberry Pi OS
+Lite 64-bit, ensuring parity between dev and production.
+
+**Provisioner:** Vagrant's built-in **Ansible provisioner** runs `ansible/site.yml`
+against the VM over SSH — the same playbook used to provision real Pi hardware
+directly, and to build flashable SD card images.
 
 **Deliverables:**
 - `Vagrantfile` at the repository root with:
@@ -129,7 +133,8 @@ source of truth for the dev environment.
     (admin backend), both bound to `127.0.0.1`
   - Synced folder: repo root → `/vagrant` inside the VM
   - VirtualBox provider: 1 GB RAM, 2 CPUs, name `cafebox-dev`
-  - Shell provisioner: `cd /vagrant && bash install.sh`
+  - Ansible provisioner: `ansible.playbook = "ansible/site.yml"`
+- `ansible/` directory with best-practice layout (see Task 0.06a below)
 - Updated `Makefile` `vm-*` targets that delegate to `vagrant` commands:
   - `vm-start` → `vagrant up`
   - `vm-stop` → `vagrant halt`
@@ -145,6 +150,52 @@ source of truth for the dev environment.
   is not installed.
 - `make help` lists `vm-destroy` as a target.
 - `scripts/vm.sh` is **not** created; vagrant is the only VM management layer.
+
+**Status: Complete**
+
+---
+
+## Task 0.06a — `ansible/` — Ansible Provisioner Directory Structure ✅
+
+Initialise the Ansible directory layout following
+[Ansible best practices](https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html).
+Each CafeBox service gets its own role so concerns are cleanly separated and
+roles can be enabled/disabled independently via `cafe.yaml`.
+
+**Deliverables:**
+- `ansible/ansible.cfg` — project-scoped Ansible config (roles path, inventory
+  defaults, SSH settings)
+- `ansible/site.yml` — top-level playbook that applies all roles to the
+  `cafebox` host group
+- `ansible/inventory/development` — static inventory for the Vagrant dev VM
+- `ansible/inventory/production` — stub inventory for real Pi targets
+- `ansible/group_vars/all.yml` — variables shared across all hosts (loaded
+  from `cafe.yaml` values)
+- `ansible/roles/<name>/` for each service, each containing:
+  - `tasks/main.yml`
+  - `handlers/main.yml`
+  - `defaults/main.yml`
+  - `meta/main.yml`
+
+  Roles:
+  | Role | Responsibility |
+  |------|---------------|
+  | `common` | Base packages, system users, directory layout |
+  | `nginx` | Web server, portal reverse-proxy |
+  | `conduit` | Matrix homeserver |
+  | `element_web` | Matrix web client |
+  | `calibre_web` | eBook library |
+  | `kiwix` | Offline Wikipedia / ZIM reader |
+  | `navidrome` | Music streaming server |
+  | `admin` | Admin backend + frontend |
+  | `wifi` | hostapd + dnsmasq hotspot |
+  | `firewall` | nftables rules |
+
+**Acceptance criteria:**
+- `ansible-lint ansible/site.yml` reports no errors (requires ansible-lint).
+- `ansible-playbook --syntax-check -i ansible/inventory/development ansible/site.yml`
+  passes.
+- Each role directory contains at minimum `tasks/main.yml`.
 
 **Status: Complete**
 

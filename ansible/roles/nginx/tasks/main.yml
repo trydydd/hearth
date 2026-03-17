@@ -1,0 +1,6 @@
+---
+# roles/nginx/tasks/main.yml
+# TODO (Task 0.11): Install and configure nginx web server, portal reverse-proxy and captive-portal redirect.
+- name: Placeholder — nginx role tasks not yet implemented
+  debug:
+    msg: "nginx role: nginx web server, portal reverse-proxy and captive-portal redirect"

@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: conduit
+  description: Conduit Matrix homeserver
+  min_ansible_version: "2.12"
+dependencies:
+  - role: common

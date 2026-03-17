@@ -1,0 +1,7 @@
+[cafebox]
+# Replace with the IP address or hostname of your Raspberry Pi.
+# Example:
+#   cafebox ansible_host=192.168.1.100 ansible_user=pi
+#
+# Run with:
+#   ansible-playbook -i inventory/production site.yml

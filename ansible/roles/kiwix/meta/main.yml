@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: kiwix
+  description: Kiwix offline Wikipedia / ZIM reader
+  min_ansible_version: "2.12"
+dependencies:
+  - role: common

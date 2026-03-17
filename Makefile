@@ -3,10 +3,9 @@
 # Prerequisites:
 #   vagrant — for all vm-* and logs targets
 #
-# Note: install.sh and generate-configs.py are NOT invoked directly from here.
-# Both are called automatically by `vagrant provision` (via the Vagrantfile shell
-# provisioner), so running `make vm-start` is sufficient to get a fully-configured
-# development VM.
+# Note: provisioning is handled by Ansible (ansible/site.yml) via the Vagrantfile
+# Ansible provisioner. Running `make vm-start` is sufficient to get a fully-configured
+# development VM. The same playbook is used to provision real Pi hardware over SSH.
 
 .PHONY: help vm-start vm-stop vm-ssh vm-destroy logs _require-vagrant
 

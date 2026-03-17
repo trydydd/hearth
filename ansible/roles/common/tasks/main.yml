@@ -1,0 +1,7 @@
+---
+# roles/common/tasks/main.yml
+# TODO (Task 0.08): Install base system packages, create cafebox system user,
+# and set up the /srv/cafebox directory layout.
+- name: Placeholder — common role tasks not yet implemented
+  debug:
+    msg: "common role: base system setup"

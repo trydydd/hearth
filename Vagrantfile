@@ -26,6 +26,8 @@ Vagrant.configure("2") do |config|
     vb.cpus   = 2
   end
 
-  # Bootstrap the box the same way install.sh runs on real Pi hardware
-  config.vm.provision "shell", inline: "cd /vagrant && bash install.sh"
+  # Provision using Ansible — the same playbook is used for real Pi hardware
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "ansible/site.yml"
+  end
 end
