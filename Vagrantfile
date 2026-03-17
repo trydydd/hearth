@@ -18,7 +18,13 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 8000, host: 8000, host_ip: "127.0.0.1"
 
   # Repo root is always available at /vagrant inside the VM
-  config.vm.synced_folder ".", "/vagrant"
+  # NFSv3 avoids the NFSv4 pseudo-root (fsid=0) requirement that causes
+  # "No such file or directory" mount failures with the default vers=4.
+  config.vm.synced_folder ".", "/vagrant",
+    type: "nfs",
+    nfs_version: 3,
+    #TODO enable nfs it currently fails with an error when enabled
+    disabled: "True"
 
   config.vm.provider "virtualbox" do |vb|
     vb.name   = "cafebox-dev"
@@ -28,6 +34,8 @@ Vagrant.configure("2") do |config|
 
   # Provision using Ansible — the same playbook is used for real Pi hardware
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/site.yml"
+    ansible.playbook       = "ansible/site.yml"
+    #TODO get inventory working so we can target just the vm instead of all hosts.
+    # ansible.inventory_path = "ansible/inventory/development"
   end
 end

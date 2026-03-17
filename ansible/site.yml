@@ -6,8 +6,15 @@
 # Run against real Pi:      ansible-playbook -i inventory/production  site.yml
 
 - name: Provision CafeBox
-  hosts: cafebox
+  hosts: all
   become: true
+
+  pre_tasks:
+    - name: Smoke test — verify playbook execution reaches the host
+      ansible.builtin.file:
+        path: /tmp/ansible_ok
+        state: touch
+        mode: "0644"
 
   roles:
     - common
