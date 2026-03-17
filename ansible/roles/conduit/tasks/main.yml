@@ -1,0 +1,6 @@
+---
+# roles/conduit/tasks/main.yml
+# TODO (Task 1.x): Install and configure Conduit Matrix homeserver.
+- name: Placeholder — conduit role tasks not yet implemented
+  debug:
+    msg: "conduit role: Conduit Matrix homeserver"

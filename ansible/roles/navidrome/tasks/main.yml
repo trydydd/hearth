@@ -1,0 +1,6 @@
+---
+# roles/navidrome/tasks/main.yml
+# TODO (Task 1.x): Install and configure Navidrome music streaming server.
+- name: Placeholder — navidrome role tasks not yet implemented
+  debug:
+    msg: "navidrome role: Navidrome music streaming server"

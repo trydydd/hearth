@@ -1,0 +1,22 @@
+---
+# site.yml — CafeBox top-level playbook
+#
+# Apply all roles to the cafebox host group.
+# Run against the dev VM:   ansible-playbook -i inventory/development site.yml
+# Run against real Pi:      ansible-playbook -i inventory/production  site.yml
+
+- name: Provision CafeBox
+  hosts: cafebox
+  become: true
+
+  roles:
+    - common
+    - wifi
+    - firewall
+    - nginx
+    - conduit
+    - element_web
+    - calibre_web
+    - kiwix
+    - navidrome
+    - admin

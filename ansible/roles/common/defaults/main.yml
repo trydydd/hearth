@@ -1,0 +1,4 @@
+---
+# roles/common/defaults/main.yml
+cafebox_user:  "cafebox"
+cafebox_group: "cafebox"

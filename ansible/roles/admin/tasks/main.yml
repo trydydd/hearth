@@ -1,0 +1,6 @@
+---
+# roles/admin/tasks/main.yml
+# TODO (Task 1.01): Install and configure CafeBox admin backend and frontend.
+- name: Placeholder — admin role tasks not yet implemented
+  debug:
+    msg: "admin role: CafeBox admin backend and frontend"

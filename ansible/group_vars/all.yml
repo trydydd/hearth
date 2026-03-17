@@ -1,0 +1,21 @@
+---
+# group_vars/all.yml — variables shared across all CafeBox hosts
+#
+# Values here mirror the structure of cafe.yaml so playbook tasks can
+# reference them directly. Override per-host in host_vars/ as needed.
+
+# Box identity
+cafebox_name:   "CafeBox"
+cafebox_domain: "cafe.box"
+cafebox_ip:     "10.0.0.1"
+
+# Storage base directory
+cafebox_storage_base: "/srv/cafebox"
+
+# Service enable flags — set to false to skip installation of that service
+cafebox_services:
+  conduit:     true
+  element_web: true
+  calibre_web: true
+  kiwix:       true
+  navidrome:   true

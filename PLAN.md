@@ -23,36 +23,36 @@ cafebox/
 ├── README.md
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
-├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── Makefile                    # Dev shortcuts: vm-start, vm-stop, vm-ssh, vm-destroy, logs
+├── ansible/                    # Ansible provisioner (dev VM, Pi over SSH, image builds)
+│   ├── ansible.cfg
+│   ├── site.yml                # Top-level playbook
+│   ├── inventory/
+│   │   ├── development         # Vagrant dev VM
+│   │   └── production          # Real Pi targets
+│   ├── group_vars/
+│   │   └── all.yml
+│   └── roles/
+│       ├── common/             # Base packages, system users, directory layout
+│       ├── nginx/              # Web server, portal reverse-proxy
+│       ├── conduit/            # Matrix homeserver
+│       ├── element_web/        # Matrix web client
+│       ├── calibre_web/        # eBook library
+│       ├── kiwix/              # Offline Wikipedia / ZIM reader
+│       ├── navidrome/          # Music streaming server
+│       ├── admin/              # Admin backend + frontend
+│       ├── wifi/               # hostapd + dnsmasq hotspot
+│       └── firewall/           # nftables rules
 ├── scripts/
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
-│   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
+│   ├── config.py               # Loads cafe.yaml
 │   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
-├── image/
-│   ├── build.sh                # Builds a flashable .img.xz
-│   ├── first-boot.sh           # Runs once on first boot: generates password, sets flag
-│   ├── first-boot.service      # systemd oneshot unit that calls first-boot.sh
-│   └── README.md               # Instructions for building and flashing the image
 ├── .github/
 │   └── workflows/
 │       └── build-image.yml     # GitHub Action: builds and publishes image on tag
-├── system/
-│   ├── templates/              # Jinja2 templates — never edit these directly
-│   └── generated/              # Auto-generated — never edit directly
-├── storage/
-│   └── setup-symlinks.py
-├── services/
-│   ├── conduit/
-│   ├── element-web/
-│   ├── calibre-web/
-│   ├── kiwix/
-│   └── navidrome/
-├── admin/
-│   ├── backend/
-│   └── frontend/
-└── portal/
-    └── index.html
+└── system/
+    ├── templates/              # Jinja2 templates — never edit these directly
+    └── generated/              # Auto-generated — never edit directly
 ```
 
 ---
@@ -111,14 +111,15 @@ Change Android `/generate_204` handler to redirect to the portal:
 location /generate_204 { return 302 http://{{ box.domain }}/; }
 ```
 
-### 0.5 — Development VM (Vagrant)
+### 0.5 — Development VM (Vagrant + Ansible)
 
 The development VM is managed with **Vagrant**. A `Vagrantfile` at the repo root
-defines a `debian/trixie64` box (same OS base as Raspberry Pi OS Lite 64-bit)
-so `install.sh` behaves identically in the VM and on real hardware.
+defines a `debian/trixie64` box and uses Vagrant's built-in Ansible provisioner
+to run `ansible/site.yml` — the same playbook used to provision real Pi hardware
+over SSH and to build flashable SD card images.
 
 ```
-vagrant up       # start (provisions on first run via install.sh)
+vagrant up       # start (provisions on first run via ansible/site.yml)
 vagrant halt     # stop
 vagrant ssh      # shell into the VM
 vagrant destroy  # delete and start fresh

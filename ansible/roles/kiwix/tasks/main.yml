@@ -1,0 +1,6 @@
+---
+# roles/kiwix/tasks/main.yml
+# TODO (Task 1.x): Install and configure Kiwix offline Wikipedia / ZIM reader.
+- name: Placeholder — kiwix role tasks not yet implemented
+  debug:
+    msg: "kiwix role: Kiwix offline Wikipedia / ZIM reader"

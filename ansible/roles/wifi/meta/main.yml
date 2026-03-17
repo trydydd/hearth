@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: wifi
+  description: Hostapd + dnsmasq WiFi hotspot
+  min_ansible_version: "2.12"
+dependencies:
+  - role: common

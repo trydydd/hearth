@@ -1,0 +1,6 @@
+---
+# roles/wifi/tasks/main.yml
+# TODO (Task 0.10): Install and configure hostapd + dnsmasq WiFi hotspot.
+- name: Placeholder — wifi role tasks not yet implemented
+  debug:
+    msg: "wifi role: hostapd + dnsmasq WiFi hotspot"

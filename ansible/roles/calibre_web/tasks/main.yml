@@ -1,0 +1,6 @@
+---
+# roles/calibre_web/tasks/main.yml
+# TODO (Task 1.x): Install and configure Calibre-Web eBook library.
+- name: Placeholder — calibre_web role tasks not yet implemented
+  debug:
+    msg: "calibre_web role: Calibre-Web eBook library"
