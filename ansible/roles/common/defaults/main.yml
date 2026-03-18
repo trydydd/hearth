@@ -2,3 +2,26 @@
 # roles/common/defaults/main.yml
 cafebox_user:  "cafebox"
 cafebox_group: "cafebox"
+
+cafebox_storage_base: "/srv/cafebox"
+
+# Root of the cloned repository on the target (override for non-Vagrant deployments)
+cafebox_project_root: "/vagrant"
+
+# Subdirectories created under cafebox_storage_base for each service
+cafebox_storage_dirs:
+  - conduit
+  - calibre
+  - kiwix
+  - navidrome
+
+# Base packages installed on every CafeBox host
+cafebox_base_packages:
+  - curl
+  - git
+  - vim
+  - htop
+  - ca-certificates
+  - rsync
+  - logrotate
+  - systemd-timesyncd
