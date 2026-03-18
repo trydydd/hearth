@@ -216,7 +216,7 @@ Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
 
 ---
 
-## Task 0.08 — `ansible/roles/common` Bootstrap Tasks
+## Task 0.08 — `ansible/roles/common` Bootstrap Tasks ✅
 
 Implement the `common` Ansible role to bootstrap the box: install system packages,
 create the `cafebox` system user, set up the `/srv/cafebox` directory layout, call
@@ -232,7 +232,7 @@ create the `cafebox` system user, set up the `/srv/cafebox` directory layout, ca
 - Role is idempotent: running it twice does not break a working installation.
 - Each phase uses `block/rescue` or `failed_when` so a failure stops the play immediately.
 
----
+**Status: Complete**
 
 ## Task 0.09 — Network Policy: Firewall Rules (Hotspot-Only, Default-Deny)
 
