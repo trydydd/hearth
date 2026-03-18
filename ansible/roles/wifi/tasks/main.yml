@@ -39,11 +39,11 @@
   ansible.builtin.systemd:
     name: hostapd
     enabled: true
-    state: "{{ 'started' if wifi.interface in ansible_interfaces else 'stopped' }}"
+    state: started
 
 - name: Enable and start dnsmasq
   ansible.builtin.systemd:
     name: dnsmasq
     enabled: true
-    state: "{{ 'started' if wifi.interface in ansible_interfaces else 'stopped' }}"
+    state: started
 

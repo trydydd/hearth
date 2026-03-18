@@ -1,7 +1,14 @@
+{%- set service_ports = {
+    'conduit':     6167,
+    'element_web': 8080,
+    'calibre_web': 8083,
+    'kiwix':       8888,
+    'navidrome':   4533
+} -%}
 # nginx.conf.j2 — CafeBox nginx configuration template
 #
 # Rendered by:  ansible roles/nginx via ansible.builtin.template
-# Deployed to:  /etc/nginx/sites-enabled/cafebox.conf
+# Deployed to:  {{ nginx_conf_dest }}
 #
 # Expected rendered form (with the sample cafe.yaml defaults):
 #
@@ -12,19 +19,22 @@
 #       index index.html;
 #
 #       # Captive-portal detection — redirect to portal on all OSes
-#       location /generate_204 { return 302 http://cafe.box/; }
+#       location /generate_204        { return 302 http://cafe.box/; }
 #       location /hotspot-detect.html { return 302 http://cafe.box/; }
-#       location /connecttest.txt { return 302 http://cafe.box/; }
-#       location /ncsi.txt { return 302 http://cafe.box/; }
+#       location /connecttest.txt     { return 302 http://cafe.box/; }
+#       location /ncsi.txt            { return 302 http://cafe.box/; }
 #
 #       location / { try_files $uri $uri/ =404; }
 #
+#       # Admin API (proxied to the local admin backend)
+#       location /api/ { proxy_pass http://127.0.0.1:8000/; ... }
+#
 #       # Service reverse-proxy stubs (uncomment when service is installed)
-#       # location /conduit/  { proxy_pass http://127.0.0.1:6167/; }
-#       # location /element/  { proxy_pass http://127.0.0.1:8080/; }
-#       # location /calibre/  { proxy_pass http://127.0.0.1:8083/; }
-#       # location /kiwix/    { proxy_pass http://127.0.0.1:8888/; }
-#       # location /navidrome/ { proxy_pass http://127.0.0.1:4533/; }
+#       # location /conduit/     { proxy_pass http://127.0.0.1:6167/; }
+#       # location /element_web/ { proxy_pass http://127.0.0.1:8080/; }
+#       # location /calibre_web/ { proxy_pass http://127.0.0.1:8083/; }
+#       # location /kiwix/       { proxy_pass http://127.0.0.1:8888/; }
+#       # location /navidrome/   { proxy_pass http://127.0.0.1:4533/; }
 #   }
 
 server {
@@ -35,10 +45,10 @@ server {
     index index.html;
 
     # Captive-portal detection — redirect all OS probes to the portal
-    location /generate_204       { return 302 http://{{ box.domain }}/; }
+    location /generate_204        { return 302 http://{{ box.domain }}/; }
     location /hotspot-detect.html { return 302 http://{{ box.domain }}/; }
-    location /connecttest.txt    { return 302 http://{{ box.domain }}/; }
-    location /ncsi.txt           { return 302 http://{{ box.domain }}/; }
+    location /connecttest.txt     { return 302 http://{{ box.domain }}/; }
+    location /ncsi.txt            { return 302 http://{{ box.domain }}/; }
 
     location / {
         try_files $uri $uri/ =404;
@@ -51,12 +61,16 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 
-    {% for name, svc in services.items() %}
-    {% if svc.enabled %}
-    # {{ name }} — enabled
-    # location /{{ name }}/ { proxy_pass http://127.0.0.1:PORT/; }
-    {% else %}
-    # {{ name }} — disabled (set services.{{ name }}.enabled: true to activate)
-    {% endif %}
-    {% endfor %}
+    # Service reverse-proxy stubs — uncomment the location block and remove the
+    # leading '#' when the corresponding service is enabled in cafe.yaml.
+{% for name, svc in services.items() %}
+{%- set port = service_ports.get(name, 'PORT') -%}
+{%- if svc.enabled %}
+    # {{ name }} — enabled; uncomment to activate reverse-proxy:
+    # location /{{ name }}/ { proxy_pass http://127.0.0.1:{{ port }}/; }
+{% else %}
+    # {{ name }} — disabled (set services.{{ name }}.enabled: true in cafe.yaml)
+    # location /{{ name }}/ { proxy_pass http://127.0.0.1:{{ port }}/; }
+{% endif %}
+{%- endfor %}
 }

@@ -1,6 +1,59 @@
 ---
-# roles/nginx/tasks/main.yml
-# TODO (Task 0.11): Install and configure nginx web server, portal reverse-proxy and captive-portal redirect.
-- name: Placeholder — nginx role tasks not yet implemented
-  debug:
-    msg: "nginx role: nginx web server, portal reverse-proxy and captive-portal redirect"
+# roles/nginx/tasks/main.yml — Install and configure nginx as the CafeBox portal
+# and captive-portal redirect handler.
+#
+# Task 0.11: Deploy the Jinja2-rendered nginx configuration that:
+#   - Serves the portal landing page on port 80.
+#   - Redirects OS captive-portal probes (/generate_204, etc.) to the portal.
+#   - Provides stub reverse-proxy location blocks for each service.
+
+- name: "nginx — install and configure"
+  block:
+    - name: Install nginx package
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create portal web root directory
+      ansible.builtin.file:
+        path: "{{ nginx_portal_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Deploy rendered nginx configuration to sites-available
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: "{{ nginx_conf_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable cafebox nginx site (symlink into sites-enabled)
+      ansible.builtin.file:
+        src: "{{ nginx_conf_dest }}"
+        dest: "{{ nginx_conf_enabled }}"
+        state: link
+
+    - name: Remove default nginx site from sites-enabled
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Enable and start nginx service
+      ansible.builtin.service:
+        name: nginx
+        enabled: true
+        state: started
+
+  rescue:
+    - name: "nginx FAILED — installation or configuration error"
+      ansible.builtin.fail:
+        msg: >-
+          nginx role failed.
+          Check the task output above for details.

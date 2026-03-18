@@ -289,7 +289,7 @@ hotspot and captive-portal DNS are driven by `cafe.yaml`.
 
 ---
 
-## Task 0.11 — nginx Configuration Template + Captive Portal Redirect
+## Task 0.11 — nginx Configuration Template + Captive Portal Redirect ✅
 
 Create a Jinja2 template for the main `nginx.conf` that:
 - Serves the landing portal on port 80.
@@ -304,6 +304,8 @@ Create a Jinja2 template for the main `nginx.conf` that:
 - Template renders to valid nginx configuration (`nginx -t` passes against the
   rendered file).
 - `/generate_204` block is present and points to `box.domain`.
+
+**Status: Complete**
 
 ---
 
