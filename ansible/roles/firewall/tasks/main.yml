@@ -1,6 +1,39 @@
 ---
 # roles/firewall/tasks/main.yml
-# TODO (Task 0.09): Install and configure nftables firewall rules.
-- name: Placeholder — firewall role tasks not yet implemented
-  debug:
-    msg: "firewall role: nftables firewall rules"
+# Deploy nftables firewall rules that enforce the CafeBox threat model:
+#   - No WAN routing/NAT for connected clients.
+#   - Allow DHCP (UDP 67/68), DNS (UDP/TCP 53), HTTP (TCP 80) on the AP
+#     interface only.
+#   - Drop everything else from clients.
+#   - Allow full outbound from the box itself for build-time downloads.
+
+- name: "Firewall — install and configure nftables"
+  block:
+    - name: Install nftables package
+      ansible.builtin.apt:
+        name: nftables
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Deploy rendered nftables configuration
+      ansible.builtin.template:
+        src: nftables.conf.j2
+        dest: "{{ firewall_nftables_conf }}"
+        owner: root
+        group: root
+        mode: "0640"
+      notify: Reload nftables
+
+    - name: Enable nftables service so rules load on every boot
+      ansible.builtin.service:
+        name: nftables
+        enabled: true
+        state: started
+
+  rescue:
+    - name: "Firewall FAILED — nftables installation or configuration error"
+      ansible.builtin.fail:
+        msg: >-
+          Firewall role failed.
+          Check the task output above for details.

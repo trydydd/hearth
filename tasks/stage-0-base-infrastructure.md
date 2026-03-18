@@ -234,7 +234,7 @@ create the `cafebox` system user, set up the `/srv/cafebox` directory layout, ca
 
 **Status: Complete**
 
-## Task 0.09 — Network Policy: Firewall Rules (Hotspot-Only, Default-Deny)
+## Task 0.09 — Network Policy: Firewall Rules (Hotspot-Only, Default-Deny) ✅
 
 Implement the threat-model firewall rules from Stage 0.0 of `PLAN.md` using
 `nftables` (preferred) or `iptables`.
@@ -254,6 +254,8 @@ Rules must enforce:
 **Acceptance criteria:**
 - Rules template renders without Jinja2 errors.
 - Comments in the file map each rule to the threat-model bullet it addresses.
+
+**Status: Complete**
 
 ---
 

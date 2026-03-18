@@ -1,10 +1,9 @@
 ---
 # roles/common/tasks/main.yml
-# Bootstrap the CafeBox host in four clearly separated phases:
+# Bootstrap the CafeBox host in three clearly separated phases:
 #   1. Package installation
 #   2. User and directory setup
-#   3. Config generation
-#   4. Service enablement
+#   3. Service enablement
 #
 # Each phase is wrapped in a block/rescue so any failure stops the play
 # immediately with a descriptive message.
@@ -103,14 +102,6 @@
         group: "{{ cafebox_group }}"
         mode: "0750"
 
-    - name: Create app directory for deployed project files
-      ansible.builtin.file:
-        path: "{{ cafebox_app_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
   rescue:
     - name: "Phase 2 FAILED — user/directory setup error"
       ansible.builtin.fail:
@@ -119,65 +110,9 @@
           Check the task output above for details.
 
 # ---------------------------------------------------------------------------
-# Phase 3 — Config generation
+# Phase 3 — Service enablement
 # ---------------------------------------------------------------------------
-- name: "Phase 3 — Generate system configurations from cafe.yaml"
-  block:
-    - name: Install Python3 and pip (required for generate-configs.py)
-      ansible.builtin.apt:
-        name:
-          - python3
-          - python3-pip
-          - python3-jinja2
-          - python3-yaml
-        state: present
-
-    - name: Deploy cafe.yaml to app directory
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../cafe.yaml"
-        dest: "{{ cafebox_app_dir }}/cafe.yaml"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Deploy scripts to app directory
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../scripts/"
-        dest: "{{ cafebox_app_dir }}/scripts/"
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Deploy system templates to app directory
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../system/templates/"
-        dest: "{{ cafebox_app_dir }}/system/templates/"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Run generate-configs.py to render Jinja2 templates
-      ansible.builtin.command:
-        cmd: "python3 {{ cafebox_app_dir }}/scripts/generate-configs.py --config {{ cafebox_app_dir }}/cafe.yaml"
-        chdir: "{{ cafebox_app_dir }}"
-      register: _generate_configs
-      changed_when: "'Written:' in _generate_configs.stdout"
-
-    - name: Show generate-configs.py output
-      ansible.builtin.debug:
-        var: _generate_configs.stdout_lines
-
-  rescue:
-    - name: "Phase 3 FAILED — config generation error"
-      ansible.builtin.fail:
-        msg: >-
-          Common role phase 3 (config generation) failed.
-          Check the generate-configs.py output above for details.
-
-# ---------------------------------------------------------------------------
-# Phase 4 — Service enablement
-# ---------------------------------------------------------------------------
-- name: "Phase 4 — Enable and start core systemd services"
+- name: "Phase 3 — Enable and start core systemd services"
   block:
     - name: Apply tmpfiles.d configuration to create /run/cafebox immediately
       ansible.builtin.command:
@@ -185,8 +120,8 @@
       changed_when: false
 
   rescue:
-    - name: "Phase 4 FAILED — service enablement error"
+    - name: "Phase 3 FAILED — service enablement error"
       ansible.builtin.fail:
         msg: >-
-          Common role phase 4 (service enablement) failed.
+          Common role phase 3 (service enablement) failed.
           Check the systemd output above for details.

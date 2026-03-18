@@ -1,2 +1,5 @@
 ---
 # roles/firewall/defaults/main.yml
+
+# Path where the rendered nftables configuration is deployed on the target host
+firewall_nftables_conf: /etc/nftables.conf
