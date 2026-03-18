@@ -103,6 +103,14 @@
         group: "{{ cafebox_group }}"
         mode: "0750"
 
+    - name: Create app directory for deployed project files
+      ansible.builtin.file:
+        path: "{{ cafebox_app_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
   rescue:
     - name: "Phase 2 FAILED — user/directory setup error"
       ansible.builtin.fail:
@@ -124,10 +132,34 @@
           - python3-yaml
         state: present
 
+    - name: Deploy cafe.yaml to app directory
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../cafe.yaml"
+        dest: "{{ cafebox_app_dir }}/cafe.yaml"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy scripts to app directory
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../scripts/"
+        dest: "{{ cafebox_app_dir }}/scripts/"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy system templates to app directory
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../system/templates/"
+        dest: "{{ cafebox_app_dir }}/system/templates/"
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Run generate-configs.py to render Jinja2 templates
       ansible.builtin.command:
-        cmd: "python3 {{ cafebox_project_root }}/scripts/generate-configs.py --config {{ cafebox_project_root }}/cafe.yaml"
-        chdir: "{{ cafebox_project_root }}"
+        cmd: "python3 {{ cafebox_app_dir }}/scripts/generate-configs.py --config {{ cafebox_app_dir }}/cafe.yaml"
+        chdir: "{{ cafebox_app_dir }}"
       register: _generate_configs
       changed_when: "'Written:' in _generate_configs.stdout"
 

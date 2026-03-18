@@ -5,8 +5,8 @@ cafebox_group: "cafebox"
 
 cafebox_storage_base: "/srv/cafebox"
 
-# Root of the cloned repository on the target (override for non-Vagrant deployments)
-cafebox_project_root: "/vagrant"
+# Directory on the target machine where project files are deployed by Ansible
+cafebox_app_dir: "/opt/cafebox"
 
 # Subdirectories created under cafebox_storage_base for each service
 cafebox_storage_dirs:
