@@ -312,6 +312,7 @@ Create a Jinja2 template for the main `nginx.conf` that:
 ## Task 0.12 — Portal Landing Page (`ansible/roles/nginx`)
 
 Build the portal landing page. It must:
+- Follow the UX and visual direction in [`STYLEGUIDE.md`](../STYLEGUIDE.md).
 - Call `GET /api/public/services/status` on page load.
 - Render a tile grid from the response (name, enabled, URL).
 - Show the first-boot password banner if the API response includes
@@ -321,6 +322,7 @@ Build the portal landing page. It must:
 **Deliverables:**
 - Portal `index.html` managed by the `nginx` role (e.g. as a file in
   `ansible/roles/nginx/files/index.html` or a template in `templates/`)
+- Portal UX reference documented in [`STYLEGUIDE.md`](../STYLEGUIDE.md)
 
 **Acceptance criteria:**
 - Page renders correctly with a hard-coded mock API response (no server needed).
