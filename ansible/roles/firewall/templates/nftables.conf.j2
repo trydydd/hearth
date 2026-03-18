@@ -1,7 +1,7 @@
 # nftables.conf.j2 — CafeBox firewall rules template
 #
-# Rendered by:  scripts/generate-configs.py
-# Output:       system/generated/nftables.conf
+# Rendered by:  ansible roles/firewall via ansible.builtin.template
+# Deployed to:  {{ firewall_nftables_conf }}
 #
 # Threat model (from PLAN.md §0.0):
 #   - No WAN routing/NAT for connected clients.

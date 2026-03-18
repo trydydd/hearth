@@ -17,13 +17,12 @@
         cache_valid_time: 3600
 
     - name: Deploy rendered nftables configuration
-      ansible.builtin.copy:
-        src: "{{ cafebox_app_dir }}/system/generated/nftables.conf"
+      ansible.builtin.template:
+        src: nftables.conf.j2
         dest: "{{ firewall_nftables_conf }}"
         owner: root
         group: root
         mode: "0640"
-        remote_src: true
       notify: Reload nftables
 
     - name: Enable nftables service so rules load on every boot

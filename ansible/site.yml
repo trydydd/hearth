@@ -9,6 +9,9 @@
   hosts: all
   become: true
 
+  vars_files:
+    - ../cafe.yaml
+
   pre_tasks:
     - name: Smoke test — verify playbook execution reaches the host
       ansible.builtin.file:
