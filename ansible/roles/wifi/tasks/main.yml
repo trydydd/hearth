@@ -1,6 +1,49 @@
 ---
-# roles/wifi/tasks/main.yml
-# TODO (Task 0.10): Install and configure hostapd + dnsmasq WiFi hotspot.
-- name: Placeholder — wifi role tasks not yet implemented
-  debug:
-    msg: "wifi role: hostapd + dnsmasq WiFi hotspot"
+# roles/wifi/tasks/main.yml — Install and configure hostapd + dnsmasq WiFi hotspot
+#
+# Task 0.10: Deploy Jinja2-rendered hostapd.conf and dnsmasq.conf so the
+# WiFi access point and captive-portal DNS are driven by cafe.yaml.
+
+- name: Install hostapd and dnsmasq packages
+  ansible.builtin.apt:
+    name:
+      - hostapd
+      - dnsmasq
+    state: present
+    update_cache: true
+
+- name: Deploy hostapd configuration
+  ansible.builtin.template:
+    src: hostapd.conf.j2
+    dest: "{{ wifi_hostapd_conf }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hostapd
+
+- name: Deploy dnsmasq configuration
+  ansible.builtin.template:
+    src: dnsmasq.conf.j2
+    dest: "{{ wifi_dnsmasq_conf }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart dnsmasq
+
+- name: Unmask hostapd service (masked by default on Debian/Ubuntu)
+  ansible.builtin.systemd:
+    name: hostapd
+    masked: false
+
+- name: Enable and start hostapd
+  ansible.builtin.systemd:
+    name: hostapd
+    enabled: true
+    state: started
+
+- name: Enable and start dnsmasq
+  ansible.builtin.systemd:
+    name: dnsmasq
+    enabled: true
+    state: started
+

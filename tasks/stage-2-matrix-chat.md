@@ -60,7 +60,7 @@ Required settings:
 - `max_request_size` = configurable, default `20_000_000`
 
 **Deliverables:**
-- `system/templates/conduit.toml.j2`
+- `ansible/roles/conduit/templates/conduit.toml.j2`
 
 **Acceptance criteria:**
 - Template renders with sample `cafe.yaml` without errors.
@@ -76,14 +76,14 @@ Required settings:
 Create the systemd service unit that runs Conduit as a non-root system user.
 
 **Deliverables:**
-- `services/conduit/conduit.service` (or `system/templates/conduit.service.j2`
-  if any value is templated)
-- Service runs as `conduit` system user (created by `install.sh`).
+- `ansible/roles/conduit/templates/conduit.service.j2` (if any value is templated,
+  otherwise `ansible/roles/conduit/files/conduit.service` as a static file)
+- Service runs as `conduit` system user (created by the conduit role).
 - `Restart=on-failure`, `PrivateTmp=true`, `NoNewPrivileges=true`.
 
 **Acceptance criteria:**
 - `systemd-analyze verify conduit.service` passes (or equivalent offline check).
-- `install.sh` creates the `conduit` user and enables the service.
+- `ansible/roles/conduit/tasks/main.yml` creates the `conduit` user and enables the service.
 
 ---
 
@@ -109,7 +109,7 @@ in the image.
 Create the Element Web configuration so it points to the local Conduit homeserver.
 
 **Deliverables:**
-- `system/templates/element-web-config.json.j2` with:
+- `ansible/roles/element_web/templates/element-web-config.json.j2` with:
   - `"default_server_config"` → `m.homeserver.base_url` = `http://matrix.{{ box.domain }}`
   - `"brand"` = `{{ box.name }}`
   - `"disable_guests": false` (allow unregistered browsing)
@@ -131,7 +131,7 @@ Update the nginx configuration template to expose Matrix and Element Web:
 - Well-known delegation: `/.well-known/matrix/server` and `/.well-known/matrix/client`.
 
 **Deliverables:**
-- Updated `system/templates/nginx.conf.j2`
+- Updated `ansible/roles/nginx/templates/nginx.conf.j2`
 
 **Acceptance criteria:**
 - Rendered config passes `nginx -t`.
