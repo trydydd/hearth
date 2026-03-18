@@ -94,11 +94,11 @@ Create the minimal privilege setup for the admin backend process:
   `systemctl start/stop/restart` commands for CafeBox services — nothing else.
 
 **Deliverables:**
-- `system/templates/sudoers-cafebox.j2` rendered to `/etc/sudoers.d/cafebox`
-- Section in `install.sh` that creates the user and installs the sudoers file.
+- `ansible/roles/admin/templates/sudoers-cafebox.j2` rendered to `/etc/sudoers.d/cafebox`
+- Section in `ansible/roles/admin/tasks/main.yml` that creates the user and installs the sudoers file.
 
 **Acceptance criteria:**
-- `visudo -c -f system/generated/sudoers-cafebox` passes.
+- `visudo -c -f` passes against the rendered sudoers file.
 - Template only grants `systemctl` actions on the specific CafeBox service units,
   not blanket sudo.
 
@@ -239,7 +239,7 @@ Update the nginx configuration template to route admin and API traffic:
 - Admin and API paths must NOT be referenced or linked from the portal (`portal/index.html`).
 
 **Deliverables:**
-- Updated `system/templates/nginx.conf.j2` with `location` blocks for the above.
+- Updated `ansible/roles/nginx/templates/nginx.conf.j2` with `location` blocks for the above.
 
 **Acceptance criteria:**
 - Rendered config passes `nginx -t`.

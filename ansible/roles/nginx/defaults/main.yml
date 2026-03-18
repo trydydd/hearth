@@ -1,2 +1,12 @@
 ---
-# roles/nginx/defaults/main.yml
+# roles/nginx/defaults/main.yml — default variables for the nginx role
+
+# Destination path for the rendered nginx configuration file.
+# Uses sites-available + symlink to sites-enabled (Debian/Ubuntu convention).
+nginx_conf_dest: /etc/nginx/sites-available/cafebox.conf
+
+# Symlink path in sites-enabled that activates the configuration
+nginx_conf_enabled: /etc/nginx/sites-enabled/cafebox.conf
+
+# Portal web root served by nginx
+nginx_portal_root: /var/www/cafebox/portal

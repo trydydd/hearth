@@ -1,2 +1,8 @@
 ---
-# roles/wifi/defaults/main.yml
+# roles/wifi/defaults/main.yml — default variables for the wifi role
+
+# Path where the rendered hostapd configuration is deployed
+wifi_hostapd_conf: /etc/hostapd/hostapd.conf
+
+# Path where the rendered dnsmasq configuration is deployed
+wifi_dnsmasq_conf: /etc/dnsmasq.d/cafebox.conf

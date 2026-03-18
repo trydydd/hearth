@@ -17,11 +17,12 @@ to land.
 **Deliverables:**
 - Empty `cafe.yaml` (with `# TODO` comment)
 - Empty `Makefile`
-- Directories: `scripts/`, `system/templates/`, `system/generated/`
+- Directories: `scripts/`
 
-**Note:** `admin/`, `image/`, `portal/`, `services/`, and `storage/` were initially
-scaffolded here but have since been removed — their content will live inside the
-`ansible/roles/` directory structure instead.
+**Note:** `admin/`, `image/`, `portal/`, `services/`, `storage/`, `system/templates/`,
+and `system/generated/` were initially scaffolded here but have since been removed —
+all Jinja2 templates and their rendered output live inside the
+`ansible/roles/<role>/templates/` directory structure instead.
 
 **Acceptance criteria:** `tree -L 3` matches the layout in `PLAN.md`.
 
@@ -68,11 +69,14 @@ backend.
 ## Task 0.04 — `scripts/generate-configs.py` — Jinja2 Template Renderer ✅
 
 Write the script that reads `cafe.yaml` (via `config.py`) and renders every
-Jinja2 template in `system/templates/` into `system/generated/`.
+Jinja2 template found across `ansible/roles/*/templates/` into `system/generated/`
+(grouped by role). Ansible's own `template` module renders templates directly onto
+the target host at provision time; `generate-configs.py` serves as a local
+developer tool for inspecting the rendered output without running a full playbook.
 
 **Deliverables:**
 - `scripts/generate-configs.py`
-- At least one stub template (`system/templates/nginx.conf.j2`) and its
+- At least one stub template (`ansible/roles/nginx/templates/nginx.conf.j2`) and its
   expected rendered form documented in comments.
 
 **Acceptance criteria:**
@@ -247,7 +251,7 @@ Rules must enforce:
 - Allow full outbound from the box itself for build-time downloads.
 
 **Deliverables:**
-- `system/templates/nftables.conf.j2` (or `iptables.rules.j2`)
+- `ansible/roles/firewall/templates/nftables.conf.j2` (or `iptables.rules.j2`)
 - `ansible/roles/firewall/tasks/main.yml` that deploys the rendered rules and
   ensures they persist across reboots.
 
@@ -259,7 +263,7 @@ Rules must enforce:
 
 ---
 
-## Task 0.10 — `hostapd` + `dnsmasq` Configuration Templates
+## Task 0.10 — `hostapd` + `dnsmasq` Configuration Templates ✅
 
 Create Jinja2 templates for `hostapd.conf` and `dnsmasq.conf` so the WiFi
 hotspot and captive-portal DNS are driven by `cafe.yaml`.
@@ -270,16 +274,22 @@ hotspot and captive-portal DNS are driven by `cafe.yaml`.
 - Return the box IP for all other DNS queries (captive portal intercept).
 
 **Deliverables:**
-- `system/templates/hostapd.conf.j2`
-- `system/templates/dnsmasq.conf.j2`
+- `ansible/roles/wifi/templates/hostapd.conf.j2`
+- `ansible/roles/wifi/templates/dnsmasq.conf.j2`
+- `ansible/roles/wifi/tasks/main.yml` that installs `hostapd` and `dnsmasq`,
+  deploys the rendered configs, and enables/starts both services.
+- `ansible/roles/wifi/handlers/main.yml` with restart handlers for both services.
+- `ansible/roles/wifi/defaults/main.yml` with sensible defaults.
 
 **Acceptance criteria:**
 - Both templates render with the sample `cafe.yaml` without errors.
 - Rendered `dnsmasq.conf` contains a `address=/#/<box_ip>` line.
 
+**Status: Complete**
+
 ---
 
-## Task 0.11 — nginx Configuration Template + Captive Portal Redirect
+## Task 0.11 — nginx Configuration Template + Captive Portal Redirect ✅
 
 Create a Jinja2 template for the main `nginx.conf` that:
 - Serves the landing portal on port 80.
@@ -288,12 +298,14 @@ Create a Jinja2 template for the main `nginx.conf` that:
   service is installed).
 
 **Deliverables:**
-- `system/templates/nginx.conf.j2`
+- `ansible/roles/nginx/templates/nginx.conf.j2`
 
 **Acceptance criteria:**
 - Template renders to valid nginx configuration (`nginx -t` passes against the
   rendered file).
 - `/generate_204` block is present and points to `box.domain`.
+
+**Status: Complete**
 
 ---
 

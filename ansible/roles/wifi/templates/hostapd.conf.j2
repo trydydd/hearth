@@ -1,0 +1,45 @@
+# hostapd.conf.j2 — CafeBox WiFi access point configuration template
+#
+# Rendered by:  ansible roles/wifi via ansible.builtin.template
+# Deployed to:  {{ wifi_hostapd_conf }}
+#
+# Driven by the wifi section of cafe.yaml / group_vars/all.yml.
+
+# Wireless interface used for the access point
+interface={{ wifi.interface }}
+
+# Use the nl80211 driver (standard for modern Linux wireless)
+driver=nl80211
+
+# SSID broadcast by the hotspot
+ssid={{ wifi.ssid }}
+
+# 802.11 mode: g = 2.4 GHz (maximum compatibility with all client devices)
+hw_mode=g
+
+# 802.11 channel
+channel={{ wifi.channel }}
+
+# Require WPA2 if a passphrase is set; run open (no encryption) otherwise
+# Note: WPA2 passphrases must be 8–63 printable ASCII characters. Avoid
+# quotes, backslashes, and other shell-special characters in the passphrase.
+{% if wifi.passphrase %}
+wpa=2
+wpa_passphrase={{ wifi.passphrase }}
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=CCMP
+rsn_pairwise=CCMP
+{% else %}
+# Open network — no passphrase configured
+wpa=0
+{% endif %}
+
+# Disable IEEE 802.11d country-code enforcement (avoids regulatory issues
+# when the operator has not set a country code in cafe.yaml)
+ieee80211d=0
+
+# Beacon interval (ms) — default 100 ms is fine for a local hotspot
+beacon_int=100
+
+# Disable SSID from being hidden (broadcast the network name)
+ignore_broadcast_ssid=0

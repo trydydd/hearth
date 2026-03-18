@@ -1,21 +1,65 @@
 ---
 # group_vars/all.yml — variables shared across all CafeBox hosts
 #
-# Values here mirror the structure of cafe.yaml so playbook tasks can
-# reference them directly. Override per-host in host_vars/ as needed.
+# Values here mirror the structure of cafe.yaml so playbook tasks and Jinja2
+# templates can reference them directly. Override per-host in host_vars/ as needed.
+#
+# The nested `box`, `wifi`, and `services` mappings match the cafe.yaml top-level
+# structure so that role templates work identically whether rendered by
+# scripts/generate-configs.py (from cafe.yaml directly) or by the Ansible
+# template module (from these group variables).
 
-# Box identity
-cafebox_name:   "CafeBox"
-cafebox_domain: "cafe.box"
-cafebox_ip:     "10.0.0.1"
+# ---------------------------------------------------------------------------
+# Box identity (mirrors cafe.yaml: box.*)
+# ---------------------------------------------------------------------------
+box:
+  name:   "CafeBox"
+  domain: "cafe.box"
+  ip:     "10.0.0.1"
 
-# Storage base directory
-cafebox_storage_base: "/srv/cafebox"
+# ---------------------------------------------------------------------------
+# WiFi hotspot (mirrors cafe.yaml: wifi.*)
+# ---------------------------------------------------------------------------
+wifi:
+  ssid:             "CafeBox"
+  passphrase:       ""
+  interface:        "wlan0"
+  channel:          6
+  dhcp_range_start: "10.0.0.10"
+  dhcp_range_end:   "10.0.0.200"
+  dhcp_lease:       "12h"
 
-# Service enable flags — set to false to skip installation of that service
-cafebox_services:
-  conduit:     true
-  element_web: true
-  calibre_web: true
-  kiwix:       true
-  navidrome:   true
+# ---------------------------------------------------------------------------
+# Storage (mirrors cafe.yaml: storage.*)
+# ---------------------------------------------------------------------------
+storage:
+  base: "/srv/cafebox"
+  locations:
+    conduit:     "/srv/cafebox/conduit"
+    calibre_web: "/srv/cafebox/calibre"
+    kiwix:       "/srv/cafebox/kiwix"
+    navidrome:   "/srv/cafebox/navidrome"
+
+# ---------------------------------------------------------------------------
+# Services — per-service enable flags (mirrors cafe.yaml: services.*)
+# ---------------------------------------------------------------------------
+services:
+  conduit:
+    enabled: true
+  element_web:
+    enabled: true
+  calibre_web:
+    enabled: true
+  kiwix:
+    enabled: true
+  navidrome:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# Flat cafebox_* aliases (kept for backward compatibility with tasks that
+# reference individual variables directly)
+# ---------------------------------------------------------------------------
+cafebox_name:         "{{ box.name }}"
+cafebox_domain:       "{{ box.domain }}"
+cafebox_ip:           "{{ box.ip }}"
+cafebox_storage_base: "{{ storage.base }}"
