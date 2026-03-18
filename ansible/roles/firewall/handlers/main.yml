@@ -1,2 +1,7 @@
 ---
 # roles/firewall/handlers/main.yml
+
+- name: Reload nftables
+  ansible.builtin.service:
+    name: nftables
+    state: restarted

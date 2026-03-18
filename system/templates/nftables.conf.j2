@@ -1,0 +1,82 @@
+# nftables.conf.j2 — CafeBox firewall rules template
+#
+# Rendered by:  scripts/generate-configs.py
+# Output:       system/generated/nftables.conf
+#
+# Threat model (from PLAN.md §0.0):
+#   - No WAN routing/NAT for connected clients.
+#   - Allow DHCP (UDP 67/68), DNS (UDP/TCP 53), HTTP (TCP 80) on the AP
+#     interface only.
+#   - Drop everything else from clients.
+#   - Allow full outbound from the box itself for build-time downloads.
+
+flush ruleset
+
+table inet filter {
+
+    # -------------------------------------------------------------------------
+    # INPUT chain — traffic destined for the box itself
+    # -------------------------------------------------------------------------
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Allow established / related connections (stateful tracking)
+        ct state established,related accept
+
+        # Allow loopback traffic unconditionally
+        iif lo accept
+
+        # --- AP interface rules (clients connect here) ---
+
+        # Threat-model: Allow DHCP requests from clients so they can obtain an
+        # IP address from dnsmasq (UDP src 68 → dst 67).
+        iif {{ wifi.interface }} udp dport 67 accept  \
+            comment "DHCP: clients request address on AP interface"
+
+        # Threat-model: Allow DNS queries from clients (port 53) so dnsmasq
+        # can serve *.cafe.box resolution and captive-portal intercept.
+        iif {{ wifi.interface }} tcp dport 53 accept  \
+            comment "DNS/TCP: client name resolution on AP interface"
+        iif {{ wifi.interface }} udp dport 53 accept  \
+            comment "DNS/UDP: client name resolution on AP interface"
+
+        # Threat-model: Allow HTTP (port 80) from clients so the portal and
+        # captive-portal redirect are reachable; HTTPS is intentionally absent
+        # (offline box, self-signed certs would break captive-portal detection).
+        iif {{ wifi.interface }} tcp dport 80 accept  \
+            comment "HTTP: portal access for AP clients"
+
+        # Admin backend API (only from AP interface — not exposed to WAN)
+        iif {{ wifi.interface }} tcp dport 8000 accept \
+            comment "Admin API: accessible from AP interface only"
+
+        # Threat-model: Drop everything else arriving from AP clients.
+        # This is implicit from `policy drop` above, but stated explicitly
+        # for documentation clarity.
+        iif {{ wifi.interface }} drop \
+            comment "Default-deny: drop all other client traffic"
+    }
+
+    # -------------------------------------------------------------------------
+    # FORWARD chain — routing between interfaces
+    # -------------------------------------------------------------------------
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        # Threat-model: No WAN routing/NAT for connected clients.
+        # All forwarded packets are dropped; the box is not a router.
+        # (Explicit drop — policy is already drop, but documented here.)
+        drop comment "No WAN routing: forward chain default-deny"
+    }
+
+    # -------------------------------------------------------------------------
+    # OUTPUT chain — traffic originating from the box itself
+    # -------------------------------------------------------------------------
+    chain output {
+        type filter hook output priority 0; policy accept;
+
+        # Threat-model: Allow full outbound from the box itself so that
+        # build-time downloads (apt, pip, upstream releases) are not blocked.
+        # policy accept handles this; no explicit rules required.
+    }
+}
