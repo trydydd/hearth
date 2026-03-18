@@ -6,6 +6,7 @@
 #   - Serves the portal landing page on port 80.
 #   - Redirects OS captive-portal probes (/generate_204, etc.) to the portal.
 #   - Provides stub reverse-proxy location blocks for each service.
+# Task 0.12: Deploy the portal landing page (files/index.html) to the web root.
 
 - name: "nginx — install and configure"
   block:
@@ -23,6 +24,14 @@
         owner: www-data
         group: www-data
         mode: "0755"
+
+    - name: Deploy portal landing page
+      ansible.builtin.copy:
+        src: index.html
+        dest: "{{ nginx_portal_root }}/index.html"
+        owner: www-data
+        group: www-data
+        mode: "0644"
 
     - name: Deploy rendered nginx configuration to sites-available
       ansible.builtin.template:

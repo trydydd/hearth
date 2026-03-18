@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeBox</title>
+  <style>
+    /* -----------------------------------------------------------------------
+       Design tokens — STYLEGUIDE.md §4
+       ----------------------------------------------------------------------- */
+    :root {
+      --bg-sky-top: #84c8ff;
+      --bg-sky-bottom: #dff3ff;
+      --bg-grid: #9ad2ff;
+
+      --surface-1: #f6f1da;
+      --surface-2: #ece3c5;
+      --surface-3: #d7c79a;
+
+      --ink-strong: #1d2433;
+      --ink-soft: #36445e;
+      --ink-inverse: #fffdf2;
+
+      --accent-primary: #e85d44;
+      --accent-secondary: #2e7dff;
+      --accent-success: #2f9e44;
+      --accent-warning: #d97706;
+      --accent-danger: #c92a2a;
+
+      --tile-enabled: #fff8dc;
+      --tile-disabled: #d9d2b2;
+      --focus-ring: #2e7dff;
+
+      --border-strong: #1d2433;
+      --shadow-pixel: 4px 4px 0 #1d2433;
+
+      --banner-warning-bg: #fff3cd;
+      --accent-secondary-hover: #1a6de0;
+      --accent-primary-hover: #c94c33;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    /* -----------------------------------------------------------------------
+       Reset + base
+       ----------------------------------------------------------------------- */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+      background: linear-gradient(180deg, var(--bg-sky-top) 0%, var(--bg-sky-bottom) 100%);
+      min-height: 100vh;
+      color: var(--ink-strong);
+    }
+
+    /* Scrollable page wrapper */
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: var(--space-4);
+    }
+
+    @media (min-width: 600px) {
+      .page { padding: var(--space-5); }
+    }
+
+    @media (min-width: 1024px) {
+      .page { padding: var(--space-6); }
+    }
+
+    /* -----------------------------------------------------------------------
+       Hero — STYLEGUIDE.md §7.1
+       ----------------------------------------------------------------------- */
+    .hero {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-5) var(--space-6);
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Pixel-art cloud/star decoration — purely decorative, aria-hidden */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, var(--bg-grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .hero-sprite {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-text {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ink-strong);
+      line-height: 1.2;
+    }
+
+    @media (min-width: 600px) {
+      .hero-title { font-size: 32px; }
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--ink-soft);
+      margin-top: var(--space-1);
+    }
+
+    /* -----------------------------------------------------------------------
+       First-boot banner — STYLEGUIDE.md §7.2
+       ----------------------------------------------------------------------- */
+    .first-boot-banner {
+      background: var(--banner-warning-bg);
+      border: 3px solid var(--accent-warning);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      margin-bottom: var(--space-5);
+    }
+
+    .first-boot-banner[hidden] {
+      display: none;
+    }
+
+    .first-boot-banner h2 {
+      font-size: 20px;
+      color: var(--ink-strong);
+      margin-bottom: var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .first-boot-banner p {
+      font-size: 16px;
+      color: var(--ink-soft);
+    }
+
+    .first-boot-password {
+      display: inline-block;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 18px;
+      font-weight: 700;
+      background: var(--surface-2);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-1) var(--space-3);
+      margin: var(--space-2) 0;
+      letter-spacing: 0.1em;
+      color: var(--ink-strong);
+    }
+
+    /* -----------------------------------------------------------------------
+       Service grid — STYLEGUIDE.md §7.3
+       ----------------------------------------------------------------------- */
+    .services-section h2 {
+      font-size: 20px;
+      color: var(--ink-strong);
+      margin-bottom: var(--space-4);
+    }
+
+    .tile-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    @media (min-width: 480px) {
+      .tile-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 900px) {
+      .tile-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 1200px) {
+      .tile-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* -----------------------------------------------------------------------
+       Individual tiles
+       ----------------------------------------------------------------------- */
+    .tile {
+      border: 3px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-pixel);
+      padding: var(--space-4) var(--space-4) var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      min-height: 110px;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tile { transition: none; }
+    }
+
+    .tile--enabled {
+      background: var(--tile-enabled);
+    }
+
+    .tile--enabled:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--border-strong);
+    }
+
+    .tile--enabled:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--border-strong);
+    }
+
+    .tile--disabled {
+      background: var(--tile-disabled);
+      opacity: 0.75;
+    }
+
+    .tile-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink-strong);
+    }
+
+    .tile-status {
+      font-size: 14px;
+      color: var(--ink-soft);
+      flex: 1;
+    }
+
+    .tile-link {
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-inverse);
+      background: var(--accent-secondary);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      text-decoration: none;
+      min-height: 44px;
+      min-width: 44px;
+      line-height: 26px;
+      align-self: flex-start;
+      transition: background 120ms ease;
+    }
+
+    .tile-link:hover { background: var(--accent-secondary-hover); }
+    .tile-link:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tile-link { transition: none; }
+    }
+
+    /* -----------------------------------------------------------------------
+       Skeleton / loading tiles — STYLEGUIDE.md §7.4
+       ----------------------------------------------------------------------- */
+    .tile--skeleton {
+      background: var(--surface-2);
+      pointer-events: none;
+    }
+
+    .skeleton-bar {
+      background: var(--surface-3);
+      border-radius: var(--radius-sm);
+      height: 16px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .skeleton-bar--title { width: 60%; height: 20px; }
+    .skeleton-bar--text  { width: 80%; }
+    .skeleton-bar--btn   { width: 40%; height: 30px; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton-bar { animation: none; opacity: 0.6; }
+    }
+
+    /* -----------------------------------------------------------------------
+       Empty + error states — STYLEGUIDE.md §7.4
+       ----------------------------------------------------------------------- */
+    .state-message {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+      text-align: center;
+    }
+
+    .state-message[hidden] { display: none; }
+
+    .state-message p {
+      font-size: 16px;
+      color: var(--ink-soft);
+      margin-bottom: var(--space-3);
+    }
+
+    .state-message .hint {
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    .btn-retry {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-inverse);
+      background: var(--accent-primary);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-4);
+      cursor: pointer;
+      min-height: 44px;
+      box-shadow: 2px 2px 0 var(--border-strong);
+      transition: background 120ms ease;
+    }
+
+    .btn-retry:hover { background: var(--accent-primary-hover); }
+    .btn-retry:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-retry { transition: none; }
+    }
+
+    /* -----------------------------------------------------------------------
+       Footer — STYLEGUIDE.md §6
+       ----------------------------------------------------------------------- */
+    .footer {
+      margin-top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 2px solid var(--surface-3);
+      font-size: 14px;
+      color: var(--ink-soft);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="page" id="main">
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- Hero — STYLEGUIDE.md §7.1                                         -->
+    <!-- ----------------------------------------------------------------- -->
+    <header class="hero" role="banner">
+      <!-- Inline SVG pixel-art sprite: a small "café" icon. Decorative. -->
+      <svg class="hero-sprite" aria-hidden="true" focusable="false"
+           viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cup body -->
+        <rect x="6" y="14" width="16" height="12" fill="#f6f1da" stroke="#1d2433" stroke-width="2"/>
+        <!-- Cup handle -->
+        <path d="M22 17 h4 v6 h-4" stroke="#1d2433" stroke-width="2" fill="none"/>
+        <!-- Steam puffs -->
+        <path d="M10 12 Q11 9 10 6" stroke="#9ad2ff" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M16 12 Q17 9 16 6" stroke="#9ad2ff" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- Saucer -->
+        <rect x="4" y="26" width="20" height="3" rx="1" fill="#ece3c5" stroke="#1d2433" stroke-width="2"/>
+      </svg>
+      <div class="hero-text">
+        <h1 class="hero-title" id="hero-title">CafeBox</h1>
+        <p class="hero-sub">Pick a service to get started</p>
+      </div>
+    </header>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- First-boot banner — STYLEGUIDE.md §7.2                            -->
+    <!-- Hidden by default; JS reveals it when first_boot is true.         -->
+    <!-- ----------------------------------------------------------------- -->
+    <section
+      class="first-boot-banner"
+      id="first-boot-banner"
+      hidden
+      aria-live="polite"
+      aria-label="First Boot Setup"
+    >
+      <h2>
+        <!-- Warning icon (inline SVG) -->
+        <svg width="22" height="22" aria-hidden="true" focusable="false"
+             viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3 L22 21 H2 Z" fill="#d97706" stroke="#1d2433" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="11" y="10" width="2" height="6" fill="#1d2433"/>
+          <rect x="11" y="17" width="2" height="2" fill="#1d2433"/>
+        </svg>
+        First Boot Setup
+      </h2>
+      <p>Temporary admin password is active. Change it after sign-in.</p>
+      <p>
+        Initial password:
+        <span class="first-boot-password" id="first-boot-password" aria-label="Initial password">
+          —
+        </span>
+      </p>
+    </section>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- Service tile grid                                                  -->
+    <!-- ----------------------------------------------------------------- -->
+    <section class="services-section" aria-labelledby="services-heading">
+      <h2 id="services-heading">Services</h2>
+
+      <!-- Loading state: 4 skeleton tiles. Removed by JS after fetch. -->
+      <div class="tile-grid" id="skeleton-grid" aria-busy="true" aria-label="Loading services">
+        <div class="tile tile--skeleton" aria-hidden="true">
+          <div class="skeleton-bar skeleton-bar--title"></div>
+          <div class="skeleton-bar skeleton-bar--text"></div>
+          <div class="skeleton-bar skeleton-bar--btn"></div>
+        </div>
+        <div class="tile tile--skeleton" aria-hidden="true">
+          <div class="skeleton-bar skeleton-bar--title"></div>
+          <div class="skeleton-bar skeleton-bar--text"></div>
+          <div class="skeleton-bar skeleton-bar--btn"></div>
+        </div>
+        <div class="tile tile--skeleton" aria-hidden="true">
+          <div class="skeleton-bar skeleton-bar--title"></div>
+          <div class="skeleton-bar skeleton-bar--text"></div>
+          <div class="skeleton-bar skeleton-bar--btn"></div>
+        </div>
+        <div class="tile tile--skeleton" aria-hidden="true">
+          <div class="skeleton-bar skeleton-bar--title"></div>
+          <div class="skeleton-bar skeleton-bar--text"></div>
+          <div class="skeleton-bar skeleton-bar--btn"></div>
+        </div>
+      </div>
+
+      <!-- Live tile grid, populated by JS -->
+      <div class="tile-grid" id="tile-grid" hidden aria-label="Available services"></div>
+
+      <!-- Empty state -->
+      <div class="state-message" id="empty-state" hidden role="status">
+        <p>No services are enabled yet.</p>
+        <p class="hint">Enable services in CafeBox config and reprovision.</p>
+      </div>
+
+      <!-- Error state -->
+      <div class="state-message" id="error-state" hidden role="alert">
+        <p>Service list unavailable right now.</p>
+        <button class="btn-retry" id="retry-btn" type="button">Retry</button>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- Footer                                                             -->
+    <!-- ----------------------------------------------------------------- -->
+    <footer class="footer" role="contentinfo">
+      <p>CafeBox — offline community hub</p>
+    </footer>
+
+  </main>
+
+  <script>
+    "use strict";
+
+    /* ------------------------------------------------------------------
+       DOM refs
+       ------------------------------------------------------------------ */
+    var heroTitle       = document.getElementById("hero-title");
+    var firstBootBanner = document.getElementById("first-boot-banner");
+    var firstBootPwd    = document.getElementById("first-boot-password");
+    var skeletonGrid    = document.getElementById("skeleton-grid");
+    var tileGrid        = document.getElementById("tile-grid");
+    var emptyState      = document.getElementById("empty-state");
+    var errorState      = document.getElementById("error-state");
+    var retryBtn        = document.getElementById("retry-btn");
+
+    /* ------------------------------------------------------------------
+       Fetch + render
+       ------------------------------------------------------------------ */
+    function fetchStatus() {
+      showSkeleton();
+
+      fetch("/api/public/services/status")
+        .then(function (res) {
+          if (!res.ok) { throw new Error("HTTP " + res.status); }
+          return res.json();
+        })
+        .then(function (data) {
+          render(data);
+        })
+        .catch(function () {
+          showError();
+        });
+    }
+
+    function render(data) {
+      /* Hero title from API if provided */
+      if (data.box_name) {
+        heroTitle.textContent = data.box_name;
+        document.title = data.box_name;
+      }
+
+      /* First-boot banner */
+      if (data.first_boot) {
+        firstBootBanner.removeAttribute("hidden");
+        if (data.initial_password) {
+          firstBootPwd.textContent = data.initial_password;
+        }
+      } else {
+        firstBootBanner.setAttribute("hidden", "");
+      }
+
+      /* Service tiles */
+      var services = Array.isArray(data.services) ? data.services : [];
+      hideSkeleton();
+
+      if (services.length === 0) {
+        showEmpty();
+        return;
+      }
+
+      tileGrid.innerHTML = "";
+      services.forEach(function (svc) {
+        tileGrid.appendChild(buildTile(svc));
+      });
+      tileGrid.removeAttribute("hidden");
+    }
+
+    function buildTile(svc) {
+      var enabled = Boolean(svc.enabled);
+      var article = document.createElement("article");
+      article.className = "tile " + (enabled ? "tile--enabled" : "tile--disabled");
+
+      var nameEl = document.createElement("h3");
+      nameEl.className = "tile-name";
+      nameEl.textContent = svc.name || "Service";
+
+      var statusEl = document.createElement("p");
+      statusEl.className = "tile-status";
+
+      if (enabled) {
+        statusEl.textContent = "Available";
+
+        var link = document.createElement("a");
+        link.className = "tile-link";
+        link.href = svc.url || "#";
+        link.textContent = "Open";
+        link.setAttribute("aria-label", "Open " + (svc.name || "service"));
+
+        article.appendChild(nameEl);
+        article.appendChild(statusEl);
+        article.appendChild(link);
+      } else {
+        statusEl.textContent = "Unavailable on this box";
+        article.appendChild(nameEl);
+        article.appendChild(statusEl);
+      }
+
+      return article;
+    }
+
+    /* ------------------------------------------------------------------
+       State helpers
+       ------------------------------------------------------------------ */
+    function showSkeleton() {
+      skeletonGrid.removeAttribute("hidden");
+      tileGrid.setAttribute("hidden", "");
+      emptyState.setAttribute("hidden", "");
+      errorState.setAttribute("hidden", "");
+    }
+
+    function hideSkeleton() {
+      skeletonGrid.setAttribute("hidden", "");
+    }
+
+    function showEmpty() {
+      hideSkeleton();
+      tileGrid.setAttribute("hidden", "");
+      emptyState.removeAttribute("hidden");
+      errorState.setAttribute("hidden", "");
+    }
+
+    function showError() {
+      hideSkeleton();
+      tileGrid.setAttribute("hidden", "");
+      emptyState.setAttribute("hidden", "");
+      errorState.removeAttribute("hidden");
+    }
+
+    /* ------------------------------------------------------------------
+       Retry
+       ------------------------------------------------------------------ */
+    retryBtn.addEventListener("click", fetchStatus);
+
+    /* ------------------------------------------------------------------
+       Kick off on load
+       ------------------------------------------------------------------ */
+    fetchStatus();
+  </script>
+</body>
+</html>
