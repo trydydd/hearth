@@ -318,9 +318,16 @@
     }
 
     /* -----------------------------------------------------------------------
+       Ensure hidden attribute is respected even when display is set by
+       component rules (e.g. .tile-grid { display: grid } overrides UA sheet)
+       ----------------------------------------------------------------------- */
+    [hidden] { display: none !important; }
+
+    /* -----------------------------------------------------------------------
        Empty + error states — STYLEGUIDE.md §7.4
        ----------------------------------------------------------------------- */
     .state-message {
+      margin-top: var(--space-4);
       background: var(--surface-1);
       border: 3px solid var(--border-strong);
       box-shadow: var(--shadow-pixel);
