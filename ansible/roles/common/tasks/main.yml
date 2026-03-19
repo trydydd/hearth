@@ -69,6 +69,22 @@
         create_home: false
         state: present
 
+    - name: Create cafebox-admin system group
+      ansible.builtin.group:
+        name: cafebox-admin
+        system: true
+        state: present
+
+    - name: Create cafebox-admin system user (admin backend process user)
+      ansible.builtin.user:
+        name: cafebox-admin
+        group: cafebox-admin
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+        password_lock: true
+        state: present
+
     - name: Create storage base directory
       ansible.builtin.file:
         path: "{{ cafebox_storage_base }}"
@@ -89,7 +105,7 @@
     - name: Create /run/cafebox directory (tmpfiles.d)
       ansible.builtin.copy:
         dest: /etc/tmpfiles.d/cafebox.conf
-        content: "d /run/cafebox 0750 {{ cafebox_user }} {{ cafebox_group }} -\n"
+        content: "d /run/cafebox 0755 {{ cafebox_user }} {{ cafebox_group }} -\n"
         owner: root
         group: root
         mode: "0644"
