@@ -156,6 +156,28 @@ ip addr show || ip link show || warn "ip command not available"
 hdr "13. nftables ruleset (active)"
 if command -v nft &>/dev/null; then
     nft list ruleset || warn "could not list nftables ruleset"
+    echo
+    # Explicit pass/fail: check whether tcp/80 has an accept rule from non-AP interfaces
+    if nft list ruleset 2>/dev/null | grep -qE 'tcp dport 80 accept'; then
+        ok "nftables has an accept rule for tcp/80"
+        # Check the rule is NOT limited to a specific positive iifname match (old bug)
+        if nft list ruleset 2>/dev/null | grep -E 'tcp dport 80 accept' | grep -v 'iifname !=' | grep -q 'iifname'; then
+            warn "tcp/80 accept rule is a positive iifname match — may not work on all interface names"
+            warn "Expected: iifname != \"wlan0\" tcp dport 80 accept"
+            warn "Fix: vagrant provision (ensure latest nftables template is applied)"
+        else
+            ok "tcp/80 accept rule is a negative iifname match (interface-name-independent)"
+        fi
+    else
+        fail "nftables has NO accept rule for tcp/80"
+        fail "Portal traffic from the host will be dropped by the firewall"
+        fail "Fix: vagrant provision to apply the latest firewall configuration"
+    fi
+
+    echo
+    # Show packet/byte counters to reveal whether traffic is hitting any rule
+    printf '  nftables byte/packet counters (shows if traffic is arriving):\n'
+    nft list ruleset -a 2>/dev/null | grep -E 'bytes|packets|tcp dport|iif' | head -30 || true
 else
     warn "nft not installed"
 fi
