@@ -21,8 +21,16 @@ if [ -f "${FLAG_FILE}" ]; then
     exit 0
 fi
 
-# Generate a 12-character random alphanumeric password
-PASSWORD="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c12)"
+# Generate a 12-character random alphanumeric password.
+# head -c12 exits after reading 12 bytes, sending SIGPIPE to tr (exit 141).
+# Under `set -o pipefail` that propagates as a pipeline failure, so we scope
+# the pipefail relaxation to a subshell to avoid any risk of leaking the
+# change into the rest of the script.
+PASSWORD="$(set +o pipefail; openssl rand -base64 64 | tr -dc 'A-Za-z0-9' | head -c12)"
+if [ "${#PASSWORD}" -ne 12 ]; then
+    echo "ERROR: failed to generate a 12-character password" >&2
+    exit 1
+fi
 
 # Set the password for the admin user
 printf '%s:%s\n' "${ADMIN_USER}" "${PASSWORD}" | chpasswd
