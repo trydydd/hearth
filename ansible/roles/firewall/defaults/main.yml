@@ -4,8 +4,10 @@
 # Path where the rendered nftables configuration is deployed on the target host
 firewall_nftables_conf: /etc/nftables.conf
 
-# Management interface to allow HTTP (80) and Admin API (8000) access on.
+# Development flag: set to any non-empty string (e.g. "eth0") in development
+# environments to allow HTTP (80) and Admin API (8000) access on all non-AP
+# interfaces, so Vagrant port-forwarding can reach the portal regardless of
+# what the VM names its NIC (eth0, enp0s3, etc.).
 # Leave blank (the default) for production deployments where HTTP must only
-# be reachable via the AP interface.  Set to "eth0" (or similar) for dev VMs
-# where VirtualBox port-forwarding delivers traffic on the NAT interface.
+# be reachable via the AP interface.
 firewall_management_interface: ""

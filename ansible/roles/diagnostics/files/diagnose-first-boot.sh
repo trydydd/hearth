@@ -98,7 +98,29 @@ done
 printf '\n  nginx -T output (active config):\n'
 nginx -T 2>&1 | grep -A10 "services/status" || warn "no /api/public/services/status location found in nginx config"
 
-hdr "7. Fetch /api/public/services/status from localhost"
+hdr "7. Portal web root files"
+PORTAL_ROOT="/var/www/cafebox/portal"
+if [ -d "$PORTAL_ROOT" ]; then
+    ok "portal root exists: $PORTAL_ROOT"
+    ls -la "$PORTAL_ROOT/"
+    if [ -f "$PORTAL_ROOT/index.html" ]; then
+        ok "index.html present ($(wc -c < "$PORTAL_ROOT/index.html") bytes)"
+    else
+        fail "index.html MISSING from $PORTAL_ROOT  (nginx cannot serve the portal page)"
+    fi
+else
+    fail "portal root directory MISSING: $PORTAL_ROOT"
+fi
+
+hdr "8. Fetch portal root page from localhost"
+HTTP_CODE="$(curl -so /dev/null -w '%{http_code}' http://localhost/ || true)"
+if [ "$HTTP_CODE" = "200" ]; then
+    ok "GET http://localhost/ → HTTP $HTTP_CODE"
+else
+    fail "GET http://localhost/ → HTTP $HTTP_CODE  (expected 200)"
+fi
+
+hdr "9. Fetch /api/public/services/status from localhost"
 if curl -sf http://localhost/api/public/services/status; then
     echo
     ok "curl succeeded"
@@ -107,7 +129,7 @@ else
     fail "curl failed (exit $STATUS)"
 fi
 
-hdr "8. nginx error log (last 20 lines)"
+hdr "10. nginx error log (last 20 lines)"
 NGINX_ERROR_LOG="/var/log/nginx/error.log"
 if [ -f "$NGINX_ERROR_LOG" ]; then
     tail -20 "$NGINX_ERROR_LOG"
@@ -115,14 +137,30 @@ else
     warn "nginx error log not found at $NGINX_ERROR_LOG"
 fi
 
-hdr "9. nftables ruleset (active)"
+hdr "11. nginx access log (last 20 lines)"
+NGINX_ACCESS_LOG="/var/log/nginx/access.log"
+if [ -f "$NGINX_ACCESS_LOG" ]; then
+    if [ -s "$NGINX_ACCESS_LOG" ]; then
+        tail -20 "$NGINX_ACCESS_LOG"
+    else
+        warn "nginx access log is empty — no requests have reached nginx yet"
+        warn "This means the host browser is not reaching the VM (check VirtualBox port forwarding)"
+    fi
+else
+    warn "nginx access log not found at $NGINX_ACCESS_LOG"
+fi
+
+hdr "12. Network interfaces"
+ip addr show || ip link show || warn "ip command not available"
+
+hdr "13. nftables ruleset (active)"
 if command -v nft &>/dev/null; then
     nft list ruleset || warn "could not list nftables ruleset"
 else
     warn "nft not installed"
 fi
 
-hdr "10. Listening ports on 80 and 8000"
+hdr "14. Listening ports on 80 and 8000"
 ss -tlnp 'sport = :80 or sport = :8000' || true
 
 hdr "Done"
