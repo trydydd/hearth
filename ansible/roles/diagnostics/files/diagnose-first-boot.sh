@@ -2,10 +2,13 @@
 # diagnose-first-boot.sh — collect diagnostic information for the CafeBox
 # first-boot password flow.
 #
-# Run this inside the Vagrant VM (vagrant ssh) as root (sudo) when the
-# initial password banner is not appearing in the portal:
+# Deployed to /usr/local/share/cafebox/diag/ on the target host by the
+# diagnostics Ansible role (development only by default).
 #
-#   vagrant ssh -- sudo /vagrant/scripts/diagnose-first-boot.sh
+# Run inside the VM as root when the initial password banner is not
+# appearing in the portal:
+#
+#   vagrant ssh -- sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
 #
 # The script checks every component in the chain:
 #   first-boot service → /run/cafebox/portal-status.json → nginx → browser

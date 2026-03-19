@@ -37,7 +37,12 @@ Vagrant.configure("2") do |config|
     ansible.playbook   = "ansible/site.yml"
     # Allow the host to reach the portal via VirtualBox NAT (eth0).
     # In production (real Pi) this variable is left blank and has no effect.
-    ansible.extra_vars = { "firewall_management_interface" => "eth0" }
+    ansible.extra_vars = {
+      "firewall_management_interface" => "eth0",
+      # Deploy diagnostic scripts inside the VM (dev only; false by default in production).
+      # Override for production: ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
+      "diagnostics_enabled" => true
+    }
     #TODO get inventory working so we can target just the vm instead of all hosts.
     # ansible.inventory_path = "ansible/inventory/development"
   end
