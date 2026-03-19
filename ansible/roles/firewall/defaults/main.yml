@@ -3,3 +3,9 @@
 
 # Path where the rendered nftables configuration is deployed on the target host
 firewall_nftables_conf: /etc/nftables.conf
+
+# Management interface to allow HTTP (80) and Admin API (8000) access on.
+# Leave blank (the default) for production deployments where HTTP must only
+# be reachable via the AP interface.  Set to "eth0" (or similar) for dev VMs
+# where VirtualBox port-forwarding delivers traffic on the NAT interface.
+firewall_management_interface: ""

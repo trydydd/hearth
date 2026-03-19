@@ -29,6 +29,15 @@ table inet filter {
         # Allow SSH on management/ethernet interfaces (not the AP interface)
         iifname != "{{ wifi.interface }}" tcp dport 22 accept comment "SSH: administrative access on non-AP interfaces"
 
+{% if firewall_management_interface | default('') | length > 0 %}
+        # Allow HTTP and Admin API on the management interface so that
+        # development tools (e.g. Vagrant port-forwarding via eth0) can reach
+        # the portal.  Not applied in production (firewall_management_interface
+        # is left blank in the default role vars).
+        iifname "{{ firewall_management_interface }}" tcp dport 80   accept comment "HTTP: portal access on management interface"
+        iifname "{{ firewall_management_interface }}" tcp dport 8000 accept comment "Admin API: access on management interface"
+{% endif %}
+
         # --- AP interface rules (clients connect here) ---
 
         # Threat-model: Allow DHCP requests from clients so they can obtain an

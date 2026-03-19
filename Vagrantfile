@@ -34,7 +34,10 @@ Vagrant.configure("2") do |config|
 
   # Provision using Ansible — the same playbook is used for real Pi hardware
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook       = "ansible/site.yml"
+    ansible.playbook   = "ansible/site.yml"
+    # Allow the host to reach the portal via VirtualBox NAT (eth0).
+    # In production (real Pi) this variable is left blank and has no effect.
+    ansible.extra_vars = { "firewall_management_interface" => "eth0" }
     #TODO get inventory working so we can target just the vm instead of all hosts.
     # ansible.inventory_path = "ansible/inventory/development"
   end
