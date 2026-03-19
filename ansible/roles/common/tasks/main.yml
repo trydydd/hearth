@@ -125,3 +125,38 @@
         msg: >-
           Common role phase 3 (service enablement) failed.
           Check the systemd output above for details.
+
+# ---------------------------------------------------------------------------
+# Phase 4 — First-boot credential generator
+# ---------------------------------------------------------------------------
+- name: "Phase 4 — Deploy and enable first-boot credential generator"
+  block:
+    - name: Deploy first-boot script
+      ansible.builtin.copy:
+        src: first-boot.sh
+        dest: /usr/local/sbin/cafebox-first-boot.sh
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Deploy first-boot systemd unit
+      ansible.builtin.copy:
+        src: first-boot.service
+        dest: /etc/systemd/system/cafebox-first-boot.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd daemon
+
+    - name: Enable first-boot service
+      ansible.builtin.systemd:
+        name: cafebox-first-boot.service
+        enabled: true
+        daemon_reload: true
+
+  rescue:
+    - name: "Phase 4 FAILED — first-boot setup error"
+      ansible.builtin.fail:
+        msg: >-
+          Common role phase 4 (first-boot credential generator) failed.
+          Check the task output above for details.

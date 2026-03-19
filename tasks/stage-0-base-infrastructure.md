@@ -332,7 +332,7 @@ Build the portal landing page. It must:
 
 ---
 
-## Task 0.13 — First-Boot Credential Generation (`ansible/roles/common`)
+## Task 0.13 — First-Boot Credential Generation (`ansible/roles/common`) ✅
 
 Implement the one-shot first-boot credential generator:
 - Generate a random 12-character alphanumeric admin password.
