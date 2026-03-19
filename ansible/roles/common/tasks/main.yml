@@ -164,10 +164,11 @@
         mode: "0644"
       notify: Reload systemd daemon
 
-    - name: Enable first-boot service
+    - name: Enable and start first-boot service
       ansible.builtin.systemd:
         name: cafebox-first-boot.service
         enabled: true
+        state: started
         daemon_reload: true
 
   rescue:
