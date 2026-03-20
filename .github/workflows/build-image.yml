@@ -82,7 +82,7 @@ jobs:
           retention-days: 7
 
       - name: Create GitHub Release and upload image
-        if: ${{ github.event_name == 'push' || inputs.mode == 'release' }}
+        if: ${{ github.event_name == 'push' || (inputs.mode == 'release' && github.ref_name == 'main') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
