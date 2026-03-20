@@ -164,8 +164,8 @@ fi
 log "Step 2: Creating working copy..."
 cp "${RAW_IMAGE}" "${WORK_IMAGE}"
 # Extend partition/filesystem to give headroom for provisioned packages
-# (Raspberry Pi OS images are typically ~2 GB; we grow to 8 GB)
-truncate -s 8G "${WORK_IMAGE}"
+# (Raspberry Pi OS images are typically ~2 GB; we grow to 12 GB)
+truncate -s 12G "${WORK_IMAGE}"
 # Resize the root partition to fill the new space using parted and resize2fs
 LOOP_DEV="$(losetup --show -fP "${WORK_IMAGE}")"
 log "Attached loop device: ${LOOP_DEV}"
@@ -174,9 +174,13 @@ kpartx -a "${LOOP_DEV}"
 sleep 1  # give udev time to create device nodes
 # Grow the partition table entry and filesystem
 parted -s "${LOOP_DEV}" resizepart 2 100%
+# Refresh kpartx device-mapper entries so they reflect the enlarged partition;
+# without this, resize2fs sees the old device size and does nothing.
+kpartx -u "${LOOP_DEV}"
+sleep 1
 e2fsck -f -y "/dev/mapper/$(basename "${LOOP_DEV}")p2" || true
 resize2fs "/dev/mapper/$(basename "${LOOP_DEV}")p2"
-log "Working image resized to 8 GB"
+log "Working image resized to 12 GB"
 
 # ---------------------------------------------------------------------------
 # Step 3 — Mount the image
