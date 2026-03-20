@@ -1,6 +1,4 @@
 ---
 # roles/common/handlers/main.yml
-
-- name: Reload systemd daemon
-  ansible.builtin.systemd:
-    daemon_reload: true
+# (No handlers currently needed — the systemd daemon reload is done inline
+# in Phase 4 to support both chroot builds and live-system provisioning.)
