@@ -523,6 +523,30 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
                 "Release step must also run when mode == 'release'",
             )
 
+    def test_build_image_release_step_restricted_to_main_branch_for_manual_runs(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        all_steps = []
+        for job in data.get("jobs", {}).values():
+            all_steps.extend(job.get("steps", []))
+        release_steps = [
+            s for s in all_steps
+            if "release" in s.get("name", "").lower() and "github" in s.get("name", "").lower()
+        ]
+        self.assertTrue(release_steps, "A 'Create GitHub Release' step must exist")
+        for step in release_steps:
+            condition = str(step.get("if", ""))
+            self.assertIn(
+                "github.ref_name",
+                condition,
+                "Release step must gate manual release mode on the branch name "
+                "(github.ref_name == 'main')",
+            )
+            self.assertIn(
+                "main",
+                condition,
+                "Release step must restrict manual release mode to the 'main' branch",
+            )
+
     # ------------------------------------------------------------------
     # Build script
     # ------------------------------------------------------------------
