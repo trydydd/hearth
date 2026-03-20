@@ -17,11 +17,16 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Enable and start nginx service
+    - name: Enable nginx service
       ansible.builtin.service:
         name: nginx
         enabled: true
+
+    - name: Start nginx service (live system only)
+      ansible.builtin.service:
+        name: nginx
         state: started
+      when: _systemd_active.stat.exists
 
     - name: Create portal web root directory
       ansible.builtin.file:
