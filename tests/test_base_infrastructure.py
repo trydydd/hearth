@@ -196,5 +196,176 @@ class TestTask005MakefileTargets(unittest.TestCase):
         self.assertIn("scripts/vm.sh not found", combined)
 
 
+class TestTask016BuildImageWorkflow(unittest.TestCase):
+    """Validates the build-image workflow and build script without running them."""
+
+    WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "build-image.yml"
+    CI_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+    BUILD_SCRIPT_PATH = REPO_ROOT / "scripts" / "build-image.sh"
+
+    def _load_workflow(self, path: Path) -> dict:
+        return yaml.safe_load(path.read_text())
+
+    def _get_triggers(self, data: dict) -> dict:
+        """Return the triggers dict from a workflow, handling PyYAML's `on` → True quirk."""
+        return data.get(True) or data.get("on") or {}
+
+    # ------------------------------------------------------------------
+    # Workflow file structure
+    # ------------------------------------------------------------------
+
+    def test_build_image_workflow_exists(self):
+        self.assertTrue(self.WORKFLOW_PATH.is_file(), "build-image.yml not found")
+
+    def test_ci_workflow_exists(self):
+        self.assertTrue(self.CI_WORKFLOW_PATH.is_file(), "ci.yml not found")
+
+    def test_build_image_workflow_is_valid_yaml(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        self.assertIsInstance(data, dict)
+
+    def test_ci_workflow_is_valid_yaml(self):
+        data = self._load_workflow(self.CI_WORKFLOW_PATH)
+        self.assertIsInstance(data, dict)
+
+    def test_build_image_triggers_on_version_tags(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        tags = self._get_triggers(data).get("push", {}).get("tags", [])
+        self.assertTrue(
+            any(t.startswith("v") for t in tags),
+            "build-image.yml must trigger on v* tags",
+        )
+
+    def test_build_image_has_workflow_dispatch_trigger(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        self.assertIn(
+            "workflow_dispatch",
+            self._get_triggers(data),
+            "build-image.yml must have a workflow_dispatch trigger for manual testing",
+        )
+
+    def test_build_image_workflow_dispatch_has_dry_run_input(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        inputs = (
+            self._get_triggers(data).get("workflow_dispatch", {}) or {}
+        ).get("inputs", {})
+        self.assertIn(
+            "dry_run",
+            inputs,
+            "workflow_dispatch must expose a dry_run input",
+        )
+
+    def test_build_image_uses_arm64_runner(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        jobs = data.get("jobs", {})
+        for job_name, job in jobs.items():
+            runner = job.get("runs-on", "")
+            with self.subTest(job=job_name):
+                self.assertIn(
+                    "arm",
+                    str(runner).lower(),
+                    f"Job '{job_name}' must run on an ARM64 runner",
+                )
+
+    def test_build_image_uses_pinned_checkout_action(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        steps = []
+        for job in data.get("jobs", {}).values():
+            steps.extend(job.get("steps", []))
+        checkout_uses = [
+            s.get("uses", "") for s in steps if "checkout" in s.get("uses", "")
+        ]
+        self.assertTrue(checkout_uses, "No checkout step found")
+        for uses in checkout_uses:
+            self.assertRegex(
+                uses,
+                r"actions/checkout@v\d",
+                f"Checkout action must be pinned to a major version, got: {uses}",
+            )
+
+    def test_build_image_requires_contents_write_permission(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        for job_name, job in data.get("jobs", {}).items():
+            perms = job.get("permissions", {})
+            with self.subTest(job=job_name):
+                self.assertEqual(
+                    perms.get("contents"),
+                    "write",
+                    f"Job '{job_name}' must declare contents: write permission",
+                )
+
+    def test_ci_workflow_triggers_on_push_and_pr(self):
+        data = self._load_workflow(self.CI_WORKFLOW_PATH)
+        triggers = self._get_triggers(data)
+        self.assertIn("push", triggers, "ci.yml must trigger on push")
+        self.assertIn("pull_request", triggers, "ci.yml must trigger on pull_request")
+
+    def test_ci_workflow_runs_on_ubuntu_latest(self):
+        data = self._load_workflow(self.CI_WORKFLOW_PATH)
+        for job_name, job in data.get("jobs", {}).items():
+            runner = job.get("runs-on", "")
+            with self.subTest(job=job_name):
+                self.assertEqual(
+                    runner,
+                    "ubuntu-latest",
+                    f"CI job '{job_name}' should run on ubuntu-latest (cheap x86)",
+                )
+
+    # ------------------------------------------------------------------
+    # Build script
+    # ------------------------------------------------------------------
+
+    def test_build_script_exists(self):
+        self.assertTrue(self.BUILD_SCRIPT_PATH.is_file(), "scripts/build-image.sh not found")
+
+    def test_build_script_bash_syntax(self):
+        result = subprocess.run(
+            ["bash", "-n", str(self.BUILD_SCRIPT_PATH)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=f"bash -n failed:\n{result.stderr}",
+        )
+
+    def test_build_script_has_set_euo_pipefail(self):
+        # Verify the safety flag appears as a non-commented executable line,
+        # not just anywhere in the file (e.g. in a comment or docstring).
+        content = self.BUILD_SCRIPT_PATH.read_text()
+        executable_set = any(
+            line.strip() == "set -euo pipefail"
+            for line in content.splitlines()
+            if not line.lstrip().startswith("#")
+        )
+        self.assertTrue(
+            executable_set,
+            "build-image.sh must have 'set -euo pipefail' as an executable statement",
+        )
+
+    def test_build_script_documents_arm64_requirement(self):
+        # Verify the script both documents AND enforces the ARM64 requirement:
+        # it must exit (die) when uname -m does not return aarch64.
+        content = self.BUILD_SCRIPT_PATH.read_text()
+        self.assertIn(
+            "aarch64",
+            content,
+            "build-image.sh must reference aarch64 for the architecture check",
+        )
+        # The enforcement pattern: die/exit called when HOST_ARCH != aarch64
+        self.assertIn(
+            "aarch64",
+            content,
+        )
+        lines = content.splitlines()
+        arch_check_lines = [l for l in lines if "aarch64" in l and not l.lstrip().startswith("#")]
+        self.assertTrue(
+            arch_check_lines,
+            "build-image.sh must have an executable line that references aarch64 (the runtime arch check)",
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

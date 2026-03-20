@@ -21,6 +21,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip the actual image build (validate workflow steps only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   build-image:
@@ -49,9 +59,16 @@ jobs:
             xz-utils
 
       - name: Build flashable image
-        run: sudo scripts/build-image.sh
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "[dry-run] Skipping image build — verifying build script syntax only"
+            bash -n scripts/build-image.sh
+          else
+            sudo scripts/build-image.sh
+          fi
 
       - name: Create GitHub Release and upload image
+        if: ${{ inputs.dry_run != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
