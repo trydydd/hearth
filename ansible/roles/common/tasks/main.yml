@@ -151,6 +151,11 @@
 # ---------------------------------------------------------------------------
 - name: "Phase 4 — Deploy and enable first-boot credential generator"
   block:
+    - name: Detect whether systemd is active (not a chroot)
+      ansible.builtin.stat:
+        path: /run/systemd/system
+      register: _systemd_active
+
     - name: Deploy first-boot script
       ansible.builtin.copy:
         src: first-boot.sh
@@ -166,14 +171,19 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Reload systemd daemon
 
-    - name: Enable and start first-boot service
+    - name: Enable first-boot service (symlink — works in chroot and on live systems)
+      ansible.builtin.file:
+        src: /etc/systemd/system/cafebox-first-boot.service
+        dest: /etc/systemd/system/multi-user.target.wants/cafebox-first-boot.service
+        state: link
+
+    - name: Reload systemd daemon and start first-boot service (live system only)
       ansible.builtin.systemd:
         name: cafebox-first-boot.service
-        enabled: true
         state: started
         daemon_reload: true
+      when: _systemd_active.stat.exists
 
   rescue:
     - name: "Phase 4 FAILED — first-boot setup error"
