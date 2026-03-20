@@ -26,6 +26,13 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      ref:
+        description: >
+          Branch or tag to build from (e.g. my-feature-branch).
+          Leave blank to build from the default branch (main).
+        required: false
+        default: ''
+        type: string
       mode:
         description: >
           Build mode:
@@ -52,6 +59,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install build dependencies
         run: |
