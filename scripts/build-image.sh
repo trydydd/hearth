@@ -15,16 +15,23 @@
 #   1. Downloads the latest Raspberry Pi OS Lite (64-bit) image.
 #   2. Copies it to a raw working image so the original is never modified.
 #   3. Mounts the image via a loop device and runs ansible/site.yml inside
-#      a systemd-nspawn container, provisioning the image exactly as the
-#      Vagrantfile Ansible provisioner would.
+#      a chroot, provisioning the image exactly as the Vagrantfile Ansible
+#      provisioner would.
 #   4. Compresses the finished image to <output>.img.xz.
 #
-# Required host tools (see image/README.md for installation instructions):
-#   ansible  qemu-user-static  systemd-nspawn
-#   xz       kpartx    losetup           parted
-#   wget     binfmt-support
+# Host architecture requirement:
+#   This script must run on a native ARM64 (aarch64) host so that the chroot
+#   executes ARM64 binaries directly — no cross-architecture emulation is used.
+#   Suitable build hosts include:
+#     - GitHub Actions runner: ubuntu-24.04-arm
+#     - Raspberry Pi (any model running a 64-bit OS)
+#     - AWS Graviton, Ampere Altra, or other ARM64 cloud instance
+#     - Apple M-series Mac (inside a Linux VM or container)
 #
-# Estimated build time: 20–40 minutes on a modern laptop.
+# Required host tools (see image/README.md for installation instructions):
+#   ansible  systemd-nspawn  xz  kpartx  losetup  parted  rsync  wget
+#
+# Estimated build time: 10–30 minutes on a native ARM64 host.
 
 set -euo pipefail
 
@@ -94,7 +101,19 @@ done
 # ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
-need ansible xz kpartx losetup wget
+
+# Enforce native ARM64 host — the chroot must execute ARM64 binaries directly
+# without any QEMU cross-architecture emulation.
+HOST_ARCH="$(uname -m)"
+if [ "${HOST_ARCH}" != "aarch64" ]; then
+    die "This script requires a native ARM64 (aarch64) host. \
+Detected: ${HOST_ARCH}. \
+Run on a Raspberry Pi, an ARM64 CI runner (ubuntu-24.04-arm), or an \
+ARM64 cloud instance. Cross-architecture emulation via QEMU is intentionally \
+not used — see image/README.md for details."
+fi
+
+need ansible systemd-nspawn xz kpartx losetup parted wget
 
 if [ "$(id -u)" -ne 0 ]; then
     die "This script must be run as root (use sudo)."
@@ -114,6 +133,7 @@ LOOP_DEV=""
 trap _cleanup EXIT
 
 log "Build started"
+log "  Host   : ${HOST_ARCH} (native — no emulation)"
 log "  Config : ${CAFE_CONFIG}"
 log "  Output : ${OUTPUT_IMAGE}"
 log "  WorkDir: ${WORK_DIR}"
@@ -167,23 +187,9 @@ mount "/dev/mapper/$(basename "${LOOP_DEV}")p2" "${MOUNT_DIR}"
 mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${MOUNT_DIR}/boot"
 
 # ---------------------------------------------------------------------------
-# Step 4 — Register ARM64 binfmt and copy qemu-aarch64-static
+# Step 4 — Provision with Ansible (native ARM64 chroot, no QEMU needed)
 # ---------------------------------------------------------------------------
-log "Step 4: Registering binfmt_misc for ARM64..."
-if [ -f /usr/bin/qemu-aarch64-static ]; then
-    cp /usr/bin/qemu-aarch64-static "${MOUNT_DIR}/usr/bin/"
-else
-    die "/usr/bin/qemu-aarch64-static not found. Install qemu-user-static."
-fi
-# Ensure binfmt_misc is loaded
-modprobe binfmt_misc 2>/dev/null || true
-mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc 2>/dev/null || true
-update-binfmts --enable qemu-aarch64 2>/dev/null || true
-
-# ---------------------------------------------------------------------------
-# Step 5 — Provision with Ansible (chroot via systemd-nspawn)
-# ---------------------------------------------------------------------------
-log "Step 5: Provisioning image with Ansible..."
+log "Step 4: Provisioning image with Ansible (native ARM64 chroot)..."
 
 # Copy the repo into the image so the playbook has access to all templates
 CHROOT_REPO="/opt/cafe-box"
@@ -193,7 +199,6 @@ rsync -a --exclude='.git' --exclude='image/' \
 
 # Install Ansible inside the image if not already present
 systemd-nspawn -D "${MOUNT_DIR}" \
-    --bind /proc/sys/fs/binfmt_misc \
     /bin/bash -c "
         set -e
         export DEBIAN_FRONTEND=noninteractive
@@ -203,7 +208,6 @@ systemd-nspawn -D "${MOUNT_DIR}" \
 
 # Run the playbook targeting localhost inside the chroot
 systemd-nspawn -D "${MOUNT_DIR}" \
-    --bind /proc/sys/fs/binfmt_misc \
     /bin/bash -c "
         set -e
         cd ${CHROOT_REPO}
@@ -214,23 +218,22 @@ systemd-nspawn -D "${MOUNT_DIR}" \
             ansible/site.yml
     "
 
-# Remove the repo copy and qemu binary from the final image
+# Remove the repo copy from the final image
 rm -rf "${MOUNT_DIR}${CHROOT_REPO}"
-rm -f "${MOUNT_DIR}/usr/bin/qemu-aarch64-static"
 
 log "Provisioning complete."
 
 # ---------------------------------------------------------------------------
-# Step 6 — Unmount and compress
+# Step 5 — Unmount and compress
 # ---------------------------------------------------------------------------
-log "Step 6: Unmounting image..."
+log "Step 5: Unmounting image..."
 umount "${MOUNT_DIR}/boot"
 umount "${MOUNT_DIR}"
 kpartx -d "${LOOP_DEV}"
 losetup -d "${LOOP_DEV}"
 LOOP_DEV=""
 
-log "Step 7: Compressing to ${OUTPUT_IMAGE}..."
+log "Step 6: Compressing to ${OUTPUT_IMAGE}..."
 mkdir -p "$(dirname "${OUTPUT_IMAGE}")"
 xz -T0 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
 

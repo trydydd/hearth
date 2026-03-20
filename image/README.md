@@ -12,48 +12,75 @@ by `scripts/build-image.sh`.
 1. Downloads the latest **Raspberry Pi OS Lite 64-bit** (Bookworm) base image.
 2. Creates a working copy and expands it to 8 GB to give headroom for
    provisioned packages.
-3. Registers ARM64 binfmt support so the chroot can run ARM64 binaries on an
-   x86-64 host.
-4. Runs `ansible/site.yml` inside the mounted image using
-   `systemd-nspawn`, applying every role in the same way that `vagrant up`
-   provisions the development VM.
-5. Compresses the finished image to a `.img.xz` file ready for flashing.
+3. Mounts the image via a loop device and runs `ansible/site.yml` inside a
+   native ARM64 chroot (`systemd-nspawn`), applying every role in the same way
+   that `vagrant up` provisions the development VM.
+4. Compresses the finished image to a `.img.xz` file ready for flashing.
+
+### Why a native ARM64 host?
+
+The script deliberately avoids cross-architecture emulation (QEMU + binfmt_misc).
+Emulation makes every package install and every compile step 5–10× slower, and
+introduces a class of subtle failures where host/target ABI differences cause
+tools to behave differently inside the chroot than they would on real hardware.
+
+By running on a native ARM64 host the chroot executes ARM64 binaries at full
+speed with no emulation overhead — the result is faster builds and higher
+confidence that the provisioned image matches what runs on the Pi.
+
+---
+
+## Host Architecture Requirement
+
+**The build host must be native ARM64 (`aarch64`).**
+
+Suitable build environments:
+
+| Environment | Notes |
+|-------------|-------|
+| GitHub Actions `ubuntu-24.04-arm` runner | Free for public repos; used by the CI workflow |
+| Raspberry Pi (64-bit OS) | Any model; Pi 4 / 5 recommended for speed |
+| AWS Graviton, Ampere Altra, Oracle Ampere | ARM64 cloud instances |
+| Apple M-series Mac | Run inside a Linux VM or OrbStack container |
+
+If you try to run the script on an x86-64 host it will exit with a clear error
+message. Cross-architecture emulation is intentionally not supported.
 
 ---
 
 ## Required Host Tools
 
-Install the following on your build machine before running the script.
+Install the following on your ARM64 build machine before running the script.
 
-### Debian / Ubuntu
+### Debian / Ubuntu (ARM64)
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
     ansible \
-    binfmt-support \
     e2fsprogs \
     kpartx \
     parted \
-    qemu-user-static \
     rsync \
+    systemd-container \
     util-linux \
     wget \
     xz-utils
 ```
 
-### macOS (not supported for full builds)
+### macOS (requires a Linux VM or container)
 
-The script relies on Linux-specific tools (`systemd-nspawn`, `binfmt_misc`,
-`kpartx`). On macOS, use the development VM (`vagrant up`) or run the build
-script inside a Linux container or CI runner.
+The script relies on Linux-specific tools (`systemd-nspawn`, `kpartx`). On
+macOS, run the script inside an ARM64 Linux VM (e.g. OrbStack, UTM) or trigger
+the CI workflow on a tagged commit. macOS itself — even on Apple Silicon — lacks
+the required Linux kernel interfaces.
 
 ---
 
 ## Building the Image
 
 ```bash
-# From the repository root:
+# From the repository root (must be run on a native ARM64 host):
 sudo scripts/build-image.sh
 ```
 
@@ -79,16 +106,18 @@ sudo KEEP_WORK=1 scripts/build-image.sh --output /tmp/cafebox-$(date +%Y%m%d).im
 
 ## Estimated Build Time
 
-| Stage | Time (typical laptop) |
-|-------|-----------------------|
+| Stage | Time (native ARM64 host) |
+|-------|--------------------------|
 | Base image download (~1 GB) | 3–10 min (depends on connection) |
 | Partition resize | < 1 min |
-| Ansible provisioning | 15–30 min |
+| Ansible provisioning | 5–15 min |
 | Compression (xz) | 2–5 min |
-| **Total** | **~20–40 min** |
+| **Total** | **~10–30 min** |
 
 Build times vary based on network speed and host CPU. The `xz -T0` flag uses
-all available CPU cores for compression.
+all available CPU cores for compression. Provisioning runs at native ARM64
+speed with no emulation overhead, compared to the 5–10× slowdown from
+QEMU userspace emulation on an x86-64 host.
 
 ---
 
