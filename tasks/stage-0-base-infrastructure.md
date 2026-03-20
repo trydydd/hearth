@@ -362,19 +362,60 @@ Implement the one-shot first-boot credential generator:
 
 ---
 
-## Task 0.14 — Storage Layout (`ansible/roles/common`)
+## Task 0.14 — Storage Layout (`ansible/roles/common`) ✅
 
-Create the storage symlinks so each service's writable data lives under a single
-top-level mount point (easy to back up or move to external media).
+Finalise the storage directory layout so each service's writable data lives under
+a single top-level mount point, making it easy to back up or migrate to external
+media.
+
+Service paths are declared in `cafe.yaml` (`storage.locations.*`) and mirrored in
+`ansible/group_vars/all.yml`. The `common` role creates them as plain directories
+via the `cafebox_storage_dirs` loop already present in Phase 2. No symlinks are
+used: all service config templates reference `{{ storage.locations.<service> }}`
+rather than hard-coded system paths, so the entire data tree can be relocated by
+updating `storage.base` in `cafe.yaml` and re-provisioning.
+
+| Path (default) | Service | Data stored |
+|----------------|---------|-------------|
+| `/srv/cafebox/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
+| `/srv/cafebox/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
+| `/srv/cafebox/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
+| `/srv/cafebox/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+
+Centralising all writable data under a single `storage.base` means backup is one
+`rsync /srv/cafebox/` command, and moving to an external drive requires updating
+only one value in `cafe.yaml`.
 
 **Deliverables:**
-- Task in `ansible/roles/common/tasks/main.yml` that creates `/srv/cafebox/`
-  subdirectories and symlinks for each service based on variables in
-  `ansible/group_vars/all.yml`.
+
+1. **Sync `cafebox_storage_dirs`** in `ansible/roles/common/defaults/main.yml` with
+   `storage.locations.*` in `ansible/group_vars/all.yml` and `cafe.yaml`. Every
+   service directory defined in `cafe.yaml` must appear in this list so a fresh
+   provision always produces a complete layout.
+
+2. **Per-service ownership.** The `common` role creates all service directories
+   owned by the `cafebox` system user. Any service role that runs under a different
+   dedicated user must `chown` its own storage subdirectory in its own role's
+   tasks — not in `common`.
+
+3. **Document the external-storage migration path** in `cafe.yaml`. Add a comment
+   block to the `storage:` section explaining the supported workflow for moving data
+   to a USB drive:
+   - Mount the drive at `storage.base` (e.g. `/srv/cafebox`) before provisioning, OR
+   - Update `storage.base` to the new mount point (e.g. `/mnt/cafebox-data`) and
+     re-run `ansible-playbook`. All directories are recreated and service configs
+     are re-rendered automatically.
 
 **Acceptance criteria:**
-- Role is idempotent.
-- Missing target directories are created automatically.
+- `cafebox_storage_dirs` in `defaults/main.yml` matches the keys in
+  `storage.locations` in `group_vars/all.yml` and `cafe.yaml`.
+- Role is idempotent: running the playbook twice makes no changes on the second run.
+- `ansible-playbook --syntax-check -i ansible/inventory/development ansible/site.yml`
+  passes.
+- `cafe.yaml` storage section includes a comment explaining the external-media
+  migration workflow.
+
+**Status: Complete**
 
 ---
 

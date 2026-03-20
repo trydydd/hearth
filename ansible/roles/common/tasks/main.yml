@@ -94,8 +94,12 @@
         mode: "0755"
 
     - name: Create per-service storage subdirectories
+      # Iterates over the full paths from storage.locations (via cafebox_storage_dirs).
+      # Directories are owned by the cafebox system user.
+      # Convention: if a service role runs under a different dedicated user it must
+      # chown its own subdirectory inside that role's tasks — not here.
       ansible.builtin.file:
-        path: "{{ cafebox_storage_base }}/{{ item }}"
+        path: "{{ item }}"
         state: directory
         owner: "{{ cafebox_user }}"
         group: "{{ cafebox_group }}"

@@ -8,12 +8,10 @@ cafebox_storage_base: "/srv/cafebox"
 # Directory on the target machine where project files are deployed by Ansible
 cafebox_app_dir: "/opt/cafebox"
 
-# Subdirectories created under cafebox_storage_base for each service
-cafebox_storage_dirs:
-  - conduit
-  - calibre
-  - kiwix
-  - navidrome
+# Full paths of per-service storage directories, derived from storage.locations
+# in group_vars/all.yml (which mirrors cafe.yaml: storage.locations.*).
+# Do NOT edit this list directly — add/remove entries in cafe.yaml instead.
+cafebox_storage_dirs: "{{ storage.locations.values() | list }}"
 
 # Base packages installed on every CafeBox host
 cafebox_base_packages:

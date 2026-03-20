@@ -106,6 +106,20 @@ All system-level configs (nginx, hostapd, dnsmasq, nftables) are **auto-generate
 from `cafe.yaml` by `scripts/generate-configs.py`. Never edit files in
 `system/generated/` by hand.
 
+### Storage locations
+
+All writable service data lives under `storage.base` (default `/srv/cafebox`),
+making backup and migration simple: `rsync /srv/cafebox/` captures everything, and
+moving to an external drive requires updating only `storage.base` in `cafe.yaml`
+and re-provisioning.
+
+| Path (default) | Service | Data stored |
+|----------------|---------|-------------|
+| `/srv/cafebox/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
+| `/srv/cafebox/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
+| `/srv/cafebox/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
+| `/srv/cafebox/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+
 ---
 
 ## Services
