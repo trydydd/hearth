@@ -1,0 +1,57 @@
+# .github/workflows/ci.yml — Lightweight CI validation
+#
+# Runs on every push and pull request. Validates that the repository is in a
+# consistent state without needing an ARM64 runner or root privileges.
+#
+# Jobs:
+#   lint-and-test — Python unit tests + bash/YAML syntax checks (ubuntu-latest)
+
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  lint-and-test:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read  # checkout only; no write access needed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install Python test dependencies
+        run: pip install pytest pyyaml jinja2
+
+      - name: Validate build script syntax
+        run: bash -n scripts/build-image.sh
+
+      - name: Validate workflow YAML syntax
+        run: |
+          python3 -c "
+          import yaml, pathlib, sys
+          errors = []
+          for p in pathlib.Path('.github/workflows').glob('*.yml'):
+              try:
+                  yaml.safe_load(p.read_text())
+                  print(f'  OK  {p}')
+              except yaml.YAMLError as e:
+                  errors.append(f'  FAIL {p}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          "
+
+      - name: Run unit tests
+        run: python -m pytest tests/ -v
