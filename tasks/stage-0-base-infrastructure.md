@@ -439,7 +439,7 @@ running the Ansible playbook against a loop-mounted disk image (or via pi-gen):
 
 ---
 
-## Task 0.16 — `.github/workflows/build-image.yml` CI Image Build
+## Task 0.16 — `.github/workflows/build-image.yml` CI Image Build ✅
 
 Create a GitHub Actions workflow that:
 - Triggers on tag push (`v*`).
@@ -453,3 +453,5 @@ Create a GitHub Actions workflow that:
 - Workflow YAML is valid (`actionlint` or `yamllint`).
 - Uses pinned action versions (e.g., `actions/checkout@v4`).
 - Workflow only runs on version tags, not on every push.
+
+**Status: Complete**

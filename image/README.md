@@ -30,6 +30,42 @@ confidence that the provisioned image matches what runs on the Pi.
 
 ---
 
+## Three Ways to Build the Image
+
+| Option | Where it runs | Best for |
+|--------|---------------|----------|
+| **1 — Raspberry Pi** | On a Pi 4/5 running a 64-bit OS | Operators building a single customised image |
+| **2 — ARM64 workstation / cloud instance** | Apple M-series (Linux VM), AWS Graviton, Ampere Altra | Developers who already have an ARM64 machine |
+| **3 — GitHub Actions CI (remote runner)** | `ubuntu-24.04-arm` runner on GitHub | Automated release builds on every version tag |
+
+### Option 3 in detail — GitHub Actions remote runner
+
+Push a version tag and GitHub builds the image for you automatically.
+No local ARM64 hardware is required.
+
+**Cost** — `ubuntu-24.04-arm` is billed at **$0.016 / minute** for private
+repositories. A full build takes roughly 10–30 minutes:
+
+| Scenario | Estimated cost |
+|----------|----------------|
+| Public repository | **Free** (GitHub Actions minutes are free for public repos) |
+| Fast build (10 min, private repo) | ~$0.16 |
+| Typical build (20 min, private repo) | ~$0.32 |
+| Slow build (30 min, private repo) | ~$0.48 |
+
+The workflow lives at `.github/workflows/build-image.yml`. It triggers
+automatically on every `v*` tag push and attaches `cafebox.img.xz` to the
+GitHub Release.
+
+To trigger a build manually:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+---
+
 ## Host Architecture Requirement
 
 **The build host must be native ARM64 (`aarch64`).**
@@ -45,6 +81,22 @@ Suitable build environments:
 
 If you try to run the script on an x86-64 host it will exit with a clear error
 message. Cross-architecture emulation is intentionally not supported.
+
+---
+
+## Design Rationale: Why a Bash Script Rather Than an Ansible Playbook?
+
+The build pipeline has two distinct layers:
+
+| Layer | Tool | Why |
+|-------|------|-----|
+| **Image orchestration** (download, loop-device setup, partition resize, mount/unmount, xz compression) | Bash | These are raw OS operations (`losetup`, `kpartx`, `parted`, `resize2fs`, `mount`). Expressing them in Ansible would require importing community collections (`community.general`, `ansible.posix`) and wrapping every low-level call in a module that adds no clarity over a direct shell command. |
+| **Software provisioning** (install packages, configure services, deploy files) | Ansible (`ansible/site.yml`) | This is exactly what Ansible is designed for. The same playbook provisions the dev VM via Vagrant and the production image — a single source of truth. |
+
+In short: **Bash handles the image scaffolding; Ansible handles everything inside the image.**
+Running Ansible *inside* the image (step 4 of the script) gives you the same
+idempotent, role-based provisioning that the Vagrant workflow uses — with no
+duplication.
 
 ---
 
