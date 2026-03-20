@@ -1,9 +1,16 @@
 """
-generate-configs.py — CafeBox Jinja2 template renderer
+generate-configs.py — CafeBox Jinja2 template renderer (developer preview tool)
 
-Reads cafe.yaml (via config.py) and renders every *.j2 template found in
-system/templates/ into system/generated/, preserving the base filename
-(e.g. nginx.conf.j2 → system/generated/nginx.conf).
+Renders every *.j2 template found across ansible/roles/*/templates/ into
+system/generated/, preserving the base filename (e.g. nginx.conf.j2 →
+system/generated/nginx.conf). Each role's defaults/main.yml is merged into
+the template context so Ansible-specific variables (like deployment paths)
+resolve correctly.
+
+This script is NOT used during actual provisioning — Ansible's own template
+module renders files directly onto the target host at provision time. This
+exists purely so developers can inspect the rendered output locally without
+spinning up a VM or running a full playbook.
 
 Usage:
     python scripts/generate-configs.py [--config path/to/cafe.yaml]
@@ -13,8 +20,11 @@ content changes.
 """
 
 import argparse
+import glob
 import os
 import sys
+
+import yaml
 
 # Allow "python scripts/generate-configs.py" from the repo root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -31,12 +41,27 @@ except ImportError:
     sys.exit(1)
 
 
-TEMPLATES_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "system", "templates"
-)
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "system", "generated"
-)
+# Collect templates from all Ansible role template directories
+_REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
+_ROLES_DIR = os.path.join(_REPO_ROOT, "ansible", "roles")
+OUTPUT_DIR = os.path.join(_REPO_ROOT, "system", "generated")
+
+
+def _find_template_dirs() -> list[str]:
+    """Return all ansible/roles/*/templates/ directories that exist."""
+    pattern = os.path.join(os.path.abspath(_ROLES_DIR), "*", "templates")
+    return sorted(d for d in glob.glob(pattern) if os.path.isdir(d))
+
+
+def _load_role_defaults(templates_dir: str) -> dict:
+    """Load defaults/main.yml for the role that owns *templates_dir*."""
+    role_dir = os.path.dirname(templates_dir)
+    defaults_path = os.path.join(role_dir, "defaults", "main.yml")
+    if os.path.isfile(defaults_path):
+        with open(defaults_path, "r") as fh:
+            data = yaml.safe_load(fh)
+        return data if isinstance(data, dict) else {}
+    return {}
 
 
 def render_templates(config: dict, templates_dir: str, output_dir: str) -> list[str]:
@@ -113,14 +138,24 @@ def main():
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    templates_dir = os.path.abspath(TEMPLATES_DIR)
     output_dir = os.path.abspath(OUTPUT_DIR)
+    template_dirs = _find_template_dirs()
 
-    print(f"Templates : {templates_dir}")
-    print(f"Output    : {output_dir}")
+    print(f"Output : {output_dir}")
+    print(f"Roles  : {len(template_dirs)} with templates")
     print()
 
-    render_templates(config, templates_dir, output_dir)
+    if not template_dirs:
+        print("No ansible/roles/*/templates/ directories found.")
+        return
+
+    for tdir in template_dirs:
+        role_name = os.path.basename(os.path.dirname(tdir))
+        role_defaults = _load_role_defaults(tdir)
+        context = {**role_defaults, **config}
+        print(f"[{role_name}]")
+        render_templates(context, tdir, output_dir)
+        print()
 
 
 if __name__ == "__main__":

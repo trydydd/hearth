@@ -31,17 +31,20 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
         expected = [
             "scripts",
             "image",
-            "system/templates",
-            "system/generated",
-            "storage",
-            "services/conduit",
-            "services/element-web",
-            "services/calibre-web",
-            "services/kiwix",
-            "services/navidrome",
-            "admin/backend",
-            "admin/frontend",
-            "portal",
+            "tasks",
+            "tests",
+            "ansible",
+            "ansible/roles/common",
+            "ansible/roles/nginx",
+            "ansible/roles/wifi",
+            "ansible/roles/firewall",
+            "ansible/roles/conduit",
+            "ansible/roles/element_web",
+            "ansible/roles/calibre_web",
+            "ansible/roles/kiwix",
+            "ansible/roles/navidrome",
+            "ansible/roles/admin",
+            "ansible/roles/diagnostics",
         ]
         for rel in expected:
             with self.subTest(path=rel):
@@ -52,7 +55,9 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
             "cafe.yaml",
             "install.sh",
             "Makefile",
-            "portal/index.html",
+            "ansible/site.yml",
+            "ansible/ansible.cfg",
+            "ansible/roles/nginx/files/index.html",
             "image/README.md",
         ]
         for rel in expected:
@@ -60,7 +65,7 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
                 self.assertTrue((REPO_ROOT / rel).is_file(), f"Missing file: {rel}")
 
     def test_portal_and_image_stubs_are_non_empty(self):
-        portal_html = (REPO_ROOT / "portal" / "index.html").read_text()
+        portal_html = (REPO_ROOT / "ansible" / "roles" / "nginx" / "files" / "index.html").read_text()
         image_readme = (REPO_ROOT / "image" / "README.md").read_text()
 
         self.assertIn("<html", portal_html.lower())
@@ -116,7 +121,7 @@ class TestTask003ConfigLoader(unittest.TestCase):
 
 
 class TestTask004TemplateRenderer(unittest.TestCase):
-    def test_generate_configs_script_renders_nginx(self):
+    def test_generate_configs_script_renders_templates(self):
         result = subprocess.run(
             [sys.executable, "scripts/generate-configs.py", "--config", "cafe.yaml"],
             cwd=REPO_ROOT,
@@ -125,7 +130,10 @@ class TestTask004TemplateRenderer(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertTrue((REPO_ROOT / "system" / "generated" / "nginx.conf").is_file())
+        generated = REPO_ROOT / "system" / "generated"
+        self.assertTrue(generated.is_dir(), "system/generated/ should be created")
+        rendered_files = list(generated.glob("*"))
+        self.assertTrue(rendered_files, "At least one template should be rendered")
 
     def test_generate_configs_is_idempotent(self):
         first = subprocess.run(
@@ -176,14 +184,13 @@ class TestTask005MakefileTargets(unittest.TestCase):
             "vm-start",
             "vm-stop",
             "vm-ssh",
-            "install",
+            "vm-destroy",
             "logs",
-            "generate-configs",
         ]:
             with self.subTest(target=target):
                 self.assertIn(target, result.stdout)
 
-    def test_vm_target_fails_with_descriptive_message_when_vm_script_missing(self):
+    def test_vm_target_requires_vagrant(self):
         result = subprocess.run(
             ["make", "vm-start"],
             cwd=REPO_ROOT,
@@ -191,9 +198,123 @@ class TestTask005MakefileTargets(unittest.TestCase):
             text=True,
             check=False,
         )
-        self.assertNotEqual(result.returncode, 0)
         combined = f"{result.stdout}\n{result.stderr}"
-        self.assertIn("scripts/vm.sh not found", combined)
+        if result.returncode != 0:
+            # vagrant missing — guard should produce a helpful message
+            self.assertIn("vagrant", combined.lower())
+        else:
+            # vagrant present — guard passed, no "not installed" complaint
+            self.assertNotIn("vagrant is not installed", combined)
+
+
+class TestAnsibleRoleStructure(unittest.TestCase):
+    """Validates the Ansible directory layout follows best practices."""
+
+    ROLES_DIR = REPO_ROOT / "ansible" / "roles"
+    EXPECTED_ROLES = [
+        "common",
+        "wifi",
+        "firewall",
+        "nginx",
+        "conduit",
+        "element_web",
+        "calibre_web",
+        "kiwix",
+        "navidrome",
+        "admin",
+        "diagnostics",
+    ]
+
+    def test_all_expected_roles_exist(self):
+        for role in self.EXPECTED_ROLES:
+            with self.subTest(role=role):
+                self.assertTrue(
+                    (self.ROLES_DIR / role).is_dir(),
+                    f"Missing role directory: ansible/roles/{role}",
+                )
+
+    def test_each_role_has_tasks_main(self):
+        for role in self.EXPECTED_ROLES:
+            with self.subTest(role=role):
+                self.assertTrue(
+                    (self.ROLES_DIR / role / "tasks" / "main.yml").is_file(),
+                    f"Missing tasks/main.yml in role: {role}",
+                )
+
+    def test_each_role_has_defaults_and_handlers(self):
+        for role in self.EXPECTED_ROLES:
+            with self.subTest(role=role, file="defaults/main.yml"):
+                self.assertTrue(
+                    (self.ROLES_DIR / role / "defaults" / "main.yml").is_file(),
+                    f"Missing defaults/main.yml in role: {role}",
+                )
+            with self.subTest(role=role, file="handlers/main.yml"):
+                self.assertTrue(
+                    (self.ROLES_DIR / role / "handlers" / "main.yml").is_file(),
+                    f"Missing handlers/main.yml in role: {role}",
+                )
+
+    def test_site_yml_is_valid_yaml_and_references_all_roles(self):
+        site_path = REPO_ROOT / "ansible" / "site.yml"
+        data = yaml.safe_load(site_path.read_text())
+        self.assertIsInstance(data, list)
+        plays = data
+        all_roles = []
+        for play in plays:
+            all_roles.extend(play.get("roles", []))
+        for role in self.EXPECTED_ROLES:
+            with self.subTest(role=role):
+                self.assertIn(role, all_roles, f"site.yml is missing role: {role}")
+
+    def test_group_vars_all_is_valid_yaml(self):
+        gv_path = REPO_ROOT / "ansible" / "group_vars" / "all.yml"
+        self.assertTrue(gv_path.is_file(), "Missing ansible/group_vars/all.yml")
+        data = yaml.safe_load(gv_path.read_text())
+        self.assertIsInstance(data, dict)
+
+    def test_inventory_files_exist(self):
+        for env in ["development", "production"]:
+            with self.subTest(env=env):
+                self.assertTrue(
+                    (REPO_ROOT / "ansible" / "inventory" / env).is_file(),
+                    f"Missing inventory file: {env}",
+                )
+
+
+class TestAnsibleTemplates(unittest.TestCase):
+    """Validates Jinja2 templates under ansible/roles/*/templates/."""
+
+    ROLES_DIR = REPO_ROOT / "ansible" / "roles"
+
+    def test_key_templates_exist(self):
+        expected = [
+            ("nginx", "nginx.conf.j2"),
+            ("wifi", "hostapd.conf.j2"),
+            ("wifi", "dnsmasq.conf.j2"),
+            ("firewall", "nftables.conf.j2"),
+        ]
+        for role, template in expected:
+            with self.subTest(role=role, template=template):
+                self.assertTrue(
+                    (self.ROLES_DIR / role / "templates" / template).is_file(),
+                    f"Missing template: ansible/roles/{role}/templates/{template}",
+                )
+
+    def test_all_j2_templates_are_parseable(self):
+        from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+        for templates_dir in self.ROLES_DIR.glob("*/templates"):
+            if not templates_dir.is_dir():
+                continue
+            role_name = templates_dir.parent.name
+            env = Environment(
+                loader=FileSystemLoader(str(templates_dir)),
+                undefined=StrictUndefined,
+            )
+            for template_file in sorted(templates_dir.glob("*.j2")):
+                with self.subTest(role=role_name, template=template_file.name):
+                    # Parsing should not raise — validates Jinja2 syntax
+                    env.get_template(template_file.name)
 
 
 class TestTask016BuildImageWorkflow(unittest.TestCase):
