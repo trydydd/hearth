@@ -26,8 +26,7 @@ Vagrant.configure("2") do |config|
     #TODO enable nfs it currently fails with an error when enabled
     disabled: true
 
-  config.vm.provider "virtualbox" do |vb|
-    vb.name   = "cafebox-dev"
+  config.vm.provider "libvirt" do |vb|
     vb.memory = 1024
     vb.cpus   = 2
   end
