@@ -38,11 +38,24 @@ wifi:
 
 # ---------------------------------------------------------------------------
 # Storage paths
-# Each service stores its writable data under a single top-level mount point
-# so the whole data directory is easy to back up or migrate.
+#
+# All writable service data lives under a single top-level base directory.
+# This makes the entire data tree easy to back up (rsync <base>/ captures
+# everything) and straightforward to migrate to external media.
+#
+# To move data to a USB drive or external SSD:
+#   Option A — mount first, then provision:
+#     Mount the drive at the current base path (e.g. /srv/cafebox) before
+#     running ansible-playbook. Ansible creates the subdirectories on the
+#     mounted drive automatically.
+#   Option B — update base, then re-provision:
+#     Change storage.base (and each storage.locations entry) to the new
+#     mount point (e.g. /mnt/cafebox-data) and re-run ansible-playbook.
+#     All directories are recreated and service configs are re-rendered.
 # ---------------------------------------------------------------------------
 storage:
-  # Top-level base directory (symlink target root)
+  # Top-level base directory. Mount an external drive here before provisioning
+  # (Option A above) or update this value and re-provision (Option B).
   base: "/srv/cafebox"
 
   locations:

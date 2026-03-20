@@ -362,7 +362,7 @@ Implement the one-shot first-boot credential generator:
 
 ---
 
-## Task 0.14 — Storage Layout (`ansible/roles/common`)
+## Task 0.14 — Storage Layout (`ansible/roles/common`) ✅
 
 Finalise the storage directory layout so each service's writable data lives under
 a single top-level mount point, making it easy to back up or migrate to external
@@ -414,6 +414,8 @@ only one value in `cafe.yaml`.
   passes.
 - `cafe.yaml` storage section includes a comment explaining the external-media
   migration workflow.
+
+**Status: Complete**
 
 ---
 
