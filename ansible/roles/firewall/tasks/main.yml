@@ -38,7 +38,12 @@
       ansible.builtin.service:
         name: nftables
         enabled: true
+
+    - name: Start nftables service (live system only)
+      ansible.builtin.service:
+        name: nftables
         state: started
+      when: _systemd_active.stat.exists
 
   rescue:
     - name: "Firewall FAILED — nftables installation or configuration error"

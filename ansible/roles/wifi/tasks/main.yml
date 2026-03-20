@@ -35,15 +35,25 @@
     name: hostapd
     masked: false
 
-- name: Enable and start hostapd
+- name: Enable hostapd service
   ansible.builtin.systemd:
     name: hostapd
     enabled: true
-    state: "{{ 'started' if wifi.interface in ansible_interfaces else 'stopped' }}"
 
-- name: Enable and start dnsmasq
+- name: Start hostapd service (live system only)
+  ansible.builtin.systemd:
+    name: hostapd
+    state: "{{ 'started' if wifi.interface in ansible_interfaces else 'stopped' }}"
+  when: _systemd_active.stat.exists
+
+- name: Enable dnsmasq service
   ansible.builtin.systemd:
     name: dnsmasq
     enabled: true
+
+- name: Start dnsmasq service (live system only)
+  ansible.builtin.systemd:
+    name: dnsmasq
     state: "{{ 'started' if wifi.interface in ansible_interfaces else 'stopped' }}"
+  when: _systemd_active.stat.exists
 
