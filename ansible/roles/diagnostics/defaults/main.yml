@@ -1,0 +1,12 @@
+---
+# roles/diagnostics/defaults/main.yml
+
+# Set to true to deploy diagnostic scripts to the target host.
+# Enabled by default in development (Vagrantfile extra_vars); left false for
+# production so diagnostic tools are never deployed accidentally.
+# Override on the command line when needed:
+#   ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
+diagnostics_enabled: false
+
+# Directory inside the VM where diagnostic scripts are installed.
+diagnostics_dir: /usr/local/share/cafebox/diag

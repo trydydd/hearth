@@ -1,0 +1,16 @@
+[Unit]
+Description=CafeBox first-boot credential generator
+Documentation=https://github.com/trydydd/cafe-box
+# Must complete before nginx serves the portal (which may expose the
+# first-boot password banner via the admin API)
+Before=nginx.service
+# Ensure system users exist before we try to set a password
+After=systemd-sysusers.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/cafebox-first-boot.sh
+
+[Install]
+WantedBy=multi-user.target

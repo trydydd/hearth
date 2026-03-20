@@ -1,0 +1,35 @@
+---
+# roles/diagnostics/tasks/main.yml
+# Deploy diagnostic scripts into {{ diagnostics_dir }} on the target host.
+#
+# Guarded by diagnostics_enabled (default: false) so nothing is deployed to
+# production unless explicitly requested.  Enable in development via
+# Vagrantfile extra_vars or override on the command line:
+#
+#   ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
+
+- name: "diagnostics — deploy diagnostic scripts"
+  when: diagnostics_enabled | bool
+  block:
+    - name: Create diagnostics directory
+      ansible.builtin.file:
+        path: "{{ diagnostics_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy diagnose-first-boot.sh
+      ansible.builtin.copy:
+        src: diagnose-first-boot.sh
+        dest: "{{ diagnostics_dir }}/diagnose-first-boot.sh"
+        owner: root
+        group: root
+        mode: "0755"
+
+  rescue:
+    - name: "diagnostics FAILED — script deployment error"
+      ansible.builtin.fail:
+        msg: >-
+          Diagnostics role failed.
+          Check the task output above for details.

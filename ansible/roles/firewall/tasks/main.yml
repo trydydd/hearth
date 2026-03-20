@@ -25,6 +25,15 @@
         mode: "0640"
       notify: Reload nftables
 
+    - name: Apply nftables rules immediately from the deployed config
+      # This guarantees the active kernel rules always match /etc/nftables.conf
+      # even when the template content hasn't changed (which would skip the
+      # handler-based service restart).  Using nft -f directly is idempotent
+      # because the config starts with `flush ruleset`.
+      ansible.builtin.command:
+        cmd: "nft -f {{ firewall_nftables_conf }}"
+      changed_when: false
+
     - name: Enable nftables service so rules load on every boot
       ansible.builtin.service:
         name: nftables

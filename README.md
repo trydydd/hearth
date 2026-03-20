@@ -123,7 +123,31 @@ All services are reverse-proxied through nginx on port 80 and reachable at
 
 ---
 
-## Developer Workflow
+### Accessing the Portal
+
+Open **http://localhost:8080** in your browser once `vagrant up` completes.
+
+On the very first boot the portal shows a yellow **First Boot Setup** banner
+with the generated admin password. The banner disappears after a reboot because
+`/run` is a tmpfs that is cleared on every boot.
+
+**VM already running? Reset and re-trigger first-boot:**
+
+```bash
+vagrant ssh -c "sudo rm -f /var/lib/cafebox/first-boot-done && sudo systemctl start cafebox-first-boot.service"
+```
+
+Then refresh **http://localhost:8080**.
+
+**Read the password directly from the VM:**
+
+```bash
+vagrant ssh -c "sudo cat /run/cafebox/initial-password"
+```
+
+---
+
+### Developer Workflow
 
 ```bash
 make help              # List all available targets

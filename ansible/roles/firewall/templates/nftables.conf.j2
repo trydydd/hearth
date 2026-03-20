@@ -29,6 +29,18 @@ table inet filter {
         # Allow SSH on management/ethernet interfaces (not the AP interface)
         iifname != "{{ wifi.interface }}" tcp dport 22 accept comment "SSH: administrative access on non-AP interfaces"
 
+{% if firewall_management_interface | default('') | length > 0 %}
+        # Allow HTTP and Admin API on any non-AP interface so that development
+        # tools (e.g. Vagrant port-forwarding) can reach the portal regardless
+        # of whether the VM names its NIC eth0, enp0s3, or similar.
+        # Uses a negative match (same pattern as the SSH rule above) so it is
+        # robust to interface-name changes.
+        # Not applied in production (firewall_management_interface is left blank
+        # in the default role vars).
+        iifname != "{{ wifi.interface }}" tcp dport 80   accept comment "HTTP: portal access on non-AP interfaces"
+        iifname != "{{ wifi.interface }}" tcp dport 8000 accept comment "Admin API: access on non-AP interfaces"
+{% endif %}
+
         # --- AP interface rules (clients connect here) ---
 
         # Threat-model: Allow DHCP requests from clients so they can obtain an

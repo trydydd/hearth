@@ -5,8 +5,10 @@
   ansible.builtin.systemd:
     name: hostapd
     state: restarted
+  when: wifi.interface in ansible_interfaces
 
 - name: Restart dnsmasq
   ansible.builtin.systemd:
     name: dnsmasq
     state: restarted
+  when: wifi.interface in ansible_interfaces
