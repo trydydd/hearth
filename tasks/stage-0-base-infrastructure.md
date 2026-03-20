@@ -364,103 +364,45 @@ Implement the one-shot first-boot credential generator:
 
 ## Task 0.14 — Storage Layout (`ansible/roles/common`)
 
-Create the storage layout so each service's writable data lives under a single
-top-level mount point (easy to back up or move to external media).
+Finalise the storage directory layout so each service's writable data lives under
+a single top-level mount point, making it easy to back up or migrate to external
+media.
+
+Service paths are declared in `cafe.yaml` (`storage.locations.*`) and mirrored in
+`ansible/group_vars/all.yml`. The `common` role creates them as plain directories
+via the `cafebox_storage_dirs` loop already present in Phase 2. No symlinks are
+used: all service config templates reference `{{ storage.locations.<service> }}`
+rather than hard-coded system paths, so the entire data tree can be relocated by
+updating `storage.base` in `cafe.yaml` and re-provisioning.
 
 **Deliverables:**
-- Task in `ansible/roles/common/tasks/main.yml` that creates `/srv/cafebox/`
-  subdirectories for each service based on variables in
-  `ansible/group_vars/all.yml`.
+
+1. **Sync `cafebox_storage_dirs`** in `ansible/roles/common/defaults/main.yml` with
+   `storage.locations.*` in `ansible/group_vars/all.yml` and `cafe.yaml`. Every
+   service directory defined in `cafe.yaml` must appear in this list so a fresh
+   provision always produces a complete layout.
+
+2. **Per-service ownership.** The `common` role creates all service directories
+   owned by the `cafebox` system user. Any service role that runs under a different
+   dedicated user must `chown` its own storage subdirectory in its own role's
+   tasks — not in `common`.
+
+3. **Document the external-storage migration path** in `cafe.yaml`. Add a comment
+   block to the `storage:` section explaining the supported workflow for moving data
+   to a USB drive:
+   - Mount the drive at `storage.base` (e.g. `/srv/cafebox`) before provisioning, OR
+   - Update `storage.base` to the new mount point (e.g. `/mnt/cafebox-data`) and
+     re-run `ansible-playbook`. All directories are recreated and service configs
+     are re-rendered automatically.
 
 **Acceptance criteria:**
-- Role is idempotent.
-- Missing target directories are created automatically.
-
----
-
-### Architectural Evaluation
-
-#### Approach A — Symlinks from service-default paths (as originally specified)
-
-Service data lives at each service's default system path (e.g. `/var/lib/conduit/`),
-with a symlink pointing to the real storage under `/srv/cafebox/conduit/`.
-
-**Pros:**
-- Services can use their conventional default paths without per-service config changes.
-- Centralising real data under one mount point makes a full backup a single
-  `rsync /srv/cafebox/` command.
-- Swapping to external storage (USB drive) requires only remounting the target
-  directory, not editing service configs.
-
-**Cons:**
-- Symlinks break silently when the backing mount point is absent (e.g. SD card
-  corruption, USB unplugged). A service that starts with a dangling symlink will
-  create its own directory at the source path, silently splitting data across two
-  locations and creating a confusing failure mode.
-- Some services — notably those using SQLite WAL mode or advisory file locking
-  (Conduit, Calibre-Web) — behave unreliably when their data path crosses a
-  filesystem boundary via a symlink, especially to USB or network storage.
-- Ansible's `ansible.builtin.file` with `state: link` requires the target to
-  pre-exist (or `force: true`), introducing task-ordering complexity.
-- Adds an invisible indirection layer that surprises contributors when debugging
-  service failures.
-- Does not compose cleanly with systemd service hardening directives such as
-  `BindPaths=`, `PrivateDirectory=`, and `ReadOnlyPaths=`.
-
-#### Approach B — Direct subdirectories driven by `cafe.yaml` (current partial implementation)
-
-Service paths are declared in `cafe.yaml` → `group_vars/all.yml` →
-`roles/common/defaults/main.yml`, and the `common` role creates them as ordinary
-directories. Every service config template references `{{ storage.locations.<service> }}`
-rather than a hard-coded system path.
-
-**Pros:**
-- Already partially implemented in Phase 2 of the `common` role
-  (`cafebox_storage_dirs` loop), so there is no additional infrastructure to build.
-- `storage.locations.*` in `cafe.yaml` is a single source of truth; changing
-  `storage.base` and re-provisioning is all that is needed to relocate data.
-- No silent-failure modes: a missing directory fails loudly at provision time.
-- Simpler to reason about — what you see in `cafe.yaml` is what appears on disk.
-- Composes cleanly with systemd hardening directives.
-- Fully idempotent via Ansible's `file` module.
-
-**Cons:**
-- Services must be explicitly templated to use `{{ storage.locations.<service> }}`
-  rather than hard-coded defaults. This is already the established pattern in the
-  repo, so it imposes no additional burden.
-- Moving storage to external media requires either (a) mounting the external drive
-  at `storage.base` before provisioning, or (b) updating `storage.base` in
-  `cafe.yaml` and re-provisioning. Both paths are operator-controlled and fully
-  documented.
-
----
-
-### Architectural Recommendation: Approach B — direct directories, no symlinks
-
-The symlink layer adds fragility with no meaningful benefit, given that all service
-configs are already Jinja2-templated from `cafe.yaml`. The partial implementation in
-Phase 2 of the `common` role is the correct foundation. This task should be narrowed
-to three concrete actions:
-
-1. **Keep `cafebox_storage_dirs` in sync** with `storage.locations.*` in
-   `group_vars/all.yml` and `cafe.yaml`. The list in `defaults/main.yml` must include
-   every service directory defined in `cafe.yaml` so a fresh provision always produces
-   a consistent layout.
-
-2. **Set per-service ownership where needed.** The `common` role currently creates all
-   service directories owned by the `cafebox` system user. Service roles that run as a
-   different user (e.g. a dedicated `conduit` or `calibre-web` user) must `chown` their
-   own storage subdirectory in their own role's tasks — not in `common`.
-
-3. **Document the external-storage migration path in `cafe.yaml`.** The supported
-   operator workflow for moving data to a USB drive is:
-   - Mount the drive at `/srv/cafebox/` (or any path) before provisioning, OR
-   - Update `storage.base` in `cafe.yaml` to the new mount point (e.g.
-     `/mnt/cafebox-data/`) and re-run `ansible-playbook`. Ansible recreates all
-     directories at the new location; service configs are re-rendered from the
-     template and point to the new paths automatically.
-
-   No symlinks are created or required.
+- `cafebox_storage_dirs` in `defaults/main.yml` matches the keys in
+  `storage.locations` in `group_vars/all.yml` and `cafe.yaml`.
+- Role is idempotent: running the playbook twice makes no changes on the second run.
+- `ansible-playbook --syntax-check -i ansible/inventory/development ansible/site.yml`
+  passes.
+- `cafe.yaml` storage section includes a comment explaining the external-media
+  migration workflow.
 
 ---
 
