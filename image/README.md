@@ -57,11 +57,42 @@ The workflow lives at `.github/workflows/build-image.yml`. It triggers
 automatically on every `v*` tag push and attaches `cafebox.img.xz` to the
 GitHub Release.
 
-To trigger a build manually:
+To trigger a build automatically via a version tag:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
+```
+
+#### Triggering a build manually on any branch
+
+You can run the workflow manually and build from **any branch** by using the
+`ref` input field. GitHub's branch dropdown in the "Run workflow" UI only
+lists branches where the workflow file was recently found — typically just
+`main` — so the `ref` field is the reliable way to target any branch.
+
+**Via the GitHub UI:**
+
+1. Go to **Actions → Build Image** in the GitHub repository.
+2. Click **Run workflow**.
+3. Leave the **branch dropdown** set to `main` (this controls where the
+   workflow definition is read from — always `main`).
+4. In the **"Branch or tag to build from"** field, type the branch name you
+   want to build (e.g. `my-feature-branch`). Leave it blank to build `main`.
+5. Choose a build mode:
+   - `dry-run` — checks script syntax only; fast and free (safe default)
+   - `artifact` — full ARM64 build; image uploaded as a downloadable workflow artifact
+   - `release` — full ARM64 build + GitHub Release (restricted to `main`)
+6. Click **Run workflow**.
+
+**Via the GitHub CLI:**
+
+```bash
+# Dry-run on a feature branch (syntax check only)
+gh workflow run build-image.yml -f ref=my-feature-branch
+
+# Full build uploaded as a downloadable artifact
+gh workflow run build-image.yml -f ref=my-feature-branch -f mode=artifact
 ```
 
 ---

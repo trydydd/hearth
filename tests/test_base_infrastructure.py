@@ -365,6 +365,43 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
             "build-image.yml must have a workflow_dispatch trigger for manual testing",
         )
 
+    def test_build_image_workflow_dispatch_has_ref_input(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        inputs = (
+            self._get_triggers(data).get("workflow_dispatch", {}) or {}
+        ).get("inputs", {})
+        self.assertIn(
+            "ref",
+            inputs,
+            "workflow_dispatch must expose a 'ref' input so any branch can be built",
+        )
+
+    def test_build_image_workflow_dispatch_ref_is_not_required(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        inputs = (
+            self._get_triggers(data).get("workflow_dispatch", {}) or {}
+        ).get("inputs", {})
+        self.assertFalse(
+            inputs.get("ref", {}).get("required", False),
+            "'ref' input must not be required (empty = build from main)",
+        )
+
+    def test_build_image_checkout_uses_ref_input(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        checkout_steps = []
+        for job in data.get("jobs", {}).values():
+            for step in job.get("steps", []):
+                if "checkout" in step.get("uses", ""):
+                    checkout_steps.append(step)
+        self.assertTrue(checkout_steps, "No checkout step found")
+        for step in checkout_steps:
+            ref_with = step.get("with", {}).get("ref", "")
+            self.assertIn(
+                "inputs.ref",
+                str(ref_with),
+                "Checkout step must use inputs.ref so workflow_dispatch can build any branch",
+            )
+
     def test_build_image_workflow_dispatch_has_mode_input(self):
         data = self._load_workflow(self.WORKFLOW_PATH)
         inputs = (

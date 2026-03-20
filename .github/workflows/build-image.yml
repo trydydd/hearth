@@ -1,6 +1,9 @@
 # .github/workflows/build-image.yml — Build and publish a CafeBox flashable image
 #
-# Triggers on every version tag push (e.g. v1.0.0).
+# Triggers:
+#   • Every version tag push (e.g. v1.0.0) — full build + GitHub Release.
+#   • Manual workflow_dispatch — choose branch + dry-run / artifact / release mode.
+#
 # Runs scripts/build-image.sh on a native ARM64 runner so no QEMU emulation is
 # needed, then attaches the compressed image to the GitHub Release.
 #
@@ -23,6 +26,13 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      ref:
+        description: >
+          Branch or tag to build from (e.g. my-feature-branch).
+          Leave blank to build from the default branch (main).
+        required: false
+        default: ''
+        type: string
       mode:
         description: >
           Build mode:
@@ -49,6 +59,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install build dependencies
         run: |
