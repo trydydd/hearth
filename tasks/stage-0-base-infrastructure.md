@@ -375,6 +375,17 @@ used: all service config templates reference `{{ storage.locations.<service> }}`
 rather than hard-coded system paths, so the entire data tree can be relocated by
 updating `storage.base` in `cafe.yaml` and re-provisioning.
 
+| Path (default) | Service | Data stored |
+|----------------|---------|-------------|
+| `/srv/cafebox/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
+| `/srv/cafebox/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
+| `/srv/cafebox/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
+| `/srv/cafebox/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+
+Centralising all writable data under a single `storage.base` means backup is one
+`rsync /srv/cafebox/` command, and moving to an external drive requires updating
+only one value in `cafe.yaml`.
+
 **Deliverables:**
 
 1. **Sync `cafebox_storage_dirs`** in `ansible/roles/common/defaults/main.yml` with
