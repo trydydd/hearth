@@ -419,7 +419,7 @@ only one value in `cafe.yaml`.
 
 ---
 
-## Task 0.15 — Flashable Image Builder (`scripts/build-image.sh`)
+## Task 0.15 — Flashable Image Builder (`scripts/build-image.sh`) ✅
 
 Write the script that produces a flashable `.img.xz` Raspberry Pi image by
 running the Ansible playbook against a loop-mounted disk image (or via pi-gen):
@@ -434,6 +434,8 @@ running the Ansible playbook against a loop-mounted disk image (or via pi-gen):
 **Acceptance criteria:**
 - `bash -n scripts/build-image.sh` passes.
 - README documents required host tools and estimated build time.
+
+**Status: Complete**
 
 ---
 
