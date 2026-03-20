@@ -309,7 +309,7 @@ Create a Jinja2 template for the main `nginx.conf` that:
 
 ---
 
-## Task 0.12 — Portal Landing Page (`ansible/roles/nginx`)
+## Task 0.12 — Portal Landing Page (`ansible/roles/nginx`)✅
 
 Build the portal landing page. It must:
 - Follow the UX and visual direction in [`STYLEGUIDE.md`](../STYLEGUIDE.md).
@@ -329,6 +329,8 @@ Build the portal landing page. It must:
 - Password banner is visible when mock response has `first_boot: true`.
 - Password banner is hidden when `first_boot: false`.
 - No external CDN resources referenced.
+
+**Status: Complete**
 
 ---
 
@@ -355,6 +357,8 @@ Implement the one-shot first-boot credential generator:
   `/api/public/services/status` API — not by accessing the file directly —
   so nginx's process user does not need read access to this file.
 - `bash -n` passes on the deployed script.
+
+**Status: Complete**
 
 ---
 
