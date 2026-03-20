@@ -244,15 +244,41 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
             "build-image.yml must have a workflow_dispatch trigger for manual testing",
         )
 
-    def test_build_image_workflow_dispatch_has_dry_run_input(self):
+    def test_build_image_workflow_dispatch_has_mode_input(self):
         data = self._load_workflow(self.WORKFLOW_PATH)
         inputs = (
             self._get_triggers(data).get("workflow_dispatch", {}) or {}
         ).get("inputs", {})
         self.assertIn(
-            "dry_run",
+            "mode",
             inputs,
-            "workflow_dispatch must expose a dry_run input",
+            "workflow_dispatch must expose a 'mode' input",
+        )
+
+    def test_build_image_workflow_dispatch_mode_has_expected_options(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        inputs = (
+            self._get_triggers(data).get("workflow_dispatch", {}) or {}
+        ).get("inputs", {})
+        options = inputs.get("mode", {}).get("options", [])
+        for expected in ("dry-run", "artifact", "release"):
+            with self.subTest(option=expected):
+                self.assertIn(
+                    expected,
+                    options,
+                    f"workflow_dispatch mode must include '{expected}' option",
+                )
+
+    def test_build_image_workflow_dispatch_mode_defaults_to_dry_run(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        inputs = (
+            self._get_triggers(data).get("workflow_dispatch", {}) or {}
+        ).get("inputs", {})
+        default = inputs.get("mode", {}).get("default")
+        self.assertEqual(
+            default,
+            "dry-run",
+            "workflow_dispatch mode default must be 'dry-run' (safe default)",
         )
 
     def test_build_image_uses_arm64_runner(self):
@@ -310,6 +336,71 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
                     "ubuntu-latest",
                     f"CI job '{job_name}' should run on ubuntu-latest (cheap x86)",
                 )
+
+    def test_build_image_has_artifact_upload_step(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        all_steps = []
+        for job in data.get("jobs", {}).values():
+            all_steps.extend(job.get("steps", []))
+        upload_steps = [
+            s for s in all_steps
+            if "upload-artifact" in s.get("uses", "")
+        ]
+        self.assertTrue(
+            upload_steps,
+            "build-image.yml must have an actions/upload-artifact step for artifact mode",
+        )
+
+    def test_build_image_artifact_upload_uses_pinned_action(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        all_steps = []
+        for job in data.get("jobs", {}).values():
+            all_steps.extend(job.get("steps", []))
+        for step in all_steps:
+            uses = step.get("uses", "")
+            if "upload-artifact" in uses:
+                self.assertRegex(
+                    uses,
+                    r"actions/upload-artifact@v\d",
+                    f"upload-artifact action must be pinned to a major version, got: {uses}",
+                )
+
+    def test_build_image_artifact_upload_is_conditional_on_artifact_mode(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        all_steps = []
+        for job in data.get("jobs", {}).values():
+            all_steps.extend(job.get("steps", []))
+        for step in all_steps:
+            if "upload-artifact" in step.get("uses", ""):
+                condition = step.get("if", "")
+                self.assertIn(
+                    "artifact",
+                    str(condition),
+                    "upload-artifact step must be conditional on mode == 'artifact'",
+                )
+
+    def test_build_image_release_step_runs_on_tag_push_or_release_mode(self):
+        data = self._load_workflow(self.WORKFLOW_PATH)
+        all_steps = []
+        for job in data.get("jobs", {}).values():
+            all_steps.extend(job.get("steps", []))
+        release_steps = [
+            s for s in all_steps
+            if "release" in s.get("name", "").lower() and "github" in s.get("name", "").lower()
+        ]
+        self.assertTrue(release_steps, "A 'Create GitHub Release' step must exist")
+        for step in release_steps:
+            condition = str(step.get("if", ""))
+            self.assertIn(
+                "push",
+                condition,
+                "Release step must run when triggered by a tag push (event_name == 'push')",
+            )
+            self.assertIn(
+                "release",
+                condition,
+                "Release step must also run when mode == 'release'",
+            )
 
     # ------------------------------------------------------------------
     # Build script

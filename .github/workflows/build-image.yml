@@ -23,14 +23,20 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Skip the actual image build (validate workflow steps only)'
+      mode:
+        description: >
+          Build mode:
+            dry-run  — verify workflow steps without building (fast, free)
+            artifact — full ARM64 build, image uploaded as a downloadable
+                       workflow artifact (no GitHub Release created)
+            release  — full ARM64 build + GitHub Release (same as a tag push)
         required: false
-        default: 'false'
+        default: 'dry-run'
         type: choice
         options:
-          - 'false'
-          - 'true'
+          - dry-run
+          - artifact
+          - release
 
 jobs:
   build-image:
@@ -60,15 +66,23 @@ jobs:
 
       - name: Build flashable image
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
             echo "[dry-run] Skipping image build — verifying build script syntax only"
             bash -n scripts/build-image.sh
           else
             sudo scripts/build-image.sh
           fi
 
+      - name: Upload image as workflow artifact
+        if: ${{ inputs.mode == 'artifact' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cafebox-image
+          path: image/cafebox.img.xz
+          retention-days: 7
+
       - name: Create GitHub Release and upload image
-        if: ${{ inputs.dry_run != 'true' }}
+        if: ${{ github.event_name == 'push' || inputs.mode == 'release' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
