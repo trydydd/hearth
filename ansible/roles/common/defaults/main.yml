@@ -23,3 +23,13 @@ cafebox_base_packages:
   - rsync
   - logrotate
   - systemd-timesyncd
+  - openssh-server
+
+# ---------------------------------------------------------------------------
+# USB OTG SSH — cable-based admin access for debugging without WiFi
+# ---------------------------------------------------------------------------
+
+# Static IP assigned to the usb0 gadget interface on the Pi.
+# Connect from the host with: ssh <user>@192.168.7.2
+# (replace <user> with whatever user has shell access on your Pi OS image)
+usb_ssh_ip: "192.168.7.2"

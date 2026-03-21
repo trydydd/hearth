@@ -318,6 +318,80 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+hdr "16. USB OTG gadget (SSH over USB cable)"
+# ---------------------------------------------------------------------------
+# If the WiFi AP is broken, SSH over USB is the primary fallback for accessing
+# the Pi.  This section shows whether the USB gadget is configured correctly.
+
+printf '  Kernel modules:\n'
+if lsmod 2>/dev/null | grep -q "g_ether\|usb_f_ecm\|usb_f_rndis"; then
+    ok "USB Ethernet gadget module loaded"
+    lsmod | grep -E 'g_ether|usb_f_ecm|usb_f_rndis|dwc2' || true
+elif lsmod 2>/dev/null | grep -q "dwc2"; then
+    warn "dwc2 loaded but g_ether not yet loaded (gadget driver not bound)"
+    warn "This means usb0 will not appear until g_ether is loaded."
+    warn "Check cmdline.txt for modules-load=dwc2,g_ether"
+else
+    warn "Neither dwc2 nor g_ether modules are loaded"
+    warn "USB OTG gadget is not active — SSH over USB cable is not available"
+fi
+echo
+
+printf '  usb0 interface:\n'
+if ip link show usb0 &>/dev/null; then
+    ok "usb0 interface exists"
+    ip addr show usb0
+    echo
+    USB_IP="$(ip addr show usb0 2>/dev/null | awk '/inet /{print $2}' | head -1 || true)"
+    if [ -n "${USB_IP}" ]; then
+        ok "usb0 has IP address: ${USB_IP}"
+        printf '  Connect from the host with:\n'
+        printf '    ssh <user>@%s\n' "${USB_IP%%/*}"
+    else
+        warn "usb0 has no IP address — check dhcpcd.conf for usb0 static config"
+    fi
+else
+    warn "usb0 interface does NOT exist"
+    warn "Either no USB cable is connected, or the gadget module is not loaded"
+fi
+echo
+
+printf '  SSH service:\n'
+if systemctl is-active --quiet ssh 2>/dev/null; then
+    ok "ssh service is RUNNING"
+elif systemctl is-active --quiet sshd 2>/dev/null; then
+    ok "sshd service is RUNNING"
+else
+    fail "SSH service is NOT running"
+    fail "Fix: sudo systemctl enable --now ssh"
+fi
+echo
+
+printf '  USB gadget boot config:\n'
+for BOOT_CFG in /boot/firmware/config.txt /boot/config.txt; do
+    if [ -f "${BOOT_CFG}" ]; then
+        if grep -q "^dtoverlay=dwc2" "${BOOT_CFG}"; then
+            ok "dtoverlay=dwc2 found in ${BOOT_CFG}"
+        else
+            warn "dtoverlay=dwc2 NOT found in ${BOOT_CFG}"
+            warn "Fix: add 'dtoverlay=dwc2' to ${BOOT_CFG} and reboot"
+        fi
+        break
+    fi
+done
+for CMDLINE in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+    if [ -f "${CMDLINE}" ]; then
+        if grep -q "modules-load=dwc2,g_ether" "${CMDLINE}"; then
+            ok "modules-load=dwc2,g_ether found in ${CMDLINE}"
+        else
+            warn "modules-load=dwc2,g_ether NOT found in ${CMDLINE}"
+            warn "Fix: append 'modules-load=dwc2,g_ether' to ${CMDLINE} and reboot"
+        fi
+        break
+    fi
+done
+
+# ---------------------------------------------------------------------------
 hdr "Done"
 # ---------------------------------------------------------------------------
 printf '  Paste the full output above into the GitHub issue.\n'

@@ -16,7 +16,50 @@ Deployment is **off by default** (`diagnostics_enabled: false`). This means:
 | Script | Installed path | Purpose |
 |--------|---------------|---------|
 | `diagnose-first-boot.sh` | `/usr/local/share/cafebox/diag/diagnose-first-boot.sh` | Checks the full first-boot credential chain: system users → service status & journal → portal root files → portal root HTTP response → API status endpoint → nginx error & access logs → network interfaces → nftables ruleset → listening ports |
-| `diagnose-wifi.sh` | `/usr/local/share/cafebox/diag/diagnose-wifi.sh` | Checks the full WiFi AP bringup chain: rfkill → interface → firmware/modules → IP address → regulatory domain → hostapd (config, service, journal) → dnsmasq (config, service) → boot config → network-manager conflicts |
+| `diagnose-wifi.sh` | `/usr/local/share/cafebox/diag/diagnose-wifi.sh` | Checks the full WiFi AP bringup chain: rfkill → interface → firmware/modules → IP address → regulatory domain → hostapd (config, service, journal) → dnsmasq (config, service) → boot config → network-manager conflicts → USB OTG gadget status |
+
+## SSH over USB OTG (primary fallback when WiFi is not broadcasting)
+
+Every CafeBox image configures SSH over USB by default so you can access the
+Pi when the WiFi AP is not working:
+
+| What gets configured | Where |
+|---------------------|-------|
+| USB OTG gadget driver | `dtoverlay=dwc2` added to `/boot/firmware/config.txt` |
+| USB Ethernet module | `modules-load=dwc2,g_ether` appended to `cmdline.txt` |
+| SSH daemon enabled | Empty `ssh` file created in boot partition; `ssh.service` enabled |
+| Static IP on `usb0` | `192.168.7.2/24` via `/etc/dhcpcd.conf` |
+
+### Connecting via USB cable
+
+1. Connect a USB data cable (not charge-only) from your laptop to the Pi's
+   **USB port** (the port labelled USB, not PWR IN).
+2. Wait ~30 seconds for the Pi to boot and the `usb0` gadget interface to appear.
+3. On Linux/macOS the host will auto-configure with a link-local address on the
+   new `usb0`/`enp*` interface. On Windows, install the RNDIS driver.
+4. SSH in using the Pi's static IP:
+
+   ```bash
+   ssh <user>@192.168.7.2
+   ```
+
+   Replace `<user>` with whatever user has shell access on your Pi OS image
+   (e.g. the user you created during first-boot setup via `userconf.txt`).
+
+   If you configured SSH keys during Pi OS setup, key-based login should work
+   immediately. Password login requires that the account has a password set.
+
+### Troubleshooting the USB connection
+
+If `192.168.7.2` is not reachable:
+
+- Check that `dtoverlay=dwc2` is in `/boot/firmware/config.txt` (section 16 of
+  `diagnose-wifi.sh` confirms this).
+- Check that `modules-load=dwc2,g_ether` is in `cmdline.txt`.
+- Run `ip link show` — the `usb0` interface should appear once a cable is
+  connected and the gadget driver is loaded.
+- Check `/etc/dhcpcd.conf` for the `interface usb0 / static ip_address` block.
+- Make sure you are using a data-capable USB cable (not a charge-only cable).
 
 ## Running a diagnostic script (development VM)
 
@@ -29,14 +72,12 @@ vagrant ssh -- sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
 If the WiFi network is never broadcast on the Pi:
 
 ```bash
-# Run directly on the Pi (over serial, USB OTG console, or HDMI+keyboard):
+# Connect via USB cable first (see above), then run:
+ssh <user>@192.168.7.2 "sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh 2>&1" \
+  | tee /tmp/cafebox-wifi-diag.txt
+
+# Or run directly on the Pi (over HDMI+keyboard or serial console):
 sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh
-
-# Or, if you can reach the Pi over Ethernet/USB-OTG SSH:
-ssh pi@<host> sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh
-
-# Save the full output for filing an issue:
-ssh pi@<host> "sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh 2>&1" | tee /tmp/cafebox-wifi-diag.txt
 ```
 
 The script accepts an optional interface name argument (default: `wlan0`):
@@ -64,6 +105,7 @@ sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh wlan0
 | 13. Listening ports | DNS (:53) and DHCP (:67) ports open | — |
 | 14. Boot config | `disable_wifi`, country, dtoverlay in `/boot/firmware/config.txt` | Remove `disable_wifi` overlay; set country |
 | 15. Conflicts | NetworkManager / wpa_supplicant racing with hostapd | `systemctl stop wpa_supplicant@wlan0` |
+| 16. USB OTG gadget | Gadget modules, `usb0` IP, SSH service, boot config tokens | See "SSH over USB OTG" section above |
 
 #### Key things to check when the WiFi network is not visible
 
@@ -84,6 +126,8 @@ sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh wlan0
   turns off the radio entirely.
 - **Section 15 (conflicts)** — If `wpa_supplicant` or NetworkManager is managing
   `wlan0`, it will conflict with hostapd. Only hostapd should own the AP interface.
+- **Section 16 (USB OTG)** — If `usb0` has no IP, check `/etc/dhcpcd.conf` for the
+  `interface usb0 / static ip_address` block added by the Ansible `common` role.
 
 Paste the full output into the GitHub issue.
 

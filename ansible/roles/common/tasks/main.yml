@@ -191,3 +191,113 @@
         msg: >-
           Common role phase 4 (first-boot credential generator) failed.
           Check the task output above for details.
+
+# ---------------------------------------------------------------------------
+# Phase 5 — SSH over USB-OTG (cable access for debugging without WiFi)
+# ---------------------------------------------------------------------------
+# Configures the Pi as a USB Ethernet gadget so an operator can SSH in over a
+# USB cable when the WiFi AP is not broadcasting.  Works on Pi Zero 2 W (and
+# any other Pi with a USB OTG port) running Raspberry Pi OS Bookworm.
+#
+# What this phase does:
+#   1. Adds 'dtoverlay=dwc2' to /boot/firmware/config.txt (or /boot/config.txt
+#      on older images) to enable the USB OTG gadget controller.
+#   2. Appends 'modules-load=dwc2,g_ether' to cmdline.txt so the kernel loads
+#      the USB Ethernet gadget driver on every boot.
+#   3. Creates an empty 'ssh' file in the boot partition — Raspberry Pi OS
+#      checks for this on first boot and enables the SSH daemon permanently.
+#   4. Configures a static IP (usb_ssh_ip, default 192.168.7.2) on the usb0
+#      gadget interface via dhcpcd.conf (present on RPi OS Lite).
+#   5. Enables the openssh-server (ssh) service.
+#
+# Tasks 1–3 are skipped automatically when neither boot config path exists
+# (e.g. in the Vagrant development VM), so the playbook is safe to run in
+# both environments.
+
+- name: "Phase 5 — Enable SSH over USB-OTG"
+  block:
+    # ---- Detect boot partition path ----------------------------------------
+    # RPi OS Bookworm places boot files at /boot/firmware/.
+    # Older images use /boot/ directly.
+    - name: Detect RPi OS Bookworm boot config (/boot/firmware/config.txt)
+      ansible.builtin.stat:
+        path: /boot/firmware/config.txt
+      register: _boot_firmware_cfg
+
+    - name: Detect legacy boot config (/boot/config.txt)
+      ansible.builtin.stat:
+        path: /boot/config.txt
+      register: _boot_legacy_cfg
+
+    - name: Set boot directory fact
+      ansible.builtin.set_fact:
+        _boot_dir: "{{ '/boot/firmware' if _boot_firmware_cfg.stat.exists else '/boot' }}"
+
+    # ---- Modify boot files (skip on VMs where neither path exists) ----------
+    - name: Configure USB OTG gadget mode (Pi hardware only)
+      when: _boot_firmware_cfg.stat.exists or _boot_legacy_cfg.stat.exists
+      block:
+        - name: Enable USB OTG dwc2 overlay in boot config
+          ansible.builtin.lineinfile:
+            path: "{{ _boot_dir }}/config.txt"
+            line: "dtoverlay=dwc2"
+            regexp: "^#?\\s*dtoverlay=dwc2"
+            state: present
+
+        - name: Read current kernel cmdline
+          ansible.builtin.slurp:
+            src: "{{ _boot_dir }}/cmdline.txt"
+          register: _cmdline_raw
+
+        - name: Enable g_ether USB OTG module in kernel cmdline
+          # cmdline.txt is a single space-separated line; append the
+          # modules-load token only if it is not already present.
+          ansible.builtin.copy:
+            content: "{{ (_cmdline_raw.content | b64decode | trim) ~ ' modules-load=dwc2,g_ether' }}\n"
+            dest: "{{ _boot_dir }}/cmdline.txt"
+            owner: root
+            group: root
+            mode: "0644"
+          when: "'modules-load=dwc2,g_ether' not in (_cmdline_raw.content | b64decode)"
+
+        - name: Create ssh enable file in boot partition
+          # RPi OS reads this file at first boot and enables the SSH daemon.
+          ansible.builtin.file:
+            path: "{{ _boot_dir }}/ssh"
+            state: touch
+            owner: root
+            group: root
+            mode: "0644"
+          changed_when: false
+
+    # ---- Static IP for usb0 via dhcpcd (RPi OS default network manager) ----
+    - name: Check for dhcpcd.conf (present on RPi OS, absent in Vagrant VMs)
+      ansible.builtin.stat:
+        path: /etc/dhcpcd.conf
+      register: _dhcpcd_conf
+
+    - name: Configure static IP for usb0 in dhcpcd.conf
+      # Gives the USB gadget interface a predictable IP so operators can
+      # connect with: ssh <user>@{{ usb_ssh_ip }}
+      ansible.builtin.blockinfile:
+        path: /etc/dhcpcd.conf
+        block: |
+          interface usb0
+          static ip_address={{ usb_ssh_ip }}/24
+        marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox usb0"
+      when: _dhcpcd_conf.stat.exists
+
+    # ---- Ensure the SSH service is enabled ---------------------------------
+    - name: Enable SSH service
+      ansible.builtin.systemd:
+        name: ssh
+        enabled: true
+        masked: false
+
+  rescue:
+    - name: "Phase 5 FAILED — USB OTG SSH setup error"
+      ansible.builtin.fail:
+        msg: >-
+          Common role phase 5 (USB OTG SSH) failed.
+          Check the task output above for details.
+
