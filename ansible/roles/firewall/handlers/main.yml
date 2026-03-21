@@ -5,3 +5,4 @@
   ansible.builtin.service:
     name: nftables
     state: restarted
+  when: _systemd_active.stat.exists

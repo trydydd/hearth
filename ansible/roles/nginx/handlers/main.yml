@@ -5,8 +5,10 @@
   ansible.builtin.service:
     name: nginx
     state: reloaded
+  when: _systemd_active.stat.exists
 
 - name: Restart nginx
   ansible.builtin.service:
     name: nginx
     state: restarted
+  when: _systemd_active.stat.exists
