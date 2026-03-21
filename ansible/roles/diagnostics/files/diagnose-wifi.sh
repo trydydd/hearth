@@ -272,7 +272,7 @@ ss -tlnp 'sport = :53' 2>/dev/null || true
 # ---------------------------------------------------------------------------
 hdr "14. Boot config (WiFi / Pi Zero 2 W specific)"
 # ---------------------------------------------------------------------------
-# Raspberry Pi OS Bookworm stores config under /boot/firmware/; older images use /boot/
+# RPi OS Bookworm and later stores config under /boot/firmware/; older images use /boot/
 for BOOT_CFG in /boot/firmware/config.txt /boot/config.txt; do
     if [ -f "${BOOT_CFG}" ]; then
         ok "Found: ${BOOT_CFG}"

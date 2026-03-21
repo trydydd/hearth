@@ -50,7 +50,7 @@ KEEP_WORK="${KEEP_WORK:-0}"
 # need to match the card size here.
 IMAGE_SIZE="${IMAGE_SIZE:-6G}"
 
-# Raspberry Pi OS Lite 64-bit (Bookworm) — update URL for newer releases
+# Raspberry Pi OS Lite 64-bit — update URL to pin a specific release
 RPI_OS_URL="${RPI_OS_URL:-https://downloads.raspberrypi.org/raspios_lite_arm64_latest}"
 
 SCRIPT_NAME="$(basename "$0")"
@@ -71,8 +71,8 @@ _cleanup() {
     local exit_code=$?
     log "Cleaning up mount points..."
     # Unmount in reverse order; ignore errors during cleanup.
-    # BOOT_MOUNT_DIR can be either /mnt/boot/firmware (Bookworm) or /mnt/boot
-    # (legacy), depending on what was detected at runtime.
+    # BOOT_MOUNT_DIR can be either /mnt/boot/firmware (Bookworm/Trixie and later)
+    # or /mnt/boot (legacy), depending on what was detected at runtime.
     if [ -n "${BOOT_MOUNT_DIR:-}" ] && mountpoint -q "${BOOT_MOUNT_DIR}" 2>/dev/null; then
         umount "${BOOT_MOUNT_DIR}" 2>/dev/null || true
     fi
@@ -137,7 +137,7 @@ RAW_IMAGE="${WORK_DIR}/raspios-lite.img"
 WORK_IMAGE="${WORK_DIR}/cafebox-work.img"
 MOUNT_DIR="${WORK_DIR}/mnt"
 LOOP_DEV=""
-BOOT_MOUNT_DIR=""  # set after the root partition is mounted (Bookworm vs legacy)
+BOOT_MOUNT_DIR=""  # set after the root partition is mounted (modern vs legacy layout)
 
 trap _cleanup EXIT
 
@@ -201,12 +201,12 @@ log "Step 3: Mounting working image..."
 mkdir -p "${MOUNT_DIR}"
 mount "/dev/mapper/$(basename "${LOOP_DEV}")p2" "${MOUNT_DIR}"
 
-# Raspberry Pi OS Bookworm mounts the FAT32 boot partition at /boot/firmware
-# (not /boot as in older releases).  Detect the correct path from the root
-# filesystem so the Ansible tasks use the right paths.
+# RPi OS Bookworm and later (including Trixie) mount the FAT32 boot partition
+# at /boot/firmware; older releases use /boot directly.  Detect the correct
+# path from the root filesystem so the Ansible tasks use the right paths.
 if [ -d "${MOUNT_DIR}/boot/firmware" ]; then
     BOOT_MOUNT_DIR="${MOUNT_DIR}/boot/firmware"
-    log "Detected Bookworm layout: mounting boot partition at /boot/firmware"
+    log "Detected modern layout: mounting boot partition at /boot/firmware"
 else
     BOOT_MOUNT_DIR="${MOUNT_DIR}/boot"
     log "Detected legacy layout: mounting boot partition at /boot"

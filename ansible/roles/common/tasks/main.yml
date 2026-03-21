@@ -201,7 +201,7 @@
 # ---------------------------------------------------------------------------
 # Configures the Pi as a USB Ethernet gadget so an operator can SSH in over a
 # USB cable when the WiFi AP is not broadcasting.  Works on Pi Zero 2 W (and
-# any other Pi with a USB OTG port) running Raspberry Pi OS Bookworm.
+# any other Pi with a USB OTG port) running Raspberry Pi OS Bookworm or later.
 #
 # Controlled by usb_ssh.enabled (cafe.yaml: usb_ssh.enabled, default true).
 # Set usb_ssh.enabled: false in cafe.yaml to skip this entire phase.
@@ -210,7 +210,7 @@
 #   1. Creates an OS user (usb_ssh.username / usb_ssh.password) so the
 #      operator has a known account to SSH into.
 #   2. Writes userconf.txt to the boot partition so the user is created on
-#      first boot even before Ansible runs (RPi OS Bookworm convention).
+#      first boot even before Ansible runs (RPi OS convention since Bookworm).
 #   3. Adds 'dtoverlay=dwc2' to /boot/firmware/config.txt (or /boot/config.txt
 #      on older images) to enable the USB OTG gadget controller.
 #   4. Appends 'modules-load=dwc2,g_ether' to cmdline.txt so the kernel loads
@@ -229,9 +229,9 @@
   when: usb_ssh.enabled | default(true)
   block:
     # ---- Detect boot partition path ----------------------------------------
-    # RPi OS Bookworm places boot files at /boot/firmware/.
-    # Older images use /boot/ directly.
-    - name: Detect RPi OS Bookworm boot config (/boot/firmware/config.txt)
+    # RPi OS Bookworm and later (including Trixie) places boot files at
+    # /boot/firmware/; older images use /boot/ directly.
+    - name: Detect modern boot config (/boot/firmware/config.txt)
       ansible.builtin.stat:
         path: /boot/firmware/config.txt
       register: _boot_firmware_cfg
@@ -266,9 +266,10 @@
         append: true
 
     # ---- Write userconf.txt for RPi OS first-boot user creation ------------
-    # RPi OS Bookworm reads userconf.txt from the boot partition on first boot
-    # and creates the user before any other service starts, ensuring the SSH
-    # account exists even before this playbook has a chance to run.
+    # RPi OS reads userconf.txt from the boot partition on first boot
+    # (convention since Bookworm, continues in Trixie and later) and creates
+    # the user before any other service starts, ensuring the SSH account exists
+    # even before this playbook has a chance to run.
     - name: Write userconf.txt for Raspberry Pi OS first-boot user creation
       ansible.builtin.copy:
         content: "{{ usb_ssh.username }}:{{ usb_ssh.password | password_hash('sha512') }}\n"
