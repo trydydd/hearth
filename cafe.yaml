@@ -65,6 +65,36 @@ storage:
     navidrome:    "/srv/cafebox/navidrome"
 
 # ---------------------------------------------------------------------------
+# USB SSH — cable-based operator access via USB OTG (Pi Zero / Zero 2 W)
+#
+# When enabled, every image will:
+#   • configure the USB OTG gadget Ethernet driver (dwc2 + g_ether)
+#   • create an OS user with the username/password below (default: cafe/cafe)
+#   • write userconf.txt to the boot partition so the user exists on first boot
+#   • assign a static IP to the usb0 interface
+#   • enable the SSH daemon
+#
+# Connect after flashing:
+#   ssh <username>@<ip>   (plug a data USB cable into the Pi's USB port, wait ~30 s)
+#
+# SECURITY: change username and password before deploying to shared environments.
+# ---------------------------------------------------------------------------
+usb_ssh:
+  # Set to false to skip all USB gadget and SSH user provisioning
+  enabled: true
+
+  # OS user created for USB SSH access
+  username: "cafe"
+
+  # Default password — change before deploying to a shared or public environment.
+  # Anyone on the same USB network segment can attempt to log in with these
+  # credentials, so using the default in production is a security risk.
+  password: "cafe"
+
+  # Static IP assigned to the usb0 gadget interface
+  ip: "192.168.7.2"
+
+# ---------------------------------------------------------------------------
 # Services — per-service enable flags
 # Set a service to false to prevent it from being installed/started.
 # ---------------------------------------------------------------------------
