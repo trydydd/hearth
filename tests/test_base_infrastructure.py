@@ -79,7 +79,7 @@ class TestTask002SampleConfig(unittest.TestCase):
 
     def test_cafe_yaml_contains_required_top_level_sections(self):
         data = yaml.safe_load((REPO_ROOT / "cafe.yaml").read_text())
-        for key in ["box", "wifi", "storage", "services"]:
+        for key in ["box", "wifi", "storage", "services", "diagnostics"]:
             with self.subTest(key=key):
                 self.assertIn(key, data)
 
@@ -637,6 +637,101 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
         self.assertTrue(
             arch_check_lines,
             "build-image.sh must have an executable line that references aarch64 (the runtime arch check)",
+        )
+
+
+class TestDiagnosticsRole(unittest.TestCase):
+    """Validates the diagnostics role scripts."""
+
+    DIAG_FILES_DIR = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "files"
+    DIAG_TEMPLATES_DIR = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "templates"
+    DIAG_TASKS = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "tasks" / "main.yml"
+
+    EXPECTED_SCRIPTS = [
+        "diagnose-boot-dump.sh",
+        "diagnose-first-boot.sh",
+        "diagnose-wifi.sh",
+    ]
+
+    def test_all_diagnostic_scripts_exist(self):
+        for script in self.EXPECTED_SCRIPTS:
+            with self.subTest(script=script):
+                self.assertTrue(
+                    (self.DIAG_FILES_DIR / script).is_file(),
+                    f"Missing diagnostic script: ansible/roles/diagnostics/files/{script}",
+                )
+
+    def test_diagnostic_scripts_have_valid_bash_syntax(self):
+        for script in self.EXPECTED_SCRIPTS:
+            path = self.DIAG_FILES_DIR / script
+            if not path.is_file():
+                self.skipTest(f"{script} not present")
+            with self.subTest(script=script):
+                result = subprocess.run(
+                    ["bash", "-n", str(path)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(
+                    result.returncode,
+                    0,
+                    msg=f"bash -n failed on {script}:\n{result.stderr}",
+                )
+
+    def test_diagnostic_scripts_have_set_euo_pipefail(self):
+        for script in self.EXPECTED_SCRIPTS:
+            path = self.DIAG_FILES_DIR / script
+            if not path.is_file():
+                self.skipTest(f"{script} not present")
+            with self.subTest(script=script):
+                content = path.read_text()
+                executable_set = any(
+                    line.strip() == "set -euo pipefail"
+                    for line in content.splitlines()
+                    if not line.lstrip().startswith("#")
+                )
+                self.assertTrue(
+                    executable_set,
+                    f"{script} must have 'set -euo pipefail' as an executable statement",
+                )
+
+    def test_tasks_deploys_all_diagnostic_scripts(self):
+        """Every script in files/ must have a corresponding copy task in tasks/main.yml."""
+        tasks_content = self.DIAG_TASKS.read_text()
+        for script in self.EXPECTED_SCRIPTS:
+            with self.subTest(script=script):
+                self.assertIn(
+                    script,
+                    tasks_content,
+                    f"tasks/main.yml must deploy {script}",
+                )
+
+    def test_boot_dump_service_template_exists(self):
+        self.assertTrue(
+            (self.DIAG_TEMPLATES_DIR / "cafebox-boot-dump.service.j2").is_file(),
+            "Missing template: ansible/roles/diagnostics/templates/cafebox-boot-dump.service.j2",
+        )
+
+    def test_boot_dump_deployed_unconditionally(self):
+        """The boot-partition dump must NOT be gated by diagnostics_enabled."""
+        tasks_content = self.DIAG_TASKS.read_text()
+        # Strip comment lines — we only care about actual YAML task definitions
+        yaml_lines = [
+            line for line in tasks_content.splitlines()
+            if not line.lstrip().startswith("#")
+        ]
+        yaml_only = "\n".join(yaml_lines)
+        # The boot dump block should appear before the diagnostics_enabled guard
+        boot_dump_pos = yaml_only.find("diagnose-boot-dump.sh")
+        enabled_guard_pos = yaml_only.find("diagnostics_enabled")
+        self.assertNotEqual(boot_dump_pos, -1, "boot-dump deployment not found in tasks")
+        self.assertNotEqual(enabled_guard_pos, -1, "diagnostics_enabled guard not found")
+        self.assertLess(
+            boot_dump_pos,
+            enabled_guard_pos,
+            "diagnose-boot-dump.sh must be deployed BEFORE the diagnostics_enabled guard "
+            "(i.e. unconditionally, not inside the gated block)",
         )
 
 

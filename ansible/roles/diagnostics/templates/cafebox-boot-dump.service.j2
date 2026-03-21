@@ -1,0 +1,14 @@
+[Unit]
+Description=CafeBox boot diagnostics — writes report to boot partition
+After=multi-user.target
+Wants=multi-user.target
+
+[Service]
+Type=oneshot
+Environment=CAFEBOX_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false) | lower }}
+ExecStart={{ diagnostics_dir }}/diagnose-boot-dump.sh
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

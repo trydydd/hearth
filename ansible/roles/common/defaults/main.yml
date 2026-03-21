@@ -23,3 +23,15 @@ cafebox_base_packages:
   - rsync
   - logrotate
   - systemd-timesyncd
+  - openssh-server
+
+# ---------------------------------------------------------------------------
+# USB OTG SSH — cable-based admin access for debugging without WiFi
+# ---------------------------------------------------------------------------
+# These defaults mirror cafe.yaml: usb_ssh.* and are used as a fallback when
+# group_vars/all.yml (which mirrors cafe.yaml) does not define usb_ssh.
+usb_ssh:
+  enabled: true
+  username: "cafe"
+  password: "cafe"
+  ip: "192.168.7.2"

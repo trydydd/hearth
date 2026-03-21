@@ -9,7 +9,7 @@ by `scripts/build-image.sh`.
 
 `scripts/build-image.sh` automates the full image build pipeline:
 
-1. Downloads the latest **Raspberry Pi OS Lite 64-bit** (Bookworm) base image.
+1. Downloads the latest **Raspberry Pi OS Lite 64-bit** base image.
 2. Creates a working copy and expands it to 8 GB to give headroom for
    provisioned packages.
 3. Mounts the image via a loop device and runs `ansible/site.yml` inside a

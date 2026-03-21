@@ -44,7 +44,13 @@ OUTPUT_IMAGE="${OUTPUT_IMAGE:-${REPO_ROOT}/image/cafebox.img.xz}"
 WORK_DIR="${WORK_DIR:-/tmp/cafebox-build}"
 KEEP_WORK="${KEEP_WORK:-0}"
 
-# Raspberry Pi OS Lite 64-bit (Bookworm) — update URL for newer releases
+# Target image size.  6 GB gives ample headroom over the ~2 GB base image
+# while still fitting on any 8 GB+ SD card.  Raspberry Pi OS expands the root
+# filesystem to fill the SD card automatically on first boot, so there is no
+# need to match the card size here.
+IMAGE_SIZE="${IMAGE_SIZE:-6G}"
+
+# Raspberry Pi OS Lite 64-bit — update URL to pin a specific release
 RPI_OS_URL="${RPI_OS_URL:-https://downloads.raspberrypi.org/raspios_lite_arm64_latest}"
 
 SCRIPT_NAME="$(basename "$0")"
@@ -64,9 +70,11 @@ need() {
 _cleanup() {
     local exit_code=$?
     log "Cleaning up mount points..."
-    # Unmount in reverse order; ignore errors during cleanup
-    if mountpoint -q "${MOUNT_DIR}/boot" 2>/dev/null; then
-        umount "${MOUNT_DIR}/boot" 2>/dev/null || true
+    # Unmount in reverse order; ignore errors during cleanup.
+    # BOOT_MOUNT_DIR can be either /mnt/boot/firmware (Bookworm/Trixie and later)
+    # or /mnt/boot (legacy), depending on what was detected at runtime.
+    if [ -n "${BOOT_MOUNT_DIR:-}" ] && mountpoint -q "${BOOT_MOUNT_DIR}" 2>/dev/null; then
+        umount "${BOOT_MOUNT_DIR}" 2>/dev/null || true
     fi
     if mountpoint -q "${MOUNT_DIR}" 2>/dev/null; then
         umount "${MOUNT_DIR}" 2>/dev/null || true
@@ -129,14 +137,16 @@ RAW_IMAGE="${WORK_DIR}/raspios-lite.img"
 WORK_IMAGE="${WORK_DIR}/cafebox-work.img"
 MOUNT_DIR="${WORK_DIR}/mnt"
 LOOP_DEV=""
+BOOT_MOUNT_DIR=""  # set after the root partition is mounted (modern vs legacy layout)
 
 trap _cleanup EXIT
 
 log "Build started"
-log "  Host   : ${HOST_ARCH} (native — no emulation)"
-log "  Config : ${CAFE_CONFIG}"
-log "  Output : ${OUTPUT_IMAGE}"
-log "  WorkDir: ${WORK_DIR}"
+log "  Host    : ${HOST_ARCH} (native — no emulation)"
+log "  Config  : ${CAFE_CONFIG}"
+log "  Output  : ${OUTPUT_IMAGE}"
+log "  WorkDir : ${WORK_DIR}"
+log "  ImgSize : ${IMAGE_SIZE} (root partition; SD card is expanded to full size on first boot)"
 
 # ---------------------------------------------------------------------------
 # Step 1 — Download base image (skip if already present)
@@ -163,9 +173,11 @@ fi
 # ---------------------------------------------------------------------------
 log "Step 2: Creating working copy..."
 cp "${RAW_IMAGE}" "${WORK_IMAGE}"
-# Extend partition/filesystem to give headroom for provisioned packages
-# (Raspberry Pi OS images are typically ~2 GB; we grow to 12 GB)
-truncate -s 12G "${WORK_IMAGE}"
+# Extend partition/filesystem to give headroom for provisioned packages.
+# 6 GB comfortably fits the base RPi OS Lite image (~2 GB) plus packages.
+# Raspberry Pi OS first-boot expands the root filesystem to fill the full
+# SD card automatically, so we do NOT need to match the card size here.
+truncate -s "${IMAGE_SIZE}" "${WORK_IMAGE}"
 # Resize the root partition to fill the new space using parted and resize2fs
 LOOP_DEV="$(losetup --show -fP "${WORK_IMAGE}")"
 log "Attached loop device: ${LOOP_DEV}"
@@ -180,7 +192,7 @@ kpartx -u "${LOOP_DEV}"
 sleep 1
 e2fsck -f -y "/dev/mapper/$(basename "${LOOP_DEV}")p2" || true
 resize2fs "/dev/mapper/$(basename "${LOOP_DEV}")p2"
-log "Working image resized to 12 GB"
+log "Working image resized to ${IMAGE_SIZE}"
 
 # ---------------------------------------------------------------------------
 # Step 3 — Mount the image
@@ -188,7 +200,18 @@ log "Working image resized to 12 GB"
 log "Step 3: Mounting working image..."
 mkdir -p "${MOUNT_DIR}"
 mount "/dev/mapper/$(basename "${LOOP_DEV}")p2" "${MOUNT_DIR}"
-mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${MOUNT_DIR}/boot"
+
+# RPi OS Bookworm and later (including Trixie) mount the FAT32 boot partition
+# at /boot/firmware; older releases use /boot directly.  Detect the correct
+# path from the root filesystem so the Ansible tasks use the right paths.
+if [ -d "${MOUNT_DIR}/boot/firmware" ]; then
+    BOOT_MOUNT_DIR="${MOUNT_DIR}/boot/firmware"
+    log "Detected modern layout: mounting boot partition at /boot/firmware"
+else
+    BOOT_MOUNT_DIR="${MOUNT_DIR}/boot"
+    log "Detected legacy layout: mounting boot partition at /boot"
+fi
+mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${BOOT_MOUNT_DIR}"
 
 # ---------------------------------------------------------------------------
 # Step 4 — Provision with Ansible (native ARM64 chroot, no QEMU needed)
@@ -231,7 +254,7 @@ log "Provisioning complete."
 # Step 5 — Unmount and compress
 # ---------------------------------------------------------------------------
 log "Step 5: Unmounting image..."
-umount "${MOUNT_DIR}/boot"
+umount "${BOOT_MOUNT_DIR}"
 umount "${MOUNT_DIR}"
 kpartx -d "${LOOP_DEV}"
 losetup -d "${LOOP_DEV}"
@@ -244,6 +267,9 @@ xz -T0 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
 COMPRESSED_SIZE="$(du -sh "${OUTPUT_IMAGE}" | cut -f1)"
 log "Done. Output: ${OUTPUT_IMAGE} (${COMPRESSED_SIZE})"
 log ""
-log "Flash with:"
+log "Flash with Raspberry Pi Imager (recommended) or dd:"
 log "  xzcat ${OUTPUT_IMAGE} | sudo dd of=/dev/sdX bs=4M status=progress"
 log "  (replace /dev/sdX with your SD card device)"
+log ""
+log "Minimum SD card size: ${IMAGE_SIZE} (the root filesystem is automatically"
+log "expanded to fill the full card on first boot — no manual resize needed)."
