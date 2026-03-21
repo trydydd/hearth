@@ -43,11 +43,25 @@
         group: root
         mode: "0644"
 
-    - name: Enable cafebox-boot-dump service
+    - name: Detect whether systemd is active (not a chroot / nspawn image build)
+      # /run/systemd/private is only created when systemd is actually running
+      # as PID 1.  /run/systemd/system exists in systemd-nspawn containers
+      # even without --boot, so it is NOT a reliable indicator of a live system.
+      ansible.builtin.stat:
+        path: /run/systemd/private
+      register: _systemd_active
+
+    - name: Enable cafebox-boot-dump service (symlink — works in chroot and on live systems)
+      ansible.builtin.file:
+        src: /etc/systemd/system/cafebox-boot-dump.service
+        dest: /etc/systemd/system/multi-user.target.wants/cafebox-boot-dump.service
+        state: link
+
+    - name: Reload systemd daemon (live system only — skipped during image build)
       ansible.builtin.systemd:
         name: cafebox-boot-dump.service
-        enabled: true
         daemon_reload: true
+      when: _systemd_active.stat.exists
 
   rescue:
     - name: "diagnostics (boot dump) FAILED — deployment error"
