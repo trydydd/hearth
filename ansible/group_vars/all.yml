@@ -56,6 +56,21 @@ services:
     enabled: true
 
 # ---------------------------------------------------------------------------
+# USB SSH — cable-based operator access via USB OTG (mirrors cafe.yaml: usb_ssh.*)
+# ---------------------------------------------------------------------------
+usb_ssh:
+  enabled: true
+  username: "cafe"
+  password: "cafe"
+  ip: "192.168.7.2"
+
+# ---------------------------------------------------------------------------
+# Diagnostics (mirrors cafe.yaml: diagnostics.*)
+# ---------------------------------------------------------------------------
+diagnostics:
+  redact_secrets: false
+
+# ---------------------------------------------------------------------------
 # Flat cafebox_* aliases (kept for backward compatibility with tasks that
 # reference individual variables directly)
 # ---------------------------------------------------------------------------

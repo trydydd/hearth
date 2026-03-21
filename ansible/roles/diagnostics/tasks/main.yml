@@ -2,14 +2,22 @@
 # roles/diagnostics/tasks/main.yml
 # Deploy diagnostic scripts into {{ diagnostics_dir }} on the target host.
 #
-# Guarded by diagnostics_enabled (default: false) so nothing is deployed to
-# production unless explicitly requested.  Enable in development via
-# Vagrantfile extra_vars or override on the command line:
+# Two deployment tiers:
 #
-#   ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
+#   1. Boot-partition diagnostic dump (ALWAYS deployed)
+#      Writes a comprehensive report to the FAT32 boot partition on every boot
+#      so it can be read by pulling the SD card — the only debugging access when
+#      WiFi, USB-OTG SSH, and serial are all unavailable.
+#
+#   2. Interactive diagnostic scripts (gated by diagnostics_enabled)
+#      diagnose-wifi.sh and diagnose-first-boot.sh — interactive tools for use
+#      over SSH.  Deployed in development (Vagrantfile extra_vars) or on demand:
+#        ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
 
-- name: "diagnostics — deploy diagnostic scripts"
-  when: diagnostics_enabled | bool
+# ---------------------------------------------------------------------------
+# Tier 1 — Boot-partition diagnostic dump (always deployed)
+# ---------------------------------------------------------------------------
+- name: "diagnostics — deploy boot-partition diagnostic dump"
   block:
     - name: Create diagnostics directory
       ansible.builtin.file:
@@ -19,6 +27,41 @@
         group: root
         mode: "0755"
 
+    - name: Deploy diagnose-boot-dump.sh
+      ansible.builtin.copy:
+        src: diagnose-boot-dump.sh
+        dest: "{{ diagnostics_dir }}/diagnose-boot-dump.sh"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy cafebox-boot-dump systemd unit
+      ansible.builtin.template:
+        src: cafebox-boot-dump.service.j2
+        dest: /etc/systemd/system/cafebox-boot-dump.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable cafebox-boot-dump service
+      ansible.builtin.systemd:
+        name: cafebox-boot-dump.service
+        enabled: true
+        daemon_reload: true
+
+  rescue:
+    - name: "diagnostics (boot dump) FAILED — deployment error"
+      ansible.builtin.fail:
+        msg: >-
+          Boot-partition diagnostic dump deployment failed.
+          Check the task output above for details.
+
+# ---------------------------------------------------------------------------
+# Tier 2 — Interactive diagnostic scripts (gated by diagnostics_enabled)
+# ---------------------------------------------------------------------------
+- name: "diagnostics — deploy interactive diagnostic scripts"
+  when: diagnostics_enabled | bool
+  block:
     - name: Deploy diagnose-first-boot.sh
       ansible.builtin.copy:
         src: diagnose-first-boot.sh
@@ -27,9 +70,17 @@
         group: root
         mode: "0755"
 
+    - name: Deploy diagnose-wifi.sh
+      ansible.builtin.copy:
+        src: diagnose-wifi.sh
+        dest: "{{ diagnostics_dir }}/diagnose-wifi.sh"
+        owner: root
+        group: root
+        mode: "0755"
+
   rescue:
-    - name: "diagnostics FAILED — script deployment error"
+    - name: "diagnostics (interactive) FAILED — script deployment error"
       ansible.builtin.fail:
         msg: >-
-          Diagnostics role failed.
+          Interactive diagnostic script deployment failed.
           Check the task output above for details.
