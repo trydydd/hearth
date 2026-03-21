@@ -79,7 +79,7 @@ class TestTask002SampleConfig(unittest.TestCase):
 
     def test_cafe_yaml_contains_required_top_level_sections(self):
         data = yaml.safe_load((REPO_ROOT / "cafe.yaml").read_text())
-        for key in ["box", "wifi", "storage", "services"]:
+        for key in ["box", "wifi", "storage", "services", "diagnostics"]:
             with self.subTest(key=key):
                 self.assertIn(key, data)
 
@@ -644,9 +644,11 @@ class TestDiagnosticsRole(unittest.TestCase):
     """Validates the diagnostics role scripts."""
 
     DIAG_FILES_DIR = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "files"
+    DIAG_TEMPLATES_DIR = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "templates"
     DIAG_TASKS = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "tasks" / "main.yml"
 
     EXPECTED_SCRIPTS = [
+        "diagnose-boot-dump.sh",
         "diagnose-first-boot.sh",
         "diagnose-wifi.sh",
     ]
@@ -704,6 +706,33 @@ class TestDiagnosticsRole(unittest.TestCase):
                     tasks_content,
                     f"tasks/main.yml must deploy {script}",
                 )
+
+    def test_boot_dump_service_template_exists(self):
+        self.assertTrue(
+            (self.DIAG_TEMPLATES_DIR / "cafebox-boot-dump.service.j2").is_file(),
+            "Missing template: ansible/roles/diagnostics/templates/cafebox-boot-dump.service.j2",
+        )
+
+    def test_boot_dump_deployed_unconditionally(self):
+        """The boot-partition dump must NOT be gated by diagnostics_enabled."""
+        tasks_content = self.DIAG_TASKS.read_text()
+        # Strip comment lines — we only care about actual YAML task definitions
+        yaml_lines = [
+            line for line in tasks_content.splitlines()
+            if not line.lstrip().startswith("#")
+        ]
+        yaml_only = "\n".join(yaml_lines)
+        # The boot dump block should appear before the diagnostics_enabled guard
+        boot_dump_pos = yaml_only.find("diagnose-boot-dump.sh")
+        enabled_guard_pos = yaml_only.find("diagnostics_enabled")
+        self.assertNotEqual(boot_dump_pos, -1, "boot-dump deployment not found in tasks")
+        self.assertNotEqual(enabled_guard_pos, -1, "diagnostics_enabled guard not found")
+        self.assertLess(
+            boot_dump_pos,
+            enabled_guard_pos,
+            "diagnose-boot-dump.sh must be deployed BEFORE the diagnostics_enabled guard "
+            "(i.e. unconditionally, not inside the gated block)",
+        )
 
 
 if __name__ == "__main__":
