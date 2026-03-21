@@ -30,9 +30,12 @@
       # even when the template content hasn't changed (which would skip the
       # handler-based service restart).  Using nft -f directly is idempotent
       # because the config starts with `flush ruleset`.
+      # Skipped during image build (nspawn container lacks CAP_NET_ADMIN);
+      # on boot the nftables service (enabled below) loads the rules instead.
       ansible.builtin.command:
         cmd: "nft -f {{ firewall_nftables_conf }}"
       changed_when: false
+      when: _systemd_active.stat.exists
 
     - name: Enable nftables service so rules load on every boot
       ansible.builtin.service:
