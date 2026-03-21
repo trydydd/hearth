@@ -27,6 +27,14 @@
         group: root
         mode: "0755"
 
+    - name: Deploy diagnose-wifi.sh
+      ansible.builtin.copy:
+        src: diagnose-wifi.sh
+        dest: "{{ diagnostics_dir }}/diagnose-wifi.sh"
+        owner: root
+        group: root
+        mode: "0755"
+
   rescue:
     - name: "diagnostics FAILED — script deployment error"
       ansible.builtin.fail:

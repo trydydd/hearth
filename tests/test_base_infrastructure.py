@@ -640,5 +640,71 @@ class TestTask016BuildImageWorkflow(unittest.TestCase):
         )
 
 
+class TestDiagnosticsRole(unittest.TestCase):
+    """Validates the diagnostics role scripts."""
+
+    DIAG_FILES_DIR = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "files"
+    DIAG_TASKS = REPO_ROOT / "ansible" / "roles" / "diagnostics" / "tasks" / "main.yml"
+
+    EXPECTED_SCRIPTS = [
+        "diagnose-first-boot.sh",
+        "diagnose-wifi.sh",
+    ]
+
+    def test_all_diagnostic_scripts_exist(self):
+        for script in self.EXPECTED_SCRIPTS:
+            with self.subTest(script=script):
+                self.assertTrue(
+                    (self.DIAG_FILES_DIR / script).is_file(),
+                    f"Missing diagnostic script: ansible/roles/diagnostics/files/{script}",
+                )
+
+    def test_diagnostic_scripts_have_valid_bash_syntax(self):
+        for script in self.EXPECTED_SCRIPTS:
+            path = self.DIAG_FILES_DIR / script
+            if not path.is_file():
+                self.skipTest(f"{script} not present")
+            with self.subTest(script=script):
+                result = subprocess.run(
+                    ["bash", "-n", str(path)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(
+                    result.returncode,
+                    0,
+                    msg=f"bash -n failed on {script}:\n{result.stderr}",
+                )
+
+    def test_diagnostic_scripts_have_set_euo_pipefail(self):
+        for script in self.EXPECTED_SCRIPTS:
+            path = self.DIAG_FILES_DIR / script
+            if not path.is_file():
+                self.skipTest(f"{script} not present")
+            with self.subTest(script=script):
+                content = path.read_text()
+                executable_set = any(
+                    line.strip() == "set -euo pipefail"
+                    for line in content.splitlines()
+                    if not line.lstrip().startswith("#")
+                )
+                self.assertTrue(
+                    executable_set,
+                    f"{script} must have 'set -euo pipefail' as an executable statement",
+                )
+
+    def test_tasks_deploys_all_diagnostic_scripts(self):
+        """Every script in files/ must have a corresponding copy task in tasks/main.yml."""
+        tasks_content = self.DIAG_TASKS.read_text()
+        for script in self.EXPECTED_SCRIPTS:
+            with self.subTest(script=script):
+                self.assertIn(
+                    script,
+                    tasks_content,
+                    f"tasks/main.yml must deploy {script}",
+                )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
