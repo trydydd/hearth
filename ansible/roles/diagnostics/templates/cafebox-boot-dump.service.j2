@@ -13,7 +13,7 @@ Environment=CAFEBOX_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false
 # not a real fault.  The loop always exits 0 so the report is written even if
 # {{ wifi.interface }} never appears.
 ExecStartPre=/bin/bash -c \
-  'for i in $(seq 1 30); do ip link show {{ wifi.interface }} >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0'
+  'for ((i=1; i<=30; i++)); do ip link show {{ wifi.interface }} >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0'
 ExecStart={{ diagnostics_dir }}/diagnose-boot-dump.sh
 StandardOutput=null
 StandardError=journal

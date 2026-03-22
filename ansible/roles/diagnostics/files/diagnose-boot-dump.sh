@@ -147,9 +147,17 @@ fi
 echo
 printf '  --- ssh enable file ---\n'
 if [ -f "${BOOT_DIR}/ssh" ]; then
-    ok "ssh enable file present"
+    ok "ssh enable file present (will be processed on next boot or is yet to be processed)"
 else
-    warn "ssh enable file not found — SSH may not be enabled on first boot"
+    # RPi OS processes the ssh file on first boot — enables SSH then deletes
+    # the file.  Absence of the file after first boot is therefore normal.
+    # Check the SSH service state to determine the real status.
+    SSH_ENABLED="$(systemctl is-enabled ssh 2>/dev/null || echo unknown)"
+    if [ "${SSH_ENABLED}" = "enabled" ]; then
+        ok "ssh enable file absent (already processed by RPi OS first-boot — SSH service is enabled)"
+    else
+        warn "ssh enable file not found and SSH service is '${SSH_ENABLED}' — SSH may not be available"
+    fi
 fi
 
 # ============================= Section 3 ====================================
@@ -158,7 +166,13 @@ hdr "3. Kernel Modules"
 printf '  USB OTG chain:\n'
 for mod in dwc2 g_ether; do
     if lsmod 2>/dev/null | grep -q "^${mod}"; then
-        ok "module ${mod} loaded"
+        ok "module ${mod} loaded (lsmod)"
+    elif dmesg 2>/dev/null | grep -qiE "^\\[.*\\] ${mod}[ :/]"; then
+        # On Pi Zero 2 W, dwc2 binds directly to the SoC USB controller and
+        # may not appear as a standalone lsmod entry even though it is fully
+        # active.  A dmesg line starting with the module name (e.g.
+        # "dwc2 3f980000.usb: DWC OTG Controller") confirms it is running.
+        ok "module ${mod} active (confirmed via dmesg — not a separate lsmod entry)"
     else
         fail "module ${mod} NOT loaded"
     fi
