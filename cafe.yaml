@@ -31,6 +31,13 @@ wifi:
   # 802.11 channel (1–11 for 2.4 GHz; leave at 6 for best compatibility)
   channel: 6
 
+  # ISO 3166-1 alpha-2 country code for the regulatory domain.
+  # Required for the Pi Zero 2 W (BCM43430) to transmit on most channels.
+  # Without this the radio defaults to the world domain (00) which may
+  # restrict available channels and prevent hostapd from starting.
+  # Examples: GB, US, DE, FR, AU. Leave empty only if deliberately unset.
+  country_code: "GB"
+
   # DHCP range handed to connected clients (start, end, lease time)
   dhcp_range_start: "10.0.0.10"
   dhcp_range_end: "10.0.0.200"

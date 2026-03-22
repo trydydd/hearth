@@ -34,9 +34,17 @@ rsn_pairwise=CCMP
 wpa=0
 {% endif %}
 
-# Disable IEEE 802.11d country-code enforcement (avoids regulatory issues
-# when the operator has not set a country code in cafe.yaml)
+{% if wifi.country_code | default('') %}
+# Regulatory domain — required for legal AP operation and for the Pi Zero 2 W
+# (BCM43430) to access all 2.4 GHz channels.  ieee80211d=1 broadcasts the
+# country code in beacons so clients can apply the correct channel plan.
+country_code={{ wifi.country_code }}
+ieee80211d=1
+{% else %}
+# No country code configured — regulatory domain defaults to world (00).
+# Set wifi.country_code in cafe.yaml for proper channel access on Pi Zero 2 W.
 ieee80211d=0
+{% endif %}
 
 # Beacon interval (ms) — default 100 ms is fine for a local hotspot
 beacon_int=100

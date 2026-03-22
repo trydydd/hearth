@@ -30,6 +30,70 @@
     mode: "0644"
   notify: Restart dnsmasq
 
+# ---------------------------------------------------------------------------
+# Prevent NetworkManager from managing the WiFi AP interface.
+# On Raspberry Pi OS Bookworm/Trixie, NetworkManager is the default network
+# manager.  If it manages wlan0 it puts the interface into client (station)
+# mode, conflicting with hostapd.  Marking the interface as unmanaged via a
+# keyfile gives hostapd exclusive control.
+# ---------------------------------------------------------------------------
+- name: Check if NetworkManager is installed
+  ansible.builtin.stat:
+    path: /etc/NetworkManager
+  register: _nm_dir
+
+- name: Create NetworkManager conf.d directory if needed
+  ansible.builtin.file:
+    path: /etc/NetworkManager/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: _nm_dir.stat.exists
+
+- name: Prevent NetworkManager from managing the WiFi AP interface
+  ansible.builtin.copy:
+    dest: /etc/NetworkManager/conf.d/cafebox-wifi.conf
+    content: |
+      # Managed by Ansible (CafeBox wifi role)
+      # Prevent NetworkManager from taking over the hostapd AP interface.
+      [keyfile]
+      unmanaged-devices=interface-name:{{ wifi.interface }}
+    owner: root
+    group: root
+    mode: "0644"
+  when: _nm_dir.stat.exists
+
+# ---------------------------------------------------------------------------
+# Configure a static IP address for the WiFi AP interface.
+# The box.ip from cafe.yaml must be assigned to wlan0 so that:
+#   • dnsmasq can bind to the interface and serve DHCP/DNS responses
+#   • connected clients can route to the box at the advertised gateway IP
+# Use dhcpcd.conf (present on RPi OS) when available; skip on Vagrant VMs.
+# The nohook wpa_supplicant line prevents dhcpcd from spawning wpa_supplicant
+# on the AP interface, which would conflict with hostapd.
+# ---------------------------------------------------------------------------
+- name: Check for dhcpcd.conf (present on RPi OS, absent in Vagrant VMs)
+  ansible.builtin.stat:
+    path: /etc/dhcpcd.conf
+  register: _wifi_dhcpcd_conf
+
+- name: Configure static IP for WiFi AP interface in dhcpcd.conf
+  # /24 is appropriate here: box.ip is 10.0.0.1 and the DHCP range
+  # (wifi.dhcp_range_start / dhcp_range_end) is within 10.0.0.0/24,
+  # so the AP always operates on a single /24 subnet.
+  ansible.builtin.blockinfile:
+    path: /etc/dhcpcd.conf
+    block: |
+      interface {{ wifi.interface }}
+      static ip_address={{ box.ip }}/24
+      nohook wpa_supplicant
+    marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox {{ wifi.interface }} AP"
+  when: _wifi_dhcpcd_conf.stat.exists
+
+# ---------------------------------------------------------------------------
+# Unmask, enable, and (on live systems) start hostapd and dnsmasq.
+# ---------------------------------------------------------------------------
 - name: Unmask hostapd service (masked by default on Debian/Ubuntu)
   ansible.builtin.systemd:
     name: hostapd

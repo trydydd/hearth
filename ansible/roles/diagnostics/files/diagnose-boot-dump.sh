@@ -224,6 +224,23 @@ else
     warn "iw not available or wlan0 not present"
 fi
 
+echo
+printf '  NetworkManager conflict check:\n'
+if systemctl is-active NetworkManager &>/dev/null; then
+    ok "NetworkManager is running"
+    NM_UNMANAGED_FILE="/etc/NetworkManager/conf.d/cafebox-wifi.conf"
+    if [ -f "${NM_UNMANAGED_FILE}" ]; then
+        ok "NM unmanaged config exists: ${NM_UNMANAGED_FILE}"
+        cat "${NM_UNMANAGED_FILE}"
+    else
+        warn "NM unmanaged config NOT found at ${NM_UNMANAGED_FILE}"
+        warn "NetworkManager may be managing wlan0 and conflicting with hostapd"
+        warn "Fix: re-provision with the wifi Ansible role or create ${NM_UNMANAGED_FILE}"
+    fi
+else
+    ok "NetworkManager is not running (no conflict)"
+fi
+
 # ============================= Section 5 ====================================
 hdr "5. Systemd Service Status"
 
@@ -270,10 +287,17 @@ if [ -f /etc/hostapd/hostapd.conf ]; then
     CONF_IFACE="$(grep -E '^interface=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 | tr -d ' ' || true)"
     CONF_SSID="$(grep -E '^ssid=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 || true)"
     CONF_DRIVER="$(grep -E '^driver=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 || true)"
+    CONF_COUNTRY="$(grep -E '^country_code=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 | tr -d ' ' || true)"
     printf '  interface=%s  ssid=%s  driver=%s\n' "$CONF_IFACE" "$CONF_SSID" "$CONF_DRIVER"
     [ "$CONF_IFACE" = "wlan0" ] && ok "interface=wlan0" || warn "interface=${CONF_IFACE} (expected wlan0)"
     [ -n "$CONF_SSID" ] && ok "ssid=${CONF_SSID}" || fail "ssid is empty"
     [ "$CONF_DRIVER" = "nl80211" ] && ok "driver=nl80211" || warn "driver=${CONF_DRIVER} (expected nl80211)"
+    if [ -n "$CONF_COUNTRY" ]; then
+        ok "country_code=${CONF_COUNTRY} (regulatory domain set)"
+    else
+        warn "country_code NOT set — Pi Zero 2 W may fail to transmit on most channels"
+        warn "Fix: set wifi.country_code in cafe.yaml (e.g. GB, US, DE)"
+    fi
 else
     fail "hostapd.conf NOT found"
 fi

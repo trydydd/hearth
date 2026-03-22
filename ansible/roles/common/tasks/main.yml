@@ -284,12 +284,31 @@
     - name: Configure USB OTG gadget mode (Pi hardware only)
       when: _boot_firmware_cfg.stat.exists or _boot_legacy_cfg.stat.exists
       block:
-        - name: Enable USB OTG dwc2 overlay in boot config
+        # The stock RPi OS config.txt already contains `dtoverlay=dwc2` in
+        # the `[cm5]` conditional section.  A plain lineinfile with a regexp
+        # would match that entry and leave it in [cm5], meaning the overlay
+        # never loads on Pi Zero 2 W (or any non-CM5 board).  We therefore
+        # check explicitly whether the line already appears in the [all]
+        # section before inserting it there.
+        # Note: {{ _boot_dir }} is outside the awk single-quoted program —
+        # it is the file argument and is expanded by Jinja2 before the shell
+        # module executes the command.
+        - name: Check if dtoverlay=dwc2 is present in [all] section of config.txt
+          ansible.builtin.shell:
+            cmd: >-
+              awk '/^\[all\]/{in_all=1; next} /^\[/{in_all=0}
+                   in_all && /^dtoverlay=dwc2/{exit 0} END{exit 1}'
+              "{{ _boot_dir }}/config.txt"
+          register: _dwc2_in_all
+          changed_when: false
+          failed_when: false
+
+        - name: Enable USB OTG dwc2 overlay in [all] section of boot config
           ansible.builtin.lineinfile:
             path: "{{ _boot_dir }}/config.txt"
             line: "dtoverlay=dwc2"
-            regexp: "^#?\\s*dtoverlay=dwc2"
-            state: present
+            insertafter: "^\\[all\\]"
+          when: _dwc2_in_all.rc != 0
 
         - name: Read current kernel cmdline
           ansible.builtin.slurp:
