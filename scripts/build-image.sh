@@ -266,7 +266,9 @@ log "Step 5: Validating image configuration..."
 # systemd-nspawn allocates a PTY by default and does not connect stdin from
 # the calling process, so a heredoc passed via stdin hangs indefinitely.
 # Writing to a file and executing it directly avoids that entirely.
-VALIDATE_SCRIPT="${MOUNT_DIR}/tmp/cafebox-validate.sh"
+# NOTE: /tmp must NOT be used here — systemd-nspawn mounts a fresh tmpfs
+# over /tmp inside the container, wiping anything written there from the host.
+VALIDATE_SCRIPT="${MOUNT_DIR}/root/cafebox-validate.sh"
 cat > "${VALIDATE_SCRIPT}" << 'DIAG_EOF'
 #!/bin/sh
 set +e  # accumulate all failures; exit 1 at the end if any failed
@@ -373,7 +375,7 @@ fi
 echo "[OK] All pre-capture checks passed."
 DIAG_EOF
 chmod +x "${VALIDATE_SCRIPT}"
-systemd-nspawn -D "${MOUNT_DIR}" /tmp/cafebox-validate.sh
+systemd-nspawn -D "${MOUNT_DIR}" /root/cafebox-validate.sh
 rm -f "${VALIDATE_SCRIPT}"
 
 # ---------------------------------------------------------------------------
