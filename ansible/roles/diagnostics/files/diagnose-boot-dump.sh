@@ -138,10 +138,17 @@ fi
 echo
 printf '  --- userconf.txt ---\n'
 if [ -f "${BOOT_DIR}/userconf.txt" ]; then
-    ok "userconf.txt present (RPi OS first-boot user creation)"
+    ok "userconf.txt present (RPi OS will create operator user on next boot)"
     show_config_file "${BOOT_DIR}/userconf.txt" ".*"
 else
-    warn "userconf.txt not found — RPi OS first-boot user will not be created"
+    # RPi OS processes and deletes userconf.txt on first boot — absence after
+    # first boot is normal (same as the ssh flag file).  Check whether a
+    # non-system operator account (UID 1000–65533) already exists instead.
+    if getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 <= 65533' | grep -q .; then
+        ok "userconf.txt absent (already processed on first boot — operator user exists)"
+    else
+        warn "userconf.txt not found and no operator user (UID 1000–65533) found — first-boot user creation may have failed"
+    fi
 fi
 
 echo
@@ -165,14 +172,17 @@ hdr "3. Kernel Modules"
 
 printf '  USB OTG chain:\n'
 for mod in dwc2 g_ether; do
-    if lsmod 2>/dev/null | grep -q "^${mod}"; then
+    if lsmod 2>/dev/null | grep -q "^${mod}[[:space:]]"; then
         ok "module ${mod} loaded (lsmod)"
-    elif dmesg 2>/dev/null | grep -qiE "^\\[.*\\] ${mod}[ :/]"; then
-        # On Pi Zero 2 W, dwc2 binds directly to the SoC USB controller and
-        # may not appear as a standalone lsmod entry even though it is fully
-        # active.  A dmesg line starting with the module name (e.g.
-        # "dwc2 3f980000.usb: DWC OTG Controller") confirms it is running.
-        ok "module ${mod} active (confirmed via dmesg — not a separate lsmod entry)"
+    elif [ -d "/sys/module/${mod}" ]; then
+        # Module is present as a built-in or device-tree-loaded driver.
+        # On Pi Zero 2 W, dwc2 is loaded via dtoverlay and may not show in
+        # lsmod as a standalone entry but /sys/module/dwc2 will exist.
+        ok "module ${mod} present (/sys/module — device-tree loaded or built-in)"
+    elif dmesg 2>/dev/null | grep -qiE "(^|[[:space:]])${mod}[[:space:]/:]"; then
+        # Fall back to dmesg: any line containing " dwc2 " or " dwc2/" or " dwc2:"
+        # (i.e. the module name preceded and followed by non-identifier chars).
+        ok "module ${mod} active (confirmed via dmesg)"
     else
         fail "module ${mod} NOT loaded"
     fi
@@ -311,6 +321,23 @@ if [ -f /etc/hostapd/hostapd.conf ]; then
     else
         warn "country_code NOT set — Pi Zero 2 W may fail to transmit on most channels"
         warn "Fix: set wifi.country_code in cafe.yaml (e.g. GB, US, DE)"
+    fi
+    # Check that /etc/default/hostapd points DAEMON_CONF at the config file.
+    # If DAEMON_CONF is empty/commented-out, hostapd starts with no config
+    # and the AP is never configured — the most common cause of no WiFi.
+    DAEMON_CONF_FILE="/etc/default/hostapd"
+    if [ -f "${DAEMON_CONF_FILE}" ]; then
+        DAEMON_CONF_VAL="$(grep -E '^DAEMON_CONF=' "${DAEMON_CONF_FILE}" 2>/dev/null | cut -d= -f2 | tr -d '"' | tr -d "'" | tr -d ' ' || true)"
+        if [ "${DAEMON_CONF_VAL}" = "/etc/hostapd/hostapd.conf" ]; then
+            ok "DAEMON_CONF=/etc/hostapd/hostapd.conf (hostapd will read the config)"
+        elif [ -n "${DAEMON_CONF_VAL}" ]; then
+            warn "DAEMON_CONF=${DAEMON_CONF_VAL} (expected /etc/hostapd/hostapd.conf)"
+        else
+            fail "DAEMON_CONF not set in ${DAEMON_CONF_FILE} — hostapd starts with NO config file and the AP will NOT broadcast"
+            fail "Fix: re-provision with the wifi Ansible role to set DAEMON_CONF"
+        fi
+    else
+        warn "${DAEMON_CONF_FILE} not found (DAEMON_CONF cannot be verified)"
     fi
 else
     fail "hostapd.conf NOT found"

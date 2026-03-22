@@ -297,7 +297,7 @@
           ansible.builtin.shell:
             cmd: >-
               awk '/^\[all\]/{in_all=1; next} /^\[/{in_all=0}
-                   in_all && /^dtoverlay=dwc2/{exit 0} END{exit 1}'
+                   in_all && /^dtoverlay=dwc2($|[[:space:],])/{exit 0} END{exit 1}'
               "{{ _boot_dir }}/config.txt"
           register: _dwc2_in_all
           changed_when: false
@@ -352,6 +352,56 @@
           static ip_address={{ usb_ssh.ip }}/24
         marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox usb0"
       when: _dhcpcd_conf.stat.exists
+
+    # ---- Static IP for usb0 via NetworkManager (RPi OS Trixie and later) ----
+    # On RPi OS Trixie and newer Debian-based systems, NetworkManager is the
+    # default network manager and dhcpcd.conf may not be processed.  A NM
+    # keyfile connection ensures usb0 gets the static IP even when dhcpcd is
+    # not running.  The keyfile is ignored on systems that don't use NM.
+    - name: Check if NetworkManager is installed (for usb0 NM keyfile)
+      ansible.builtin.stat:
+        path: /etc/NetworkManager
+      register: _nm_dir_common
+
+    - name: Create NM system-connections directory if needed
+      ansible.builtin.file:
+        path: /etc/NetworkManager/system-connections
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      when: _nm_dir_common.stat.exists
+
+    - name: Deploy NM keyfile connection for usb0 static IP
+      # NM keyfiles must be mode 0600; NM refuses to load less-restrictive files.
+      # The UUID is generated deterministically from the connection name so it
+      # does not change between provisioning runs.
+      ansible.builtin.copy:
+        dest: /etc/NetworkManager/system-connections/cafebox-usb0.nmconnection
+        content: |
+          # Managed by Ansible (CafeBox common role)
+          # Static IP for the USB OTG gadget ethernet interface.
+          [connection]
+          id=cafebox-usb0
+          uuid={{ 'cafebox-usb0' | to_uuid }}
+          type=ethernet
+          interface-name=usb0
+          autoconnect=yes
+          autoconnect-retries=-1
+
+          [ethernet]
+
+          [ipv4]
+          method=manual
+          addresses={{ usb_ssh.ip }}/24
+          never-default=true
+
+          [ipv6]
+          method=disabled
+        owner: root
+        group: root
+        mode: "0600"
+      when: _nm_dir_common.stat.exists
 
     # ---- Ensure the SSH service is enabled ---------------------------------
     - name: Enable SSH service

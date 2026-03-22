@@ -57,6 +57,8 @@
     content: |
       # Managed by Ansible (CafeBox wifi role)
       # Prevent NetworkManager from taking over the hostapd AP interface.
+      # usb0 is managed via a NM keyfile connection (cafebox-usb0.nmconnection)
+      # and excluded here so NM does not run a second competing DHCP process.
       [keyfile]
       unmanaged-devices=interface-name:{{ wifi.interface }}
     owner: root
@@ -90,6 +92,26 @@
       nohook wpa_supplicant
     marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox {{ wifi.interface }} AP"
   when: _wifi_dhcpcd_conf.stat.exists
+
+# ---------------------------------------------------------------------------
+# Set DAEMON_CONF so hostapd reads our rendered configuration file.
+#
+# On Debian (and RPi OS), /etc/default/hostapd ships with DAEMON_CONF
+# commented out.  When DAEMON_CONF is empty, the hostapd service starts
+# with NO configuration file — the AP never broadcasts and the service
+# exits silently or loops indefinitely.  Setting DAEMON_CONF explicitly
+# ensures hostapd loads our rendered /etc/hostapd/hostapd.conf regardless
+# of which systemd unit variant the distro package ships.
+# ---------------------------------------------------------------------------
+- name: Set DAEMON_CONF in /etc/default/hostapd
+  ansible.builtin.lineinfile:
+    path: /etc/default/hostapd
+    regexp: '^#?DAEMON_CONF='
+    line: 'DAEMON_CONF=/etc/hostapd/hostapd.conf'
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
 
 # ---------------------------------------------------------------------------
 # Deploy systemd drop-ins so hostapd and dnsmasq wait for the WiFi netdev.
