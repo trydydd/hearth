@@ -261,8 +261,14 @@ log "Provisioning complete."
 # build so misconfigured images are never shipped.
 # ---------------------------------------------------------------------------
 log "Step 5: Validating image configuration..."
-systemd-nspawn -D "${MOUNT_DIR}" \
-    /bin/bash << 'DIAG_EOF'
+
+# Write the validation script to a temp file inside the image.
+# systemd-nspawn allocates a PTY by default and does not connect stdin from
+# the calling process, so a heredoc passed via stdin hangs indefinitely.
+# Writing to a file and executing it directly avoids that entirely.
+VALIDATE_SCRIPT="${MOUNT_DIR}/tmp/cafebox-validate.sh"
+cat > "${VALIDATE_SCRIPT}" << 'DIAG_EOF'
+#!/bin/sh
 set +e  # accumulate all failures; exit 1 at the end if any failed
 FAIL=0
 
@@ -366,6 +372,9 @@ if [ "$FAIL" -ne 0 ]; then
 fi
 echo "[OK] All pre-capture checks passed."
 DIAG_EOF
+chmod +x "${VALIDATE_SCRIPT}"
+systemd-nspawn -D "${MOUNT_DIR}" /tmp/cafebox-validate.sh
+rm -f "${VALIDATE_SCRIPT}"
 
 # ---------------------------------------------------------------------------
 # Step 6 — Unmount and compress
