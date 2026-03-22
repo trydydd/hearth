@@ -1,11 +1,19 @@
 [Unit]
 Description=CafeBox boot diagnostics — writes report to boot partition
-After=multi-user.target
+After=multi-user.target hostapd.service dnsmasq.service
 Wants=multi-user.target
 
 [Service]
 Type=oneshot
 Environment=CAFEBOX_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false) | lower }}
+# Poll for both the WiFi AP interface and the USB gadget interface up to 30 s
+# before capturing diagnostics.  On Pi Zero 2 W (brcmfmac/BCM43430) the kernel
+# registers {{ wifi.interface }} ~300 ms after firmware load, which coincides with
+# multi-user.target; usb0 (g_ether gadget) usually appears ~5 s earlier.
+# Without this wait the report shows only lo — misleading, not a real fault.
+# The loop always exits 0 so the report is written even if an interface never appears.
+ExecStartPre=/bin/bash -c \
+  'for ((i=1; i<=30; i++)); do ip link show {{ wifi.interface }} >/dev/null 2>&1 && ip link show usb0 >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0'
 ExecStart={{ diagnostics_dir }}/diagnose-boot-dump.sh
 StandardOutput=null
 StandardError=journal

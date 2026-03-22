@@ -1,0 +1,26 @@
+[Unit]
+# Wait for the WiFi netdev to exist before starting the access point daemon.
+#
+# On Pi Zero 2 W (BCM43430/brcmfmac), the kernel registers wlan0 ~300 ms
+# after the last firmware-init dmesg line.  multi-user.target is reached at
+# roughly the same time, so without this ordering hostapd races the kernel
+# and tries to open wlan0 before it exists — producing a silent failure where
+# no AP ever appears.
+#
+# BindsTo= also stops hostapd when wlan0 disappears (e.g. driver unload),
+# preventing a stale AP process that holds the interface in an unusable state.
+After=sys-subsystem-net-devices-{{ wifi.interface }}.device
+BindsTo=sys-subsystem-net-devices-{{ wifi.interface }}.device
+
+[Service]
+# Unblock the WiFi radio before hostapd opens the interface.
+# On RPi OS Trixie, WiFi is rfkill soft-blocked by default until a country
+# code is configured (normally via raspi-config or the Imager).  Since we
+# bake our own image we must unblock it explicitly so the BCM43430 radio is
+# available when hostapd tries to set AP mode.  The '-' prefix makes the
+# command optional — if rfkill is absent the service still starts normally.
+ExecStartPre=-/usr/sbin/rfkill unblock wifi
+# Belt-and-suspenders: if hostapd starts just before wlan0 is fully ready,
+# let systemd retry rather than leave the AP permanently down.
+Restart=on-failure
+RestartSec=5

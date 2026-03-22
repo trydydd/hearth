@@ -30,6 +30,208 @@
     mode: "0644"
   notify: Restart dnsmasq
 
+# ---------------------------------------------------------------------------
+# Prevent NetworkManager from managing the WiFi AP interface.
+# On Raspberry Pi OS Bookworm/Trixie, NetworkManager is the default network
+# manager.  If it manages wlan0 it puts the interface into client (station)
+# mode, conflicting with hostapd.  Marking the interface as unmanaged via a
+# keyfile gives hostapd exclusive control.
+# ---------------------------------------------------------------------------
+- name: Check if NetworkManager is installed
+  ansible.builtin.stat:
+    path: /etc/NetworkManager
+  register: _nm_dir
+
+- name: Create NetworkManager conf.d directory if needed
+  ansible.builtin.file:
+    path: /etc/NetworkManager/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: _nm_dir.stat.exists
+
+- name: Prevent NetworkManager from managing the WiFi AP interface
+  ansible.builtin.copy:
+    dest: /etc/NetworkManager/conf.d/cafebox-wifi.conf
+    content: |
+      # Managed by Ansible (CafeBox wifi role)
+      # Prevent NetworkManager from taking over the hostapd AP interface.
+      # usb0 is managed via a NM keyfile connection (cafebox-usb0.nmconnection)
+      # and excluded here so NM does not run a second competing DHCP process.
+      [keyfile]
+      unmanaged-devices=interface-name:{{ wifi.interface }}
+    owner: root
+    group: root
+    mode: "0644"
+  when: _nm_dir.stat.exists
+
+# ---------------------------------------------------------------------------
+# Configure a static IP address for the WiFi AP interface.
+# The box.ip from cafe.yaml must be assigned to wlan0 so that:
+#   • dnsmasq can bind to the interface and serve DHCP/DNS responses
+#   • connected clients can route to the box at the advertised gateway IP
+# Use dhcpcd.conf (present on RPi OS) when available; skip on Vagrant VMs.
+# The nohook wpa_supplicant line prevents dhcpcd from spawning wpa_supplicant
+# on the AP interface, which would conflict with hostapd.
+# ---------------------------------------------------------------------------
+- name: Check for dhcpcd.conf (present on RPi OS, absent in Vagrant VMs)
+  ansible.builtin.stat:
+    path: /etc/dhcpcd.conf
+  register: _wifi_dhcpcd_conf
+
+- name: Configure static IP for WiFi AP interface in dhcpcd.conf
+  # /24 is appropriate here: box.ip is 10.0.0.1 and the DHCP range
+  # (wifi.dhcp_range_start / dhcp_range_end) is within 10.0.0.0/24,
+  # so the AP always operates on a single /24 subnet.
+  ansible.builtin.blockinfile:
+    path: /etc/dhcpcd.conf
+    block: |
+      interface {{ wifi.interface }}
+      static ip_address={{ box.ip }}/24
+      nohook wpa_supplicant
+    marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox {{ wifi.interface }} AP"
+  when: _wifi_dhcpcd_conf.stat.exists
+
+# ---------------------------------------------------------------------------
+# Set the WiFi regulatory domain (country code) so the BCM43430 radio on
+# Pi Zero 2 W is allowed to operate.
+#
+# On RPi OS Trixie, WiFi is rfkill soft-blocked by default until a country
+# code is configured (normally via raspi-config or the Raspberry Pi Imager).
+# Since we build our own pre-provisioned image we must write the country code
+# before first boot, otherwise the radio stays blocked and hostapd can never
+# put wlan0 into AP mode.
+#
+# Two mechanisms cover all network-manager combinations:
+#   1. wpa_supplicant.conf  — read by raspberrypi-sys-mods on first boot and
+#      by wpa_supplicant itself; sets country=XX in the kernel regulatory db.
+#   2. /etc/default/crda    — sets REGDOMAIN for the crda daemon on older
+#      kernel/distro combos that use crda instead of the internal CRDA.
+# The drop-in (hostapd-wlan-wait.conf.j2) also runs `rfkill unblock wifi`
+# just before hostapd opens the interface, as a belt-and-suspenders unblock.
+# ---------------------------------------------------------------------------
+- name: Ensure wpa_supplicant config directory exists
+  ansible.builtin.file:
+    path: /etc/wpa_supplicant
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Ensure wpa_supplicant.conf has ctrl_interface directive
+  # wpa_supplicant.conf must be a valid configuration file.  On a fresh RPi OS
+  # image the file may not exist at all; create it with the standard RPi OS
+  # header so that wpa_supplicant (and raspberrypi-sys-mods firstboot) can
+  # parse it correctly on first boot.
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^ctrl_interface='
+    line: 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev'
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Ensure wpa_supplicant.conf has update_config directive
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^update_config='
+    line: 'update_config=1'
+  when: wifi.country_code | default('') | length > 0
+
+- name: Set WiFi country code in wpa_supplicant.conf
+  # raspberrypi-sys-mods firstboot reads country= from wpa_supplicant.conf to
+  # configure the kernel regulatory domain and unblock the rfkill state.
+  # Without this the BCM43430 radio on Pi Zero 2 W stays soft-blocked and
+  # hostapd cannot put wlan0 into AP mode.
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^country='
+    line: "country={{ wifi.country_code }}"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Set WiFi regulatory domain in /etc/default/crda
+  ansible.builtin.lineinfile:
+    path: /etc/default/crda
+    regexp: '^REGDOMAIN='
+    line: "REGDOMAIN={{ wifi.country_code }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: wifi.country_code | default('') | length > 0
+
+# ---------------------------------------------------------------------------
+# Set DAEMON_CONF so hostapd reads our rendered configuration file.
+#
+# On Debian (and RPi OS), /etc/default/hostapd ships with DAEMON_CONF
+# commented out.  When DAEMON_CONF is empty, the hostapd service starts
+# with NO configuration file — the AP never broadcasts and the service
+# exits silently or loops indefinitely.  Setting DAEMON_CONF explicitly
+# ensures hostapd loads our rendered /etc/hostapd/hostapd.conf regardless
+# of which systemd unit variant the distro package ships.
+# ---------------------------------------------------------------------------
+- name: Set DAEMON_CONF in /etc/default/hostapd
+  ansible.builtin.lineinfile:
+    path: /etc/default/hostapd
+    regexp: '^#?DAEMON_CONF='
+    line: 'DAEMON_CONF=/etc/hostapd/hostapd.conf'
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+
+# ---------------------------------------------------------------------------
+# Deploy systemd drop-ins so hostapd and dnsmasq wait for the WiFi netdev.
+# On Pi Zero 2 W (brcmfmac/BCM43430), the kernel registers wlan0 a fraction
+# of a second after the last firmware-init line in dmesg.  multi-user.target
+# is reached at roughly the same moment, so without these overrides hostapd
+# races the kernel, tries to open wlan0 before it exists, and silently fails
+# — leaving the Pi with no broadcasting AP.
+# ---------------------------------------------------------------------------
+- name: Create hostapd systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/hostapd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy hostapd drop-in — wait for WiFi netdev before starting
+  ansible.builtin.template:
+    src: hostapd-wlan-wait.conf.j2
+    dest: /etc/systemd/system/hostapd.service.d/cafebox-wlan-wait.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon
+
+- name: Create dnsmasq systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/dnsmasq.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy dnsmasq drop-in — wait for WiFi netdev before starting
+  ansible.builtin.template:
+    src: dnsmasq-wlan-wait.conf.j2
+    dest: /etc/systemd/system/dnsmasq.service.d/cafebox-wlan-wait.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon
+
+- name: Flush handlers to apply daemon-reload before starting services
+  ansible.builtin.meta: flush_handlers
+
+# ---------------------------------------------------------------------------
+# Unmask, enable, and (on live systems) start hostapd and dnsmasq.
+# ---------------------------------------------------------------------------
 - name: Unmask hostapd service (masked by default on Debian/Ubuntu)
   ansible.builtin.systemd:
     name: hostapd

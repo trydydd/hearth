@@ -17,7 +17,9 @@
 #   3. Mounts the image via a loop device and runs ansible/site.yml inside
 #      a chroot, provisioning the image exactly as the Vagrantfile Ansible
 #      provisioner would.
-#   4. Compresses the finished image to <output>.img.xz.
+#   4. Validates the provisioned image configuration (WiFi AP + USB OTG SSH)
+#      inside the container before capture — fails the build on any error.
+#   5. Compresses the finished image to <output>.img.xz.
 #
 # Host architecture requirement:
 #   This script must run on a native ARM64 (aarch64) host so that the chroot
@@ -251,16 +253,142 @@ rm -rf "${MOUNT_DIR}${CHROOT_REPO}"
 log "Provisioning complete."
 
 # ---------------------------------------------------------------------------
-# Step 5 — Unmount and compress
+# Step 5 — Validate image configuration (pre-capture checks)
+#
+# Run static configuration checks inside the nspawn container before
+# compressing the image.  Systemd is NOT running here (no --boot), so only
+# file-presence and content checks are performed.  A failure here aborts the
+# build so misconfigured images are never shipped.
 # ---------------------------------------------------------------------------
-log "Step 5: Unmounting image..."
+log "Step 5: Validating image configuration..."
+
+# Write the validation script to a temp file inside the image.
+# systemd-nspawn allocates a PTY by default and does not connect stdin from
+# the calling process, so a heredoc passed via stdin hangs indefinitely.
+# Writing to a file and executing it directly avoids that entirely.
+# NOTE: /tmp must NOT be used here — systemd-nspawn mounts a fresh tmpfs
+# over /tmp inside the container, wiping anything written there from the host.
+VALIDATE_SCRIPT="${MOUNT_DIR}/root/cafebox-validate.sh"
+cat > "${VALIDATE_SCRIPT}" << 'DIAG_EOF'
+#!/bin/sh
+set +e  # accumulate all failures; exit 1 at the end if any failed
+FAIL=0
+
+ok()   { printf '  [OK]   %s\n' "$1"; }
+warn() { printf '  [WARN] %s\n' "$1" >&2; }
+fail() { printf '  [FAIL] %s\n' "$1" >&2; FAIL=$((FAIL + 1)); }
+
+echo "=== CafeBox pre-capture configuration check ==="
+
+echo ""
+echo "--- WiFi access point ---"
+
+# hostapd configuration file
+[ -f /etc/hostapd/hostapd.conf ] \
+    && ok "hostapd.conf present" \
+    || fail "hostapd.conf MISSING at /etc/hostapd/hostapd.conf"
+
+# DAEMON_CONF must point to the config file or hostapd starts without it
+if grep -qE "^DAEMON_CONF=" /etc/default/hostapd 2>/dev/null; then
+    ok "DAEMON_CONF set in /etc/default/hostapd"
+else
+    fail "DAEMON_CONF not set in /etc/default/hostapd (hostapd will ignore the config)"
+fi
+
+# hostapd must be enabled (symlink in multi-user.target.wants)
+[ -L /etc/systemd/system/multi-user.target.wants/hostapd.service ] \
+    && ok "hostapd.service enabled" \
+    || fail "hostapd.service NOT enabled (no symlink in multi-user.target.wants)"
+
+# hostapd drop-in: waits for WiFi netdev and runs rfkill unblock
+[ -f /etc/systemd/system/hostapd.service.d/cafebox-wlan-wait.conf ] \
+    && ok "hostapd drop-in present" \
+    || fail "hostapd drop-in MISSING at hostapd.service.d/cafebox-wlan-wait.conf"
+
+# dnsmasq configuration file
+[ -f /etc/dnsmasq.d/cafebox.conf ] \
+    && ok "dnsmasq cafebox.conf present" \
+    || fail "dnsmasq cafebox.conf MISSING at /etc/dnsmasq.d/cafebox.conf"
+
+# dnsmasq must be enabled
+[ -L /etc/systemd/system/multi-user.target.wants/dnsmasq.service ] \
+    && ok "dnsmasq.service enabled" \
+    || fail "dnsmasq.service NOT enabled (no symlink in multi-user.target.wants)"
+
+# dnsmasq drop-in: waits for hostapd and assigns the AP IP
+[ -f /etc/systemd/system/dnsmasq.service.d/cafebox-wlan-wait.conf ] \
+    && ok "dnsmasq drop-in present" \
+    || fail "dnsmasq drop-in MISSING at dnsmasq.service.d/cafebox-wlan-wait.conf"
+
+# country code in wpa_supplicant.conf — required to lift rfkill soft-block
+if grep -qE "^country=" /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null; then
+    ok "country= set in wpa_supplicant.conf (rfkill soft-block will be lifted)"
+else
+    fail "country= NOT set in wpa_supplicant.conf (BCM43430 will remain rfkill soft-blocked)"
+fi
+
+# NetworkManager must not manage the AP interface
+if [ -f /etc/NetworkManager/conf.d/cafebox-wifi.conf ]; then
+    ok "NetworkManager unmanaged config present"
+else
+    warn "NetworkManager unmanaged config not found — OK if NM is not installed"
+fi
+
+echo ""
+echo "--- USB OTG SSH ---"
+
+# dtoverlay=dwc2 in boot config.txt enables the USB gadget controller
+FOUND_BOOT_CFG=0
+for f in /boot/firmware/config.txt /boot/config.txt; do
+    if [ -f "$f" ]; then
+        FOUND_BOOT_CFG=1
+        if grep -qE "^dtoverlay=dwc2" "$f"; then
+            ok "dtoverlay=dwc2 found in $f"
+        else
+            fail "dtoverlay=dwc2 NOT found in $f (USB OTG SSH will not work)"
+        fi
+        break
+    fi
+done
+[ "$FOUND_BOOT_CFG" -eq 1 ] || fail "No boot config.txt found at /boot/firmware/config.txt or /boot/config.txt"
+
+# modules-load=dwc2,g_ether in cmdline.txt loads the gadget at boot
+FOUND_CMDLINE=0
+for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+    if [ -f "$f" ]; then
+        FOUND_CMDLINE=1
+        if grep -q "modules-load=dwc2,g_ether" "$f"; then
+            ok "modules-load=dwc2,g_ether found in $f"
+        else
+            fail "modules-load=dwc2,g_ether NOT found in $f (USB gadget module will not load)"
+        fi
+        break
+    fi
+done
+[ "$FOUND_CMDLINE" -eq 1 ] || fail "No boot cmdline.txt found at /boot/firmware/cmdline.txt or /boot/cmdline.txt"
+
+echo ""
+if [ "$FAIL" -ne 0 ]; then
+    echo "[FAIL] Pre-capture check FAILED — correct the errors above before flashing."
+    exit 1
+fi
+echo "[OK] All pre-capture checks passed."
+DIAG_EOF
+chmod +x "${VALIDATE_SCRIPT}"
+systemd-nspawn -D "${MOUNT_DIR}" /root/cafebox-validate.sh
+rm -f "${VALIDATE_SCRIPT}"
+
+# ---------------------------------------------------------------------------
+# Step 6 — Unmount and compress
+# ---------------------------------------------------------------------------
+log "Step 6: Unmounting image..."
 umount "${BOOT_MOUNT_DIR}"
 umount "${MOUNT_DIR}"
 kpartx -d "${LOOP_DEV}"
 losetup -d "${LOOP_DEV}"
 LOOP_DEV=""
 
-log "Step 6: Compressing to ${OUTPUT_IMAGE}..."
+log "Step 7: Compressing to ${OUTPUT_IMAGE}..."
 mkdir -p "$(dirname "${OUTPUT_IMAGE}")"
 xz -T0 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
 

@@ -138,18 +138,33 @@ fi
 echo
 printf '  --- userconf.txt ---\n'
 if [ -f "${BOOT_DIR}/userconf.txt" ]; then
-    ok "userconf.txt present (RPi OS first-boot user creation)"
+    ok "userconf.txt present (RPi OS will create operator user on next boot)"
     show_config_file "${BOOT_DIR}/userconf.txt" ".*"
 else
-    warn "userconf.txt not found — RPi OS first-boot user will not be created"
+    # RPi OS processes and deletes userconf.txt on first boot — absence after
+    # first boot is normal (same as the ssh flag file).  Check whether a
+    # non-system operator account (UID 1000–65533) already exists instead.
+    if getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 <= 65533' | grep -q .; then
+        ok "userconf.txt absent (already processed on first boot — operator user exists)"
+    else
+        warn "userconf.txt not found and no operator user (UID 1000–65533) found — first-boot user creation may have failed"
+    fi
 fi
 
 echo
 printf '  --- ssh enable file ---\n'
 if [ -f "${BOOT_DIR}/ssh" ]; then
-    ok "ssh enable file present"
+    ok "ssh enable file present (will be processed on next boot or is yet to be processed)"
 else
-    warn "ssh enable file not found — SSH may not be enabled on first boot"
+    # RPi OS processes the ssh file on first boot — enables SSH then deletes
+    # the file.  Absence of the file after first boot is therefore normal.
+    # Check the SSH service state to determine the real status.
+    SSH_ENABLED="$(systemctl is-enabled ssh 2>/dev/null || echo unknown)"
+    if [ "${SSH_ENABLED}" = "enabled" ]; then
+        ok "ssh enable file absent (already processed by RPi OS first-boot — SSH service is enabled)"
+    else
+        warn "ssh enable file not found and SSH service is '${SSH_ENABLED}' — SSH may not be available"
+    fi
 fi
 
 # ============================= Section 3 ====================================
@@ -157,8 +172,17 @@ hdr "3. Kernel Modules"
 
 printf '  USB OTG chain:\n'
 for mod in dwc2 g_ether; do
-    if lsmod 2>/dev/null | grep -q "^${mod}"; then
-        ok "module ${mod} loaded"
+    if lsmod 2>/dev/null | grep -qE "^${mod}([[:space:]]|$)"; then
+        ok "module ${mod} loaded (lsmod)"
+    elif [ -d "/sys/module/${mod}" ]; then
+        # Module is present as a built-in or device-tree-loaded driver.
+        # On Pi Zero 2 W, dwc2 is loaded via dtoverlay and may not show in
+        # lsmod as a standalone entry but /sys/module/dwc2 will exist.
+        ok "module ${mod} present (/sys/module — device-tree loaded or built-in)"
+    elif dmesg 2>/dev/null | grep -qiE "(^|[[:space:]])${mod}[[:space:]/:]"; then
+        # Fall back to dmesg: any line containing " dwc2 " or " dwc2/" or " dwc2:"
+        # (i.e. the module name preceded and followed by non-identifier chars).
+        ok "module ${mod} active (confirmed via dmesg)"
     else
         fail "module ${mod} NOT loaded"
     fi
@@ -224,6 +248,23 @@ else
     warn "iw not available or wlan0 not present"
 fi
 
+echo
+printf '  NetworkManager conflict check:\n'
+if systemctl is-active NetworkManager &>/dev/null; then
+    ok "NetworkManager is running"
+    NM_UNMANAGED_FILE="/etc/NetworkManager/conf.d/cafebox-wifi.conf"
+    if [ -f "${NM_UNMANAGED_FILE}" ]; then
+        ok "NM unmanaged config exists: ${NM_UNMANAGED_FILE}"
+        cat "${NM_UNMANAGED_FILE}"
+    else
+        warn "NM unmanaged config NOT found at ${NM_UNMANAGED_FILE}"
+        warn "NetworkManager may be managing wlan0 and conflicting with hostapd"
+        warn "Fix: re-provision with the wifi Ansible role or create ${NM_UNMANAGED_FILE}"
+    fi
+else
+    ok "NetworkManager is not running (no conflict)"
+fi
+
 # ============================= Section 5 ====================================
 hdr "5. Systemd Service Status"
 
@@ -270,10 +311,34 @@ if [ -f /etc/hostapd/hostapd.conf ]; then
     CONF_IFACE="$(grep -E '^interface=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 | tr -d ' ' || true)"
     CONF_SSID="$(grep -E '^ssid=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 || true)"
     CONF_DRIVER="$(grep -E '^driver=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 || true)"
+    CONF_COUNTRY="$(grep -E '^country_code=' /etc/hostapd/hostapd.conf 2>/dev/null | cut -d= -f2 | tr -d ' ' || true)"
     printf '  interface=%s  ssid=%s  driver=%s\n' "$CONF_IFACE" "$CONF_SSID" "$CONF_DRIVER"
     [ "$CONF_IFACE" = "wlan0" ] && ok "interface=wlan0" || warn "interface=${CONF_IFACE} (expected wlan0)"
     [ -n "$CONF_SSID" ] && ok "ssid=${CONF_SSID}" || fail "ssid is empty"
     [ "$CONF_DRIVER" = "nl80211" ] && ok "driver=nl80211" || warn "driver=${CONF_DRIVER} (expected nl80211)"
+    if [ -n "$CONF_COUNTRY" ]; then
+        ok "country_code=${CONF_COUNTRY} (regulatory domain set)"
+    else
+        warn "country_code NOT set — Pi Zero 2 W may fail to transmit on most channels"
+        warn "Fix: set wifi.country_code in cafe.yaml (e.g. GB, US, DE)"
+    fi
+    # Check that /etc/default/hostapd points DAEMON_CONF at the config file.
+    # If DAEMON_CONF is empty/commented-out, hostapd starts with no config
+    # and the AP is never configured — the most common cause of no WiFi.
+    DAEMON_CONF_FILE="/etc/default/hostapd"
+    if [ -f "${DAEMON_CONF_FILE}" ]; then
+        DAEMON_CONF_VAL="$(grep -E '^DAEMON_CONF=' "${DAEMON_CONF_FILE}" 2>/dev/null | cut -d= -f2 | tr -d '"' | tr -d "'" | tr -d ' ' || true)"
+        if [ "${DAEMON_CONF_VAL}" = "/etc/hostapd/hostapd.conf" ]; then
+            ok "DAEMON_CONF=/etc/hostapd/hostapd.conf (hostapd will read the config)"
+        elif [ -n "${DAEMON_CONF_VAL}" ]; then
+            warn "DAEMON_CONF=${DAEMON_CONF_VAL} (expected /etc/hostapd/hostapd.conf)"
+        else
+            fail "DAEMON_CONF not set in ${DAEMON_CONF_FILE} — hostapd starts with NO config file and the AP will NOT broadcast"
+            fail "Fix: re-provision with the wifi Ansible role to set DAEMON_CONF"
+        fi
+    else
+        warn "${DAEMON_CONF_FILE} not found (DAEMON_CONF cannot be verified)"
+    fi
 else
     fail "hostapd.conf NOT found"
 fi
