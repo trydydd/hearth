@@ -172,7 +172,7 @@ hdr "3. Kernel Modules"
 
 printf '  USB OTG chain:\n'
 for mod in dwc2 g_ether; do
-    if lsmod 2>/dev/null | grep -q "^${mod}[[:space:]]"; then
+    if lsmod 2>/dev/null | grep -qE "^${mod}([[:space:]]|$)"; then
         ok "module ${mod} loaded (lsmod)"
     elif [ -d "/sys/module/${mod}" ]; then
         # Module is present as a built-in or device-tree-loaded driver.

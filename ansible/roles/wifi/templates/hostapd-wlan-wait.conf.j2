@@ -13,6 +13,13 @@ After=sys-subsystem-net-devices-{{ wifi.interface }}.device
 BindsTo=sys-subsystem-net-devices-{{ wifi.interface }}.device
 
 [Service]
+# Unblock the WiFi radio before hostapd opens the interface.
+# On RPi OS Trixie, WiFi is rfkill soft-blocked by default until a country
+# code is configured (normally via raspi-config or the Imager).  Since we
+# bake our own image we must unblock it explicitly so the BCM43430 radio is
+# available when hostapd tries to set AP mode.  The '-' prefix makes the
+# command optional — if rfkill is absent the service still starts normally.
+ExecStartPre=-/usr/sbin/rfkill unblock wifi
 # Belt-and-suspenders: if hostapd starts just before wlan0 is fully ready,
 # let systemd retry rather than leave the AP permanently down.
 Restart=on-failure

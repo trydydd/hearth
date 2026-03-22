@@ -1,6 +1,6 @@
 [Unit]
 Description=CafeBox boot diagnostics — writes report to boot partition
-After=multi-user.target
+After=multi-user.target hostapd.service dnsmasq.service
 Wants=multi-user.target
 
 [Service]

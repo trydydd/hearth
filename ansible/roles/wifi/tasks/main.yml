@@ -94,6 +94,77 @@
   when: _wifi_dhcpcd_conf.stat.exists
 
 # ---------------------------------------------------------------------------
+# Set the WiFi regulatory domain (country code) so the BCM43430 radio on
+# Pi Zero 2 W is allowed to operate.
+#
+# On RPi OS Trixie, WiFi is rfkill soft-blocked by default until a country
+# code is configured (normally via raspi-config or the Raspberry Pi Imager).
+# Since we build our own pre-provisioned image we must write the country code
+# before first boot, otherwise the radio stays blocked and hostapd can never
+# put wlan0 into AP mode.
+#
+# Two mechanisms cover all network-manager combinations:
+#   1. wpa_supplicant.conf  — read by raspberrypi-sys-mods on first boot and
+#      by wpa_supplicant itself; sets country=XX in the kernel regulatory db.
+#   2. /etc/default/crda    — sets REGDOMAIN for the crda daemon on older
+#      kernel/distro combos that use crda instead of the internal CRDA.
+# The drop-in (hostapd-wlan-wait.conf.j2) also runs `rfkill unblock wifi`
+# just before hostapd opens the interface, as a belt-and-suspenders unblock.
+# ---------------------------------------------------------------------------
+- name: Ensure wpa_supplicant config directory exists
+  ansible.builtin.file:
+    path: /etc/wpa_supplicant
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Ensure wpa_supplicant.conf has ctrl_interface directive
+  # wpa_supplicant.conf must be a valid configuration file.  On a fresh RPi OS
+  # image the file may not exist at all; create it with the standard RPi OS
+  # header so that wpa_supplicant (and raspberrypi-sys-mods firstboot) can
+  # parse it correctly on first boot.
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^ctrl_interface='
+    line: 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev'
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Ensure wpa_supplicant.conf has update_config directive
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^update_config='
+    line: 'update_config=1'
+  when: wifi.country_code | default('') | length > 0
+
+- name: Set WiFi country code in wpa_supplicant.conf
+  # raspberrypi-sys-mods firstboot reads country= from wpa_supplicant.conf to
+  # configure the kernel regulatory domain and unblock the rfkill state.
+  # Without this the BCM43430 radio on Pi Zero 2 W stays soft-blocked and
+  # hostapd cannot put wlan0 into AP mode.
+  ansible.builtin.lineinfile:
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+    regexp: '^country='
+    line: "country={{ wifi.country_code }}"
+  when: wifi.country_code | default('') | length > 0
+
+- name: Set WiFi regulatory domain in /etc/default/crda
+  ansible.builtin.lineinfile:
+    path: /etc/default/crda
+    regexp: '^REGDOMAIN='
+    line: "REGDOMAIN={{ wifi.country_code }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: wifi.country_code | default('') | length > 0
+
+# ---------------------------------------------------------------------------
 # Set DAEMON_CONF so hostapd reads our rendered configuration file.
 #
 # On Debian (and RPi OS), /etc/default/hostapd ships with DAEMON_CONF

@@ -7,5 +7,14 @@
 After=sys-subsystem-net-devices-{{ wifi.interface }}.device hostapd.service
 
 [Service]
+# Assign the AP static IP to wlan0 before dnsmasq binds to it.
+# On RPi OS Trixie, NetworkManager is the default network manager and wlan0
+# is marked unmanaged (so NM does not interfere with hostapd).  dhcpcd, which
+# is our primary mechanism for static IP assignment via dhcpcd.conf, may not
+# be active.  This ExecStartPre ensures the correct IP is present regardless
+# of which network manager is in use.  'ip addr replace' is idempotent — it
+# adds the address if absent or replaces it if already present with a different
+# prefix, so it is safe to run alongside dhcpcd or any other daemon.
+ExecStartPre=/sbin/ip addr replace {{ box.ip }}/24 dev {{ wifi.interface }}
 Restart=on-failure
 RestartSec=5
