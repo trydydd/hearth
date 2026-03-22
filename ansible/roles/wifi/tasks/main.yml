@@ -92,6 +92,51 @@
   when: _wifi_dhcpcd_conf.stat.exists
 
 # ---------------------------------------------------------------------------
+# Deploy systemd drop-ins so hostapd and dnsmasq wait for the WiFi netdev.
+# On Pi Zero 2 W (brcmfmac/BCM43430), the kernel registers wlan0 a fraction
+# of a second after the last firmware-init line in dmesg.  multi-user.target
+# is reached at roughly the same moment, so without these overrides hostapd
+# races the kernel, tries to open wlan0 before it exists, and silently fails
+# — leaving the Pi with no broadcasting AP.
+# ---------------------------------------------------------------------------
+- name: Create hostapd systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/hostapd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy hostapd drop-in — wait for WiFi netdev before starting
+  ansible.builtin.template:
+    src: hostapd-wlan-wait.conf.j2
+    dest: /etc/systemd/system/hostapd.service.d/cafebox-wlan-wait.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon
+
+- name: Create dnsmasq systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/dnsmasq.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy dnsmasq drop-in — wait for WiFi netdev before starting
+  ansible.builtin.template:
+    src: dnsmasq-wlan-wait.conf.j2
+    dest: /etc/systemd/system/dnsmasq.service.d/cafebox-wlan-wait.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon
+
+- name: Flush handlers to apply daemon-reload before starting services
+  ansible.builtin.meta: flush_handlers
+
+# ---------------------------------------------------------------------------
 # Unmask, enable, and (on live systems) start hostapd and dnsmasq.
 # ---------------------------------------------------------------------------
 - name: Unmask hostapd service (masked by default on Debian/Ubuntu)

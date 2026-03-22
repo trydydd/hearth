@@ -12,3 +12,10 @@
     name: dnsmasq
     state: restarted
   when: wifi.interface in ansible_interfaces
+
+- name: Reload systemd daemon
+  # _systemd_active is registered in the common role (Phase 4) and is
+  # available to all subsequent roles in the same play.
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: _systemd_active.stat.exists

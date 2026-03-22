@@ -6,6 +6,14 @@ Wants=multi-user.target
 [Service]
 Type=oneshot
 Environment=CAFEBOX_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false) | lower }}
+# Poll for the WiFi AP interface up to 30 seconds before capturing diagnostics.
+# On Pi Zero 2 W (brcmfmac/BCM43430) the kernel registers {{ wifi.interface }}
+# a fraction of a second after firmware load, which coincides with
+# multi-user.target.  Without this wait the report shows only lo — misleading,
+# not a real fault.  The loop always exits 0 so the report is written even if
+# {{ wifi.interface }} never appears.
+ExecStartPre=/bin/bash -c \
+  'for i in $(seq 1 30); do ip link show {{ wifi.interface }} >/dev/null 2>&1 && exit 0; sleep 1; done; exit 0'
 ExecStart={{ diagnostics_dir }}/diagnose-boot-dump.sh
 StandardOutput=null
 StandardError=journal
