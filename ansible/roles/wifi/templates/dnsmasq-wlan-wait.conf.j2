@@ -1,0 +1,11 @@
+[Unit]
+# dnsmasq uses `interface={{ wifi.interface }}` + `bind-interfaces` so it
+# binds exclusively to wlan0.  Starting before the netdev exists causes
+# dnsmasq to report "unknown interface {{ wifi.interface }}" and exit.
+# Wait for wlan0 and for hostapd (which puts the interface into AP mode)
+# before starting the DHCP/DNS server.
+After=sys-subsystem-net-devices-{{ wifi.interface }}.device hostapd.service
+
+[Service]
+Restart=on-failure
+RestartSec=5
