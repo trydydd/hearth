@@ -63,3 +63,25 @@ When running locally, FastAPI automatically serves interactive docs at:
 
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
+
+## OpenAPI Contract
+
+A static copy of the OpenAPI schema is committed at
+`ansible/roles/admin/files/backend/openapi.json`.
+You can browse it without running the service — paste it into
+[editor.swagger.io](https://editor.swagger.io) or open it in any OpenAPI-aware
+tool (Insomnia, Postman, VS Code REST Client, etc.).
+
+Regenerate after adding or changing routes:
+
+```bash
+cd ansible/roles/admin/files/backend
+python3 -c "
+from main import app
+import json
+schema = app.openapi()
+with open('openapi.json', 'w') as f:
+    json.dump(schema, f, indent=2)
+    f.write('\n')
+"
+```
