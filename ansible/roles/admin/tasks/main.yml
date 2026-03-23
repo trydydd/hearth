@@ -23,12 +23,14 @@
     validate: "visudo -c -f %s"
 
 # -----------------------------------------------------------------------
-# Python runtime
+# Python runtime prerequisites (role-local for portability)
 # -----------------------------------------------------------------------
 
-- name: Install python3-venv
+- name: Install admin backend Python runtime packages
   ansible.builtin.apt:
-    name: python3-venv
+    name:
+      - python3-packaging
+      - python3-venv
     state: present
     update_cache: true
     cache_valid_time: 3600

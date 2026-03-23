@@ -24,6 +24,8 @@ cafebox_base_packages:
   - logrotate
   - systemd-timesyncd
   - openssh-server
+  - python3-packaging
+  - python3-venv
 
 # ---------------------------------------------------------------------------
 # USB OTG SSH — cable-based admin access for debugging without WiFi

@@ -30,6 +30,7 @@ Vagrant.configure("2") do |config|
   # Provision using Ansible — the same playbook is used for real Pi hardware
   config.vm.provision "ansible" do |ansible|
     ansible.playbook   = "ansible/site.yml"
+    # ansible.verbose = "vvv"
     # Allow the host to reach the portal via VirtualBox NAT (eth0).
     # In production (real Pi) this variable is left blank and has no effect.
     ansible.extra_vars = {

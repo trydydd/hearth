@@ -48,6 +48,11 @@ bash image/build.sh
 
 See [`image/README.md`](image/README.md) for build prerequisites and flashing instructions.
 
+### 5 — Testing and quality guidelines
+
+See [`TESTING.md`](TESTING.md) for testing layers, role-level validation strategy,
+and Python runtime environment standards.
+
 ---
 
 ## Repository Structure
@@ -176,6 +181,9 @@ make install           # Run install.sh (inside VM or on a Pi)
 make logs              # Tail journald logs for all cafebox-* services
 ```
 
+For testing strategy, role-level validation, and Python runtime standards, see
+[`TESTING.md`](TESTING.md).
+
 ### Local DNS
 
 To resolve `*.cafe.box` from your development machine:
@@ -208,6 +216,11 @@ sudo bash scripts/dev-hosts.sh remove  # remove them
 
 The resulting image is **fully self-contained** — no internet access is required
 after flashing.
+
+## Ansible Role Boundaries
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for architectural and code-organization
+principles, including role boundaries and dependency ownership.
 
 ---
 
