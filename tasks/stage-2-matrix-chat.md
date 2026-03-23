@@ -17,11 +17,11 @@ CafeBox does **not** guarantee that messages are erased when users disconnect.
 Document this policy clearly so users are not misled.
 
 **Deliverables:**
-- `services/conduit/PRIVACY.md` explaining:
+- `ansible/roles/conduit/files/PRIVACY.md` explaining:
   - Messages are stored on the box until the operator clears them.
   - E2EE is available between clients but the server stores ciphertext.
   - Users should assume messages persist for the session lifetime of the box.
-- A one-sentence privacy notice to add to `portal/index.html` near the chat tile.
+- A one-sentence privacy notice to add to `ansible/roles/nginx/files/index.html` near the chat tile.
 
 **Acceptance criteria:**
 - `PRIVACY.md` is clear, non-technical language suitable for end users.
@@ -31,11 +31,11 @@ Document this policy clearly so users are not misled.
 
 ## Task 2.02 — Conduit Download in Build Script
 
-Update `image/build.sh` to download a pinned release of Conduit (the Matrix
+Update `scripts/build-image.sh` to download a pinned release of Conduit (the Matrix
 homeserver) and embed it in the image.
 
 **Deliverables:**
-- Variable `CONDUIT_VERSION` near the top of `image/build.sh` (e.g., `v0.9.0`).
+- Variable `CONDUIT_VERSION` near the top of `scripts/build-image.sh` (e.g., `v0.9.0`).
 - Download step that fetches the pre-built ARM binary from the Conduit GitHub
   releases and verifies its SHA-256 checksum.
 - Binary installed to `/usr/local/bin/conduit` in the image.
@@ -43,7 +43,7 @@ homeserver) and embed it in the image.
 **Acceptance criteria:**
 - Build script fails loudly if the checksum does not match.
 - Downloaded binary is not committed to the repository (`.gitignore` updated).
-- `bash -n image/build.sh` still passes after the change.
+- `bash -n scripts/build-image.sh` still passes after the change.
 
 ---
 
@@ -89,11 +89,11 @@ Create the systemd service unit that runs Conduit as a non-root system user.
 
 ## Task 2.05 — Element Web Download + Deployment in Build Script
 
-Update `image/build.sh` to download a pinned Element Web release and include it
+Update `scripts/build-image.sh` to download a pinned Element Web release and include it
 in the image.
 
 **Deliverables:**
-- Variable `ELEMENT_WEB_VERSION` near the top of `image/build.sh`.
+- Variable `ELEMENT_WEB_VERSION` near the top of `scripts/build-image.sh`.
 - Download and extract the Element Web tarball from GitHub releases, verify SHA-256.
 - Static files installed to `/srv/cafebox/element-web/` in the image.
 
@@ -151,8 +151,8 @@ appear automatically when the `chat` service is enabled in `cafe.yaml`.
 
 **Deliverables:**
 - Ensure `/api/public/services/status` includes the chat service tile (update
-  `admin/backend/routers/public.py` service list if hardcoded).
-- `portal/index.html` tile links to `http://element.cafe.box/` (or `/element/`).
+  `ansible/roles/admin/files/backend/routers/public.py` service list if hardcoded).
+- `ansible/roles/nginx/files/index.html` tile links to `http://element.cafe.box/` (or `/element/`).
 - Tile shows "Chat" as the label and a chat bubble icon (inline SVG, no CDN).
 
 **Acceptance criteria:**
