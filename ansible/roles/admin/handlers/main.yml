@@ -1,2 +1,8 @@
 ---
 # roles/admin/handlers/main.yml
+
+- name: Restart cafebox-admin-backend
+  ansible.builtin.service:
+    name: cafebox-admin-backend.service
+    state: restarted
+  when: _systemd_active.stat.exists

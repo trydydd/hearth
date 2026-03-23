@@ -23,9 +23,125 @@
     validate: "visudo -c -f %s"
 
 # -----------------------------------------------------------------------
-# Task 1.01+ — Backend dependencies and service
+# Python runtime
 # -----------------------------------------------------------------------
 
-- name: Placeholder — admin backend service deployment not yet implemented
-  debug:
-    msg: "admin role: CafeBox admin backend and frontend"
+- name: Install python3-venv
+  ansible.builtin.apt:
+    name: python3-venv
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# -----------------------------------------------------------------------
+# Runtime config directory, secret key env file, and cafe.yaml copy
+# -----------------------------------------------------------------------
+
+- name: Create /etc/cafebox directory
+  ansible.builtin.file:
+    path: /etc/cafebox
+    state: directory
+    owner: root
+    group: cafebox-admin
+    mode: "0750"
+
+- name: Deploy cafe.yaml to /etc/cafebox/cafe.yaml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../cafe.yaml"
+    dest: /etc/cafebox/cafe.yaml
+    owner: root
+    group: cafebox-admin
+    mode: "0640"
+
+- name: Generate admin backend environment file (first run only)
+  ansible.builtin.shell:
+    cmd: >-
+      printf 'CAFEBOX_SECRET_KEY=%s\nCAFEBOX_CONFIG=/etc/cafebox/cafe.yaml\n'
+      "$(openssl rand -hex 32)" > /etc/cafebox/admin.env
+    creates: /etc/cafebox/admin.env
+  no_log: true
+
+- name: Secure admin backend environment file
+  ansible.builtin.file:
+    path: /etc/cafebox/admin.env
+    owner: root
+    group: cafebox-admin
+    mode: "0640"
+
+# -----------------------------------------------------------------------
+# Backend source files and Python virtualenv
+# -----------------------------------------------------------------------
+
+- name: Create admin backend source directory
+  ansible.builtin.file:
+    path: /opt/cafebox/admin/backend
+    state: directory
+    owner: root
+    group: cafebox-admin
+    mode: "0755"
+
+- name: Deploy admin backend source files
+  ansible.builtin.copy:
+    src: backend/
+    dest: /opt/cafebox/admin/backend/
+    owner: root
+    group: cafebox-admin
+    mode: "0644"
+  notify: Restart cafebox-admin-backend
+
+- name: Create Python virtualenv for admin backend
+  ansible.builtin.command:
+    cmd: python3 -m venv /opt/cafebox/admin/venv
+    creates: /opt/cafebox/admin/venv/pyvenv.cfg
+
+- name: Install admin backend Python dependencies
+  ansible.builtin.pip:
+    requirements: /opt/cafebox/admin/backend/requirements.txt
+    virtualenv: /opt/cafebox/admin/venv
+  notify: Restart cafebox-admin-backend
+
+# -----------------------------------------------------------------------
+# Systemd service
+# -----------------------------------------------------------------------
+
+- name: Deploy cafebox-admin-backend systemd service unit
+  ansible.builtin.template:
+    src: cafebox-admin.service.j2
+    dest: /etc/systemd/system/cafebox-admin-backend.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart cafebox-admin-backend
+
+- name: Enable cafebox-admin-backend service
+  ansible.builtin.systemd:
+    name: cafebox-admin-backend.service
+    enabled: true
+    daemon_reload: true
+  when: _systemd_active.stat.exists
+
+- name: Start cafebox-admin-backend service (live system only)
+  ansible.builtin.service:
+    name: cafebox-admin-backend.service
+    state: started
+  when: _systemd_active.stat.exists
+
+# -----------------------------------------------------------------------
+# Admin frontend static files
+# -----------------------------------------------------------------------
+
+- name: Create admin frontend web root
+  ansible.builtin.file:
+    path: /var/www/cafebox/admin
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy admin frontend HTML files
+  ansible.builtin.copy:
+    src: frontend/
+    dest: /var/www/cafebox/admin/
+    owner: www-data
+    group: www-data
+    mode: "0644"
