@@ -1,0 +1,31 @@
+# /etc/sudoers.d/cafebox
+#
+# CafeBox admin backend — minimal systemctl permissions.
+# Rendered by: ansible roles/admin template sudoers-cafebox.j2
+#
+# Grants the cafebox-admin user exactly the systemctl start/stop/restart
+# commands required for CafeBox service management — nothing else.
+# Only the specific service units listed below are permitted.
+#
+# Validate with: visudo -c -f /etc/sudoers.d/cafebox
+
+Defaults!CAFEBOX_CMDS !requiretty
+
+Cmnd_Alias CAFEBOX_CMDS = \
+    /bin/systemctl start conduit.service, \
+    /bin/systemctl stop conduit.service, \
+    /bin/systemctl restart conduit.service, \
+    /bin/systemctl start element-web.service, \
+    /bin/systemctl stop element-web.service, \
+    /bin/systemctl restart element-web.service, \
+    /bin/systemctl start calibre-web.service, \
+    /bin/systemctl stop calibre-web.service, \
+    /bin/systemctl restart calibre-web.service, \
+    /bin/systemctl start kiwix.service, \
+    /bin/systemctl stop kiwix.service, \
+    /bin/systemctl restart kiwix.service, \
+    /bin/systemctl start navidrome.service, \
+    /bin/systemctl stop navidrome.service, \
+    /bin/systemctl restart navidrome.service
+
+cafebox-admin ALL=(root) NOPASSWD: CAFEBOX_CMDS

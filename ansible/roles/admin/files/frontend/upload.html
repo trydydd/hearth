@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeBox — Upload Content</title>
+  <style>
+    /* Design tokens — STYLEGUIDE.md §4 */
+    :root {
+      --bg-sky-top: #84c8ff;
+      --bg-sky-bottom: #dff3ff;
+      --surface-1: #f6f1da;
+      --surface-2: #ece3c5;
+      --surface-3: #d7c79a;
+      --ink-strong: #1d2433;
+      --ink-soft: #36445e;
+      --ink-inverse: #fffdf2;
+      --accent-primary: #e85d44;
+      --accent-primary-hover: #c94c33;
+      --accent-secondary: #2e7dff;
+      --accent-secondary-hover: #1a6de0;
+      --accent-success: #2f9e44;
+      --accent-danger: #c92a2a;
+      --border-strong: #1d2433;
+      --shadow-pixel: 4px 4px 0 #1d2433;
+      --focus-ring: #2e7dff;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+      background: linear-gradient(180deg, var(--bg-sky-top) 0%, var(--bg-sky-bottom) 100%);
+      min-height: 100vh;
+      color: var(--ink-strong);
+    }
+
+    .page { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
+    @media (min-width: 600px)  { .page { padding: var(--space-5); } }
+    @media (min-width: 1024px) { .page { padding: var(--space-6); } }
+
+    /* Header */
+    .header {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-5);
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
+    .header h1 { font-size: 22px; }
+
+    .back-link {
+      padding: var(--space-2) var(--space-4);
+      background: var(--surface-2);
+      color: var(--ink-strong);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border-strong);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      min-height: 44px;
+      line-height: calc(44px - 2 * var(--space-2) - 4px);
+    }
+
+    .back-link:hover { background: var(--surface-3); }
+    .back-link:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+    /* Upload cards */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    @media (min-width: 600px) { .upload-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px) { .upload-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .upload-card {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+    }
+
+    .upload-card h2 {
+      font-size: 18px;
+      margin-bottom: var(--space-2);
+    }
+
+    .upload-card .hint {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-bottom: var(--space-4);
+    }
+
+    .file-input-wrapper {
+      margin-bottom: var(--space-3);
+    }
+
+    label.file-label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: var(--space-2);
+      color: var(--ink-soft);
+    }
+
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink-strong);
+    }
+
+    input[type="file"]:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .btn-upload {
+      padding: var(--space-3) var(--space-4);
+      background: var(--accent-primary);
+      color: var(--ink-inverse);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-pixel);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 44px;
+      width: 100%;
+      transition: background 120ms;
+      margin-top: var(--space-3);
+    }
+
+    .btn-upload:hover { background: var(--accent-primary-hover); }
+    .btn-upload:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-upload { transition: none; }
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin-top: var(--space-3);
+      display: none;
+    }
+
+    .progress-wrap.visible { display: block; }
+
+    progress {
+      width: 100%;
+      height: 12px;
+      appearance: none;
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+    }
+
+    progress::-webkit-progress-bar   { background: var(--surface-2); border-radius: var(--radius-sm); }
+    progress::-webkit-progress-value { background: var(--accent-success); border-radius: var(--radius-sm); }
+    progress::-moz-progress-bar      { background: var(--accent-success); border-radius: var(--radius-sm); }
+
+    .status-msg {
+      font-size: 13px;
+      margin-top: var(--space-2);
+      min-height: 18px;
+    }
+
+    .status-msg--ok    { color: var(--accent-success); }
+    .status-msg--error { color: var(--accent-danger);  }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <header class="header" role="banner">
+      <h1>Upload Content</h1>
+      <a class="back-link" href="/admin/dashboard.html">&#8592; Dashboard</a>
+    </header>
+
+    <!-- Upload cards (one per service that accepts uploads) -->
+    <div class="upload-grid" id="upload-grid">
+
+      <!-- Kiwix ZIM files -->
+      <section class="upload-card" aria-labelledby="kiwix-heading">
+        <h2 id="kiwix-heading">Kiwix</h2>
+        <p class="hint">Accepted: .zim</p>
+        <form class="upload-form" data-service="kiwix" novalidate>
+          <div class="file-input-wrapper">
+            <label class="file-label" for="file-kiwix">ZIM file</label>
+            <input type="file" id="file-kiwix" name="file" accept=".zim" required />
+          </div>
+          <button type="submit" class="btn-upload">Upload</button>
+          <div class="progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <progress value="0" max="100"></progress>
+          </div>
+          <p class="status-msg" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- Calibre / eBooks -->
+      <section class="upload-card" aria-labelledby="calibre-heading">
+        <h2 id="calibre-heading">Calibre</h2>
+        <p class="hint">Accepted: .epub .pdf .mobi .azw .azw3 .cbz .cbr .txt</p>
+        <form class="upload-form" data-service="calibre_web" novalidate>
+          <div class="file-input-wrapper">
+            <label class="file-label" for="file-calibre">Book file</label>
+            <input type="file" id="file-calibre" name="file"
+              accept=".epub,.pdf,.mobi,.azw,.azw3,.cbz,.cbr,.txt" required />
+          </div>
+          <button type="submit" class="btn-upload">Upload</button>
+          <div class="progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <progress value="0" max="100"></progress>
+          </div>
+          <p class="status-msg" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- Navidrome / Music -->
+      <section class="upload-card" aria-labelledby="navidrome-heading">
+        <h2 id="navidrome-heading">Music</h2>
+        <p class="hint">Accepted: .mp3 .flac .ogg .m4a .wav .aac</p>
+        <form class="upload-form" data-service="navidrome" novalidate>
+          <div class="file-input-wrapper">
+            <label class="file-label" for="file-navidrome">Music file</label>
+            <input type="file" id="file-navidrome" name="file"
+              accept=".mp3,.flac,.ogg,.m4a,.wav,.aac" required />
+          </div>
+          <button type="submit" class="btn-upload">Upload</button>
+          <div class="progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <progress value="0" max="100"></progress>
+          </div>
+          <p class="status-msg" aria-live="polite"></p>
+        </form>
+      </section>
+
+    </div><!-- /.upload-grid -->
+  </div><!-- /.page -->
+
+  <script>
+    (function () {
+      "use strict";
+
+      function getCsrfToken() {
+        var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      function setupForm(form) {
+        var serviceId   = form.dataset.service;
+        var fileInput   = form.querySelector("input[type='file']");
+        var submitBtn   = form.querySelector("button[type='submit']");
+        var progressWrap = form.querySelector(".progress-wrap");
+        var progressBar  = form.querySelector("progress");
+        var statusMsg    = form.querySelector(".status-msg");
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          if (!fileInput.files || fileInput.files.length === 0) {
+            statusMsg.textContent = "Please select a file.";
+            statusMsg.className = "status-msg status-msg--error";
+            return;
+          }
+
+          var file = fileInput.files[0];
+          var formData = new FormData();
+          formData.append("file", file);
+
+          /* Reset state */
+          statusMsg.textContent = "";
+          statusMsg.className = "status-msg";
+          progressWrap.classList.add("visible");
+          progressBar.value = 0;
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Uploading…";
+
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", "/api/admin/upload/" + serviceId);
+          xhr.setRequestHeader("X-CSRF-Token", getCsrfToken());
+          xhr.withCredentials = true;
+
+          xhr.upload.addEventListener("progress", function (ev) {
+            if (ev.lengthComputable) {
+              var pct = Math.round((ev.loaded / ev.total) * 100);
+              progressBar.value = pct;
+              progressWrap.setAttribute("aria-valuenow", pct);
+            }
+          });
+
+          xhr.addEventListener("load", function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Upload";
+            if (xhr.status >= 200 && xhr.status < 300) {
+              progressBar.value = 100;
+              statusMsg.textContent = "Upload complete: " + file.name;
+              statusMsg.className = "status-msg status-msg--ok";
+              form.reset();
+            } else {
+              var detail = "Upload failed";
+              try {
+                detail = JSON.parse(xhr.responseText).detail || detail;
+              } catch (_) {}
+              statusMsg.textContent = detail;
+              statusMsg.className = "status-msg status-msg--error";
+              progressWrap.classList.remove("visible");
+            }
+          });
+
+          xhr.addEventListener("error", function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Upload";
+            statusMsg.textContent = "Network error — please try again.";
+            statusMsg.className = "status-msg status-msg--error";
+            progressWrap.classList.remove("visible");
+          });
+
+          xhr.send(formData);
+        });
+      }
+
+      /* Attach handlers to every upload form on the page */
+      document.querySelectorAll(".upload-form").forEach(setupForm);
+    })();
+  </script>
+</body>
+</html>

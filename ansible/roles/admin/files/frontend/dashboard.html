@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeBox — Dashboard</title>
+  <style>
+    /* Design tokens — STYLEGUIDE.md §4 */
+    :root {
+      --bg-sky-top: #84c8ff;
+      --bg-sky-bottom: #dff3ff;
+      --surface-1: #f6f1da;
+      --surface-2: #ece3c5;
+      --surface-3: #d7c79a;
+      --ink-strong: #1d2433;
+      --ink-soft: #36445e;
+      --ink-inverse: #fffdf2;
+      --accent-primary: #e85d44;
+      --accent-primary-hover: #c94c33;
+      --accent-secondary: #2e7dff;
+      --accent-secondary-hover: #1a6de0;
+      --accent-success: #2f9e44;
+      --accent-danger: #c92a2a;
+      --accent-warning: #d97706;
+      --tile-enabled: #fff8dc;
+      --tile-disabled: #d9d2b2;
+      --border-strong: #1d2433;
+      --shadow-pixel: 4px 4px 0 #1d2433;
+      --focus-ring: #2e7dff;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+      background: linear-gradient(180deg, var(--bg-sky-top) 0%, var(--bg-sky-bottom) 100%);
+      min-height: 100vh;
+      color: var(--ink-strong);
+    }
+
+    .page { max-width: 1080px; margin: 0 auto; padding: var(--space-4); }
+    @media (min-width: 600px)  { .page { padding: var(--space-5); } }
+    @media (min-width: 1024px) { .page { padding: var(--space-6); } }
+
+    /* Header bar */
+    .header {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-5);
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
+    .header h1 { font-size: 22px; }
+
+    /* Logout button */
+    .btn-logout {
+      padding: var(--space-2) var(--space-4);
+      background: var(--surface-2);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border-strong);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background 120ms;
+    }
+
+    .btn-logout:hover { background: var(--surface-3); }
+    .btn-logout:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .btn-logout:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Upload link */
+    .upload-link {
+      padding: var(--space-2) var(--space-4);
+      background: var(--accent-secondary);
+      color: var(--ink-inverse);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border-strong);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      min-height: 44px;
+      line-height: calc(44px - 2 * var(--space-2) - 4px);
+    }
+
+    .upload-link:hover { background: var(--accent-secondary-hover); }
+    .upload-link:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+    /* Service tile grid — STYLEGUIDE.md §7.3 */
+    .services-section h2 {
+      font-size: 20px;
+      margin-bottom: var(--space-4);
+    }
+
+    .tile-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    @media (min-width: 480px)  { .tile-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px)  { .tile-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .tile {
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+    }
+
+    .tile--enabled  { background: var(--tile-enabled); }
+    .tile--disabled { background: var(--tile-disabled); }
+
+    .tile-name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: var(--space-2);
+    }
+
+    .tile-status {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-bottom: var(--space-3);
+      min-height: 20px;
+    }
+
+    .tile-status--running { color: var(--accent-success); font-weight: bold; }
+    .tile-status--stopped { color: var(--accent-danger);  font-weight: bold; }
+
+    .tile-actions {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    /* Action buttons */
+    .btn-action {
+      padding: var(--space-2) var(--space-3);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border-strong);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background 120ms, opacity 120ms;
+    }
+
+    .btn-action:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-action, .btn-logout { transition: none; }
+    }
+
+    .btn-start   { background: var(--accent-success); color: var(--ink-inverse); }
+    .btn-stop    { background: var(--accent-danger);  color: var(--ink-inverse); }
+    .btn-restart { background: var(--accent-warning); color: var(--ink-inverse); }
+
+    .btn-start:hover   { filter: brightness(1.1); }
+    .btn-stop:hover    { filter: brightness(1.1); }
+    .btn-restart:hover { filter: brightness(1.1); }
+
+    /* Notification bar */
+    .notification {
+      position: fixed;
+      bottom: var(--space-5);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink-strong);
+      color: var(--ink-inverse);
+      padding: var(--space-3) var(--space-5);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 180ms;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .notification--visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <header class="header" role="banner">
+      <h1>CafeBox Admin</h1>
+      <nav aria-label="Admin navigation" style="display:flex;gap:var(--space-3);align-items:center;">
+        <a class="upload-link" href="/admin/upload.html">Upload Content</a>
+        <button class="btn-logout" id="logout-btn" type="button">Sign out</button>
+      </nav>
+    </header>
+
+    <!-- Service tiles -->
+    <section class="services-section" aria-labelledby="services-heading">
+      <h2 id="services-heading">Services</h2>
+      <div class="tile-grid" id="tile-grid" aria-live="polite" aria-label="Services"></div>
+    </section>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="notification" id="notification" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var tileGrid    = document.getElementById("tile-grid");
+      var notification = document.getElementById("notification");
+      var logoutBtn   = document.getElementById("logout-btn");
+      var _notifyTimer = null;
+
+      /* ---------------------------------------------------------------- */
+      /* CSRF helper                                                        */
+      /* ---------------------------------------------------------------- */
+      function getCsrfToken() {
+        var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Toast notification                                                */
+      /* ---------------------------------------------------------------- */
+      function showNotice(msg) {
+        clearTimeout(_notifyTimer);
+        notification.textContent = msg;
+        notification.classList.add("notification--visible");
+        _notifyTimer = setTimeout(function () {
+          notification.classList.remove("notification--visible");
+        }, 3000);
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Service action (start / stop / restart)                           */
+      /* ---------------------------------------------------------------- */
+      function runAction(serviceId, action, btns) {
+        /* Disable all buttons on this tile while the request is in flight */
+        btns.forEach(function (b) { b.disabled = true; });
+
+        fetch("/api/admin/services/" + serviceId + "/" + action, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": getCsrfToken() }
+        })
+          .then(function (res) {
+            if (res.ok) {
+              showNotice(serviceId + " " + action + "ed");
+              /* Refresh the tile status after a short delay */
+              setTimeout(fetchAndRender, 800);
+            } else {
+              return res.json().then(function (d) {
+                showNotice("Error: " + (d.detail || action + " failed"));
+              });
+            }
+          })
+          .catch(function () {
+            showNotice("Network error — could not " + action + " " + serviceId);
+          })
+          .finally(function () {
+            btns.forEach(function (b) { b.disabled = false; });
+          });
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Build a single service tile element                               */
+      /* ---------------------------------------------------------------- */
+      function buildTile(svc) {
+        var enabled = !!svc.enabled;
+        var article = document.createElement("article");
+        article.className = "tile " + (enabled ? "tile--enabled" : "tile--disabled");
+        article.dataset.serviceId = svc.id;
+
+        var nameEl = document.createElement("p");
+        nameEl.className = "tile-name";
+        nameEl.textContent = svc.name || svc.id;
+
+        var statusEl = document.createElement("p");
+        statusEl.className = "tile-status";
+        statusEl.textContent = enabled ? "Enabled" : "Unavailable on this box";
+
+        article.appendChild(nameEl);
+        article.appendChild(statusEl);
+
+        if (enabled) {
+          var actions = document.createElement("div");
+          actions.className = "tile-actions";
+
+          var btns = [];
+
+          [
+            { label: "Start",   cls: "btn-start",   action: "start"   },
+            { label: "Stop",    cls: "btn-stop",     action: "stop"    },
+            { label: "Restart", cls: "btn-restart",  action: "restart" }
+          ].forEach(function (def) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn-action " + def.cls;
+            btn.textContent = def.label;
+            btn.setAttribute("aria-label", def.label + " " + (svc.name || svc.id));
+            btn.addEventListener("click", function () {
+              runAction(svc.id, def.action, btns);
+            });
+            btns.push(btn);
+            actions.appendChild(btn);
+          });
+
+          article.appendChild(actions);
+        }
+
+        return article;
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Fetch service list and render tiles                               */
+      /* ---------------------------------------------------------------- */
+      function fetchAndRender() {
+        fetch("/api/public/services/status", { credentials: "same-origin" })
+          .then(function (res) {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+          })
+          .then(function (data) {
+            var services = Array.isArray(data.services) ? data.services : [];
+            tileGrid.innerHTML = "";
+            if (services.length === 0) {
+              var msg = document.createElement("p");
+              msg.textContent = "No services are enabled yet.";
+              tileGrid.appendChild(msg);
+              return;
+            }
+            services.forEach(function (svc) {
+              tileGrid.appendChild(buildTile(svc));
+            });
+          })
+          .catch(function () {
+            tileGrid.innerHTML = "<p>Service list unavailable. <button type=\"button\" id=\"retry-btn\">Retry</button></p>";
+            document.getElementById("retry-btn").addEventListener("click", fetchAndRender);
+          });
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Logout                                                            */
+      /* ---------------------------------------------------------------- */
+      logoutBtn.addEventListener("click", function () {
+        logoutBtn.disabled = true;
+        fetch("/api/admin/logout", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": getCsrfToken() }
+        })
+          .then(function () {
+            window.location.href = "/admin/login.html";
+          })
+          .catch(function () {
+            logoutBtn.disabled = false;
+            showNotice("Logout failed — please try again.");
+          });
+      });
+
+      /* ---------------------------------------------------------------- */
+      /* Initialise                                                        */
+      /* ---------------------------------------------------------------- */
+      fetchAndRender();
+    })();
+  </script>
+</body>
+</html>

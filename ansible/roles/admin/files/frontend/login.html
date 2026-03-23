@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafeBox — Sign In</title>
+  <style>
+    /* Design tokens — matches STYLEGUIDE.md §4 */
+    :root {
+      --bg-sky-top: #84c8ff;
+      --bg-sky-bottom: #dff3ff;
+      --surface-1: #f6f1da;
+      --surface-2: #ece3c5;
+      --surface-3: #d7c79a;
+      --ink-strong: #1d2433;
+      --ink-soft: #36445e;
+      --ink-inverse: #fffdf2;
+      --accent-primary: #e85d44;
+      --accent-primary-hover: #c94c33;
+      --accent-danger: #c92a2a;
+      --border-strong: #1d2433;
+      --shadow-pixel: 4px 4px 0 #1d2433;
+      --focus-ring: #2e7dff;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+      background: linear-gradient(180deg, var(--bg-sky-top) 0%, var(--bg-sky-bottom) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-strong);
+    }
+
+    .card {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-6);
+      width: 100%;
+      max-width: 380px;
+      margin: var(--space-4);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: var(--space-5);
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: var(--space-2);
+      color: var(--ink-soft);
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      font-family: inherit;
+      font-size: 16px;
+      color: var(--ink-strong);
+    }
+
+    input:focus {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: var(--accent-primary);
+      color: var(--ink-inverse);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-pixel);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: var(--space-5);
+      transition: background 120ms;
+      min-height: 44px;
+    }
+
+    .btn-primary:hover { background: var(--accent-primary-hover); }
+    .btn-primary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary { transition: none; }
+    }
+
+    .error-msg {
+      background: #fff0f0;
+      border: 2px solid var(--accent-danger);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      color: var(--accent-danger);
+      font-size: 14px;
+      margin-top: var(--space-4);
+      display: none;
+    }
+
+    .error-msg[aria-live] { display: block; }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <h1>CafeBox Admin</h1>
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          autocomplete="username"
+          required
+          value="admin"
+        />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <button type="submit" class="btn-primary" id="submit-btn">Sign in</button>
+    </form>
+    <p
+      class="error-msg"
+      id="error-msg"
+      role="alert"
+    ></p>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* Read the CSRF token that the server set on GET /healthz or any page load */
+      function getCsrfToken() {
+        var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      /* Seed the CSRF cookie if it is absent by hitting /healthz */
+      function seedCsrfThenAttach() {
+        if (getCsrfToken()) {
+          attachSubmit();
+          return;
+        }
+        fetch("/healthz", { credentials: "same-origin" })
+          .then(function () { attachSubmit(); })
+          .catch(function () { attachSubmit(); });
+      }
+
+      function attachSubmit() {
+        var form = document.getElementById("login-form");
+        var submitBtn = document.getElementById("submit-btn");
+        var errorMsg = document.getElementById("error-msg");
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var username = document.getElementById("username").value.trim();
+          var password = document.getElementById("password").value;
+
+          errorMsg.textContent = "";
+          errorMsg.removeAttribute("aria-live");
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Signing in…";
+
+          var csrfToken = getCsrfToken();
+
+          fetch("/api/admin/login", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken
+            },
+            body: JSON.stringify({ username: username, password: password })
+          })
+            .then(function (res) {
+              if (res.ok) {
+                window.location.href = "/admin/dashboard.html";
+              } else {
+                return res.json().then(function (data) {
+                  errorMsg.textContent = data.detail || "Sign in failed. Please try again.";
+                  errorMsg.setAttribute("aria-live", "assertive");
+                });
+              }
+            })
+            .catch(function () {
+              errorMsg.textContent = "Network error. Please try again.";
+              errorMsg.setAttribute("aria-live", "assertive");
+            })
+            .finally(function () {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Sign in";
+            });
+        });
+      }
+
+      seedCsrfThenAttach();
+    })();
+  </script>
+</body>
+</html>
