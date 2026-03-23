@@ -14,16 +14,16 @@ one hour of work for an intermediate software engineer.
 ## Task 1.01 — Admin Backend Project Setup
 
 Scaffold the admin backend application. Use Python with FastAPI (lightweight,
-async, good for embedded use) inside `admin/backend/`.
+async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
 
 **Deliverables:**
-- `admin/backend/requirements.txt` (FastAPI, uvicorn, PyYAML, itsdangerous)
-- `admin/backend/main.py` — application entry point; mounts routers
-- `admin/backend/config.py` — loads `cafe.yaml` via `../../scripts/config.py`
-- `admin/backend/README.md` — how to run locally
+- `ansible/roles/admin/files/backend/requirements.txt` (FastAPI, uvicorn, PyYAML, itsdangerous)
+- `ansible/roles/admin/files/backend/main.py` — application entry point; mounts routers
+- `ansible/roles/admin/files/backend/config.py` — loads `cafe.yaml`
+- `ansible/roles/admin/README.md` — how to run locally
 
 **Acceptance criteria:**
-- `uvicorn admin.backend.main:app` starts without errors.
+- `cd ansible/roles/admin/files/backend && uvicorn main:app` starts without errors.
 - `GET /healthz` returns `{"status": "ok"}`.
 
 ---
@@ -34,7 +34,7 @@ Add session support using signed cookies (no server-side store required for an
 embedded single-operator device). Use `itsdangerous` for signing.
 
 **Deliverables:**
-- `admin/backend/session.py` — `SessionMiddleware` or dependency that reads/writes
+- `ansible/roles/admin/files/backend/session.py` — `SessionMiddleware` or dependency that reads/writes
   a signed cookie named `cafebox_session`.
 - Secret key loaded from an environment variable `CAFEBOX_SECRET_KEY` with a
   clear startup error if unset.
@@ -54,7 +54,7 @@ Use the double-submit pattern: server sets a `csrf_token` cookie; client must
 echo it in an `X-CSRF-Token` request header.
 
 **Deliverables:**
-- `admin/backend/csrf.py` — FastAPI dependency `verify_csrf_token` that:
+- `ansible/roles/admin/files/backend/csrf.py` — FastAPI dependency `verify_csrf_token` that:
   - Issues a `csrf_token` cookie on `GET` requests.
   - Validates the `X-CSRF-Token` header against the cookie on state-changing
     requests.
@@ -77,7 +77,7 @@ Implement the admin login flow.
   validates against the `cafebox-admin` system account (use PAM or compare
   against the hashed password file from first-boot), issues session cookie.
 - `POST /api/admin/logout` — clears session cookie.
-- `admin/backend/auth.py` — password verification helper.
+- `ansible/roles/admin/files/backend/auth.py` — password verification helper.
 
 **Acceptance criteria:**
 - Correct credentials → 200 + session cookie set.
@@ -120,7 +120,7 @@ Response shape:
 ```
 
 **Deliverables:**
-- `admin/backend/routers/public.py` with the `/api/public/services/status` route.
+- `ansible/roles/admin/files/backend/routers/public.py` with the `/api/public/services/status` route.
 - Reads enabled/disabled state from `cafe.yaml` and live `systemctl is-active`
   status.
 - `first_boot` is `true` when `/run/cafebox/initial-password` exists.
@@ -179,7 +179,7 @@ Allow the operator to change their admin password.
 Build a minimal login page for the admin UI.
 
 **Deliverables:**
-- `admin/frontend/login.html` — username/password form, no JS framework, no CDN.
+- `ansible/roles/admin/files/frontend/login.html` — username/password form, no JS framework, no CDN.
 - Submits `POST /api/admin/login` via `fetch`, redirects to dashboard on success,
   shows error message on failure.
 - Reads and sends the CSRF token from cookie on form submit.
@@ -196,7 +196,7 @@ Build a minimal login page for the admin UI.
 Build the main admin dashboard page.
 
 **Deliverables:**
-- `admin/frontend/dashboard.html` — fetches service list from
+- `ansible/roles/admin/files/frontend/dashboard.html` — fetches service list from
   `/api/public/services/status`, renders a tile for each service showing:
   - Service name
   - Current status (running / stopped)
@@ -216,7 +216,7 @@ Build the content upload section of the dashboard (or a separate page) for
 uploading Kiwix ZIM files, Calibre content, and music.
 
 **Deliverables:**
-- `admin/frontend/upload.html` (or section in `dashboard.html`)
+- `ansible/roles/admin/files/frontend/upload.html` (or section in `dashboard.html`)
 - `POST /api/admin/upload/{service_id}` backend endpoint that:
   - Streams the uploaded file to the correct storage path (from `cafe.yaml`
     `storage.locations`).
@@ -236,7 +236,7 @@ Update the nginx configuration template to route admin and API traffic:
 - `/api/` → admin backend (uvicorn, port 8000).
 - `/admin/` → admin frontend static files.
 - All other paths → portal.
-- Admin and API paths must NOT be referenced or linked from the portal (`portal/index.html`).
+- Admin and API paths must NOT be referenced or linked from the portal (`ansible/roles/nginx/files/index.html`).
 
 **Deliverables:**
 - Updated `ansible/roles/nginx/templates/nginx.conf.j2` with `location` blocks for the above.
