@@ -11,7 +11,7 @@ one hour of work for an intermediate software engineer.
 
 ---
 
-## Task 1.01 — Admin Backend Project Setup
+## Task 1.01 — Admin Backend Project Setup ✅
 
 Scaffold the admin backend application. Use Python with FastAPI (lightweight,
 async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
@@ -26,6 +26,8 @@ async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
 - `cd ansible/roles/admin/files/backend && uvicorn main:app` starts without errors.
 - `GET /healthz` returns `{"status": "ok"}`.
 - Tests are written and pass: `GET /healthz` returns `{"status": "ok"}` with status 200.
+
+**Status: Complete**
 
 ---
 
