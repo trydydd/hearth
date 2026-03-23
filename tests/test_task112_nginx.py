@@ -57,6 +57,27 @@ class TestTask112NginxRouting(unittest.TestCase):
         self.assertIn("proxy_pass http://127.0.0.1:8000", self.rendered)
 
     # ------------------------------------------------------------------
+    # Acceptance criterion: /healthz is proxied to the admin backend
+    # ------------------------------------------------------------------
+
+    def test_has_healthz_location(self):
+        """login.html fetches /healthz to seed the CSRF cookie; it must be
+        proxied to the backend, not handled by nginx's static file root."""
+        self.assertIn("location /healthz", self.rendered)
+
+    def test_healthz_proxies_to_backend(self):
+        import re
+        # There must be a proxy_pass inside the /healthz location block.
+        # Match the block and check it contains proxy_pass to port 8000.
+        match = re.search(
+            r"location\s+/healthz\s*\{([^}]*)\}",
+            self.rendered,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, "No location /healthz block found")
+        self.assertIn("proxy_pass http://127.0.0.1:8000", match.group(1))
+
+    # ------------------------------------------------------------------
     # Acceptance criterion: template has location /admin/ block
     # ------------------------------------------------------------------
 

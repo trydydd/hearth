@@ -58,6 +58,7 @@ async def services_status():
 
         {
           "first_boot": true,
+          "initial_password": "Ab3Xy7Pq1Rz4",
           "services": [
             {"id": "chat", "name": "Matrix Chat", "enabled": true, "url": "http://cafe.box/conduit/"},
             ...
@@ -65,6 +66,8 @@ async def services_status():
         }
 
     ``first_boot`` is ``true`` while ``/run/cafebox/initial-password`` exists.
+    When ``first_boot`` is ``true`` the ``initial_password`` field is also
+    present (the plaintext password read from the marker file).
     ``enabled`` reflects ``cafe.yaml``; it does **not** indicate whether the
     service is currently running.
     """
@@ -90,7 +93,16 @@ async def services_status():
             }
         )
 
-    return {
-        "first_boot": _is_first_boot(),
+    first_boot = _is_first_boot()
+    response: dict = {
+        "first_boot": first_boot,
         "services": service_list,
     }
+
+    if first_boot:
+        try:
+            response["initial_password"] = _FIRST_BOOT_MARKER.read_text().strip()
+        except OSError:
+            pass  # marker disappeared between the exists() check and read
+
+    return response

@@ -5,6 +5,11 @@ Verifies the sudoers template and Ansible task:
   - Rendered sudoers file contains only expected systemctl commands.
   - No blanket ALL grants.
   - visudo -c -f passes (if visudo is available in the test environment).
+
+Also verifies the cafebox-admin user / service-unit setup required for PAM
+password verification to work at runtime:
+  - cafebox-admin must be in the ``shadow`` group (common role).
+  - The systemd service unit must declare SupplementaryGroups=shadow.
 """
 
 import subprocess
@@ -18,6 +23,10 @@ SUDOERS_TEMPLATE = (
     REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "sudoers-cafebox.j2"
 )
 TASKS_MAIN = REPO_ROOT / "ansible" / "roles" / "admin" / "tasks" / "main.yml"
+COMMON_TASKS = REPO_ROOT / "ansible" / "roles" / "common" / "tasks" / "main.yml"
+SERVICE_UNIT = (
+    REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "cafebox-admin.service.j2"
+)
 
 # The template is static (no Jinja2 variables); read it directly as the
 # rendered content.
@@ -132,6 +141,50 @@ class TestTask105Sudoers(unittest.TestCase):
             )
         finally:
             Path(tmp_path).unlink(missing_ok=True)
+
+
+class TestCafeboxAdminShadowGroup(unittest.TestCase):
+    """Verify that the common role grants cafebox-admin shadow group access.
+
+    Without shadow group membership the admin backend process cannot read
+    /etc/shadow, which means spwd.getspnam() raises PermissionError and
+    verify_password() always returns False — causing every login attempt to
+    return 401 regardless of the password.
+    """
+
+    def setUp(self):
+        self.common_tasks = COMMON_TASKS.read_text()
+
+    def test_common_tasks_adds_shadow_group(self):
+        """cafebox-admin user task must include the shadow group."""
+        self.assertIn("shadow", self.common_tasks)
+
+    def test_common_tasks_appends_groups(self):
+        """Group membership must use append: true to preserve primary group."""
+        self.assertIn("append: true", self.common_tasks)
+
+    def test_common_tasks_does_not_lock_password(self):
+        """password_lock: true must not be set — it would re-lock the account
+        on re-provision, breaking logins after first-boot sets the password."""
+        self.assertNotIn("password_lock: true", self.common_tasks)
+
+
+class TestCafeboxAdminServiceUnit(unittest.TestCase):
+    """Verify the systemd service unit exposes the shadow group to the process.
+
+    Declaring SupplementaryGroups=shadow in the service unit ensures the
+    backend process inherits shadow group access even when NoNewPrivileges=true
+    prevents setgid helpers from elevating.
+    """
+
+    def setUp(self):
+        self.service_unit = SERVICE_UNIT.read_text()
+
+    def test_service_unit_has_supplementary_groups_shadow(self):
+        self.assertIn("SupplementaryGroups=shadow", self.service_unit)
+
+    def test_service_unit_runs_as_cafebox_admin(self):
+        self.assertIn("User=cafebox-admin", self.service_unit)
 
 
 if __name__ == "__main__":

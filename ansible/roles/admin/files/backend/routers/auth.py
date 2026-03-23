@@ -23,6 +23,10 @@ _FIRST_BOOT_MARKER = Path(
     os.environ.get("CAFEBOX_FIRST_BOOT_MARKER", "/run/cafebox/initial-password")
 )
 _MIN_PASSWORD_LENGTH = 12
+# The only admin system account — used by every credential check so the
+# username submitted by the form cannot be used to authenticate as a
+# different system user.
+_ADMIN_USER = "cafebox-admin"
 
 
 class LoginRequest(BaseModel):
@@ -39,12 +43,17 @@ class ChangePasswordRequest(BaseModel):
 async def login(body: LoginRequest, response: Response):
     """Authenticate with the ``cafebox-admin`` system account.
 
+    The username submitted in the request body is ignored for security;
+    authentication is always performed against the ``cafebox-admin`` system
+    account so that a mis-typed username cannot be used to attempt access
+    to other system accounts.
+
     Returns HTTP 200 and sets a signed ``cafebox_session`` cookie on success.
     Returns HTTP 401 when the credentials are invalid.
     """
-    if not verify_password(body.username, body.password):
+    if not verify_password(_ADMIN_USER, body.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    set_session_cookie(response, {"username": body.username})
+    set_session_cookie(response, {"username": _ADMIN_USER})
     return {"status": "ok"}
 
 
@@ -78,7 +87,7 @@ async def change_password(
             detail=f"New password must be at least {_MIN_PASSWORD_LENGTH} characters",
         )
 
-    username: str = session.get("username", "admin")
+    username: str = session.get("username", _ADMIN_USER)
 
     if not verify_password(username, body.current_password):
         raise HTTPException(status_code=403, detail="Current password is incorrect")

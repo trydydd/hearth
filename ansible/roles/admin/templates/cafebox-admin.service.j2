@@ -8,6 +8,9 @@ Wants=network.target
 Type=simple
 User=cafebox-admin
 Group=cafebox-admin
+# shadow group membership is required so the backend can read /etc/shadow
+# for PAM / spwd-based password verification.
+SupplementaryGroups=shadow
 WorkingDirectory=/opt/cafebox/admin/backend
 EnvironmentFile=/etc/cafebox/admin.env
 ExecStart=/opt/cafebox/admin/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000

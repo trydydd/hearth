@@ -26,6 +26,9 @@ cafebox_base_packages:
   - openssh-server
   - python3-packaging
   - python3-venv
+  # python3-pam enables PAM-based password verification in the admin backend;
+  # without it the backend falls back to spwd/crypt (requires shadow group).
+  - python3-pam
 
 # ---------------------------------------------------------------------------
 # USB OTG SSH — cable-based admin access for debugging without WiFi
