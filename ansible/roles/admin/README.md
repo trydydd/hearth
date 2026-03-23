@@ -44,10 +44,14 @@ python -m pytest tests/test_admin_backend.py -v
 
 ## Configuration
 
-The backend reads `cafe.yaml` from the repository root.  When running the
-server locally the default path resolution (`config.py`) walks five directories
-up from the backend folder to find `cafe.yaml`.  You can override this by
-setting the `CAFEBOX_CONFIG` environment variable to an explicit path:
+The backend reads `cafe.yaml` using the following resolution order:
+
+1. The explicit `path` argument passed to `load_config()`.
+2. The `CAFEBOX_CONFIG` environment variable.
+3. `cafe.yaml` in the current working directory (i.e. the repo root when you
+   run `uvicorn` from there).
+
+Override the default by setting the environment variable:
 
 ```bash
 CAFEBOX_CONFIG=/path/to/cafe.yaml uvicorn main:app
