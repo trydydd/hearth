@@ -32,7 +32,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install Python test dependencies
-        run: pip install pytest pyyaml jinja2
+        run: |
+          pip install pytest pyyaml jinja2
+          pip install -r ansible/roles/admin/files/backend/requirements.txt
 
       - name: Validate build script syntax
         run: bash -n scripts/build-image.sh

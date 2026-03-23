@@ -22,9 +22,7 @@ Vagrant.configure("2") do |config|
   # "No such file or directory" mount failures with the default vers=4.
   config.vm.synced_folder ".", "/vagrant",
     type: "nfs",
-    nfs_version: 3,
-    #TODO enable nfs it currently fails with an error when enabled
-    disabled: true
+    nfs_version: 3
 
   config.vm.provider "libvirt" do |vb|
     vb.memory = 1024
