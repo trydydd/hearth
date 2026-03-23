@@ -11,19 +11,21 @@ application that provides the JSON API consumed by the admin UI.
 ## Running Locally
 
 ```bash
-# 1. Navigate to the backend directory
-cd ansible/roles/admin/files/backend
-
-# 2. Create and activate a virtual environment
+# 1. From repository root, create and activate the shared dev virtualenv
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 3. Install dependencies
-pip install -r requirements.txt
+# 2. Install backend dependencies into the root virtualenv
+pip install -r ansible/roles/admin/files/backend/requirements.txt
 
-# 4. Start the development server
+# 3. Run the backend from its source directory
+cd ansible/roles/admin/files/backend
 uvicorn main:app --reload
 ```
+
+Do not create a local `.venv` inside `ansible/roles/admin/files/backend`; role
+payload directories are deployable artifacts and should stay free of local
+runtime state.
 
 The server listens on `http://127.0.0.1:8000` by default.
 
@@ -39,6 +41,7 @@ curl http://127.0.0.1:8000/healthz
 From the **repository root**:
 
 ```bash
+source .venv/bin/activate
 python -m pytest tests/test_admin_backend.py -v
 ```
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=CafeBox admin backend
+Documentation=https://github.com/trydydd/cafe-box
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=cafebox-admin
+Group=cafebox-admin
+WorkingDirectory=/opt/cafebox/admin/backend
+EnvironmentFile=/etc/cafebox/admin.env
+ExecStart=/opt/cafebox/admin/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

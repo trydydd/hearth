@@ -14,8 +14,6 @@ Vagrant.configure("2") do |config|
 
   # Portal (nginx on port 80) → http://localhost:8080 on the host
   config.vm.network "forwarded_port", guest: 80,   host: 8080, host_ip: "127.0.0.1"
-  # Admin backend                  → http://localhost:8000 on the host
-  config.vm.network "forwarded_port", guest: 8000, host: 8000, host_ip: "127.0.0.1"
 
   # Repo root is always available at /vagrant inside the VM
   # NFSv3 avoids the NFSv4 pseudo-root (fsid=0) requirement that causes
@@ -32,6 +30,7 @@ Vagrant.configure("2") do |config|
   # Provision using Ansible — the same playbook is used for real Pi hardware
   config.vm.provision "ansible" do |ansible|
     ansible.playbook   = "ansible/site.yml"
+    # ansible.verbose = "vvv"
     # Allow the host to reach the portal via VirtualBox NAT (eth0).
     # In production (real Pi) this variable is left blank and has no effect.
     ansible.extra_vars = {

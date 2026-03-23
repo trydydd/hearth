@@ -72,6 +72,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 
+    # Admin frontend static files — not linked from the portal
+    location /admin/ {
+        alias /var/www/cafebox/admin/;
+        index login.html;
+        try_files $uri $uri/ /admin/login.html;
+    }
+
     # Service reverse-proxy stubs — uncomment the location block and remove the
     # leading '#' when the corresponding service is enabled in cafe.yaml.
 {% for name, svc in services.items() %}

@@ -31,7 +31,7 @@ async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
 
 ---
 
-## Task 1.02 — Signed-Cookie Session Middleware
+## Task 1.02 — Signed-Cookie Session Middleware ✅
 
 Add session support using signed cookies (no server-side store required for an
 embedded single-operator device). Use `itsdangerous` for signing.
@@ -49,9 +49,11 @@ embedded single-operator device). Use `itsdangerous` for signing.
   acceptable; document why).
 - Tests are written and pass: protected route returns 401 without a valid cookie and 200 with a valid session cookie.
 
+**Status: Complete**
+
 ---
 
-## Task 1.03 — CSRF Token Protection
+## Task 1.03 — CSRF Token Protection ✅
 
 Add CSRF defence to all state-changing endpoints (`POST`, `PUT`, `DELETE`, `PATCH`).
 Use the double-submit pattern: server sets a `csrf_token` cookie; client must
@@ -69,6 +71,8 @@ echo it in an `X-CSRF-Token` request header.
 - `POST /api/admin/services/{id}/start` with a matching header proceeds to the
   handler.
 - Unit test covers both cases.
+
+**Status: Complete**
 
 ---
 
