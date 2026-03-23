@@ -26,6 +26,7 @@ Document this policy clearly so users are not misled.
 **Acceptance criteria:**
 - `PRIVACY.md` is clear, non-technical language suitable for end users.
 - Privacy notice is visible on the portal without clicking through.
+- Tests are written and pass: `PRIVACY.md` exists and contains the required sections; the privacy notice string is present in `index.html`.
 
 ---
 
@@ -44,6 +45,7 @@ homeserver) and embed it in the image.
 - Build script fails loudly if the checksum does not match.
 - Downloaded binary is not committed to the repository (`.gitignore` updated).
 - `bash -n scripts/build-image.sh` still passes after the change.
+- Tests are written and pass: `bash -n scripts/build-image.sh` succeeds and the build script contains checksum verification logic for the Conduit binary.
 
 ---
 
@@ -68,6 +70,7 @@ Required settings:
   for security).
 - Rendered file is valid TOML (`python -c "import tomllib; tomllib.load(...)"` on
   Python 3.11+).
+- Tests are written and pass: template renders to valid TOML with the sample `cafe.yaml`; `allow_federation` is `false` in the rendered output.
 
 ---
 
@@ -84,6 +87,7 @@ Create the systemd service unit that runs Conduit as a non-root system user.
 **Acceptance criteria:**
 - `systemd-analyze verify conduit.service` passes (or equivalent offline check).
 - `ansible/roles/conduit/tasks/main.yml` creates the `conduit` user and enables the service.
+- Tests are written and pass: service unit file exists and contains `Restart=on-failure`, `PrivateTmp=true`, and `NoNewPrivileges=true`.
 
 ---
 
@@ -101,6 +105,7 @@ in the image.
 - Build script fails if checksum does not match.
 - Downloaded tarball is not committed to the repository.
 - Installed directory contains `index.html` and `config.json`.
+- Tests are written and pass: `bash -n scripts/build-image.sh` succeeds and the build script contains checksum verification logic for the Element Web tarball.
 
 ---
 
@@ -119,6 +124,7 @@ Create the Element Web configuration so it points to the local Conduit homeserve
 - Rendered `config.json` is valid JSON.
 - `base_url` resolves to a URL reachable on the hotspot.
 - No hardcoded domains in the template.
+- Tests are written and pass: rendered `config.json` is valid JSON, `base_url` contains no hardcoded domains, and all required keys are present.
 
 ---
 
@@ -141,6 +147,7 @@ Update the nginx configuration template to expose Matrix and Element Web:
   what the Matrix spec requires, served from the same `cafe.box` domain.
 - `curl http://cafe.box/.well-known/matrix/server` returns
   `{"m.server": "cafe.box:80"}` (or the configured port).
+- Tests are written and pass: rendered nginx config passes `nginx -t` and contains `/_matrix/` and `/.well-known/matrix/` location blocks.
 
 ---
 
@@ -159,3 +166,4 @@ appear automatically when the `chat` service is enabled in `cafe.yaml`.
 - Portal renders the chat tile when `services.chat.enabled: true` in `cafe.yaml`.
 - Portal omits the chat tile when `services.chat.enabled: false`.
 - Link opens Element Web in the same tab.
+- Tests are written and pass: `/api/public/services/status` includes the chat tile when `services.chat.enabled: true` and omits it when `services.chat.enabled: false`.

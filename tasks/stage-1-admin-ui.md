@@ -25,6 +25,7 @@ async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
 **Acceptance criteria:**
 - `cd ansible/roles/admin/files/backend && uvicorn main:app` starts without errors.
 - `GET /healthz` returns `{"status": "ok"}`.
+- Tests are written and pass: `GET /healthz` returns `{"status": "ok"}` with status 200.
 
 ---
 
@@ -44,6 +45,7 @@ embedded single-operator device). Use `itsdangerous` for signing.
   cookie is present.
 - Cookie is `HttpOnly`, `SameSite=Strict`, `Secure=False` (HTTP on LAN is
   acceptable; document why).
+- Tests are written and pass: protected route returns 401 without a valid cookie and 200 with a valid session cookie.
 
 ---
 
@@ -83,6 +85,7 @@ Implement the admin login flow.
 - Correct credentials → 200 + session cookie set.
 - Wrong credentials → 401.
 - Logout clears the session cookie.
+- Tests are written and pass: correct credentials → 200 with session cookie set; wrong credentials → 401; logout → session cookie cleared.
 
 ---
 
@@ -101,6 +104,7 @@ Create the minimal privilege setup for the admin backend process:
 - `visudo -c -f` passes against the rendered sudoers file.
 - Template only grants `systemctl` actions on the specific CafeBox service units,
   not blanket sudo.
+- Tests are written and pass: rendered sudoers file contains only the expected `systemctl` commands and no blanket `ALL` grants.
 
 ---
 
@@ -129,6 +133,7 @@ Response shape:
 - Response is valid JSON matching the documented shape.
 - Disabled services still appear in the list with `"enabled": false`.
 - Does not require authentication.
+- Tests are written and pass: response matches the documented shape; a disabled service appears with `"enabled": false`; endpoint is accessible without authentication.
 
 ---
 
@@ -151,6 +156,7 @@ Implement authenticated endpoints for service management.
 - `systemctl` failure returns 500 with stderr in the response body (for admin
   debugging).
 - No shell injection: use a list argument, not a shell string.
+- Tests are written and pass: unknown `service_id` → 404; `systemctl` failure → 500 with stderr; valid service_id with valid session and CSRF token → 200.
 
 ---
 
@@ -171,6 +177,7 @@ Allow the operator to change their admin password.
 - Wrong current password → 403.
 - New password shorter than 12 characters → 422 with clear message.
 - After successful change, `/api/public/services/status` returns `first_boot: false`.
+- Tests are written and pass: wrong current password → 403; new password shorter than 12 characters → 422; after a successful change `first_boot` is `false`.
 
 ---
 
@@ -188,6 +195,7 @@ Build a minimal login page for the admin UI.
 - Page works in a modern browser with JavaScript enabled.
 - No external resources loaded (fully offline-capable).
 - Form is accessible: labels are associated with inputs.
+- Tests are written and pass: login page HTML contains a `<form>` element with properly labelled inputs and no external resource references.
 
 ---
 
@@ -207,6 +215,7 @@ Build the main admin dashboard page.
 - Service tiles update without a full page reload after a start/stop action.
 - Buttons are disabled while an action is in progress.
 - No external resources loaded.
+- Tests are written and pass: dashboard HTML contains tile elements, start/stop/restart buttons, and a logout button; no external resources are referenced.
 
 ---
 
@@ -227,6 +236,7 @@ uploading Kiwix ZIM files, Calibre content, and music.
 - Upload succeeds for a small test file.
 - Uploading to an unknown `service_id` returns 404.
 - File extension validation rejects `.exe` with a clear error.
+- Tests are written and pass: upload to unknown `service_id` → 404; `.exe` upload → rejected with a clear error; valid file upload → success.
 
 ---
 
@@ -246,3 +256,4 @@ Update the nginx configuration template to route admin and API traffic:
 - `curl http://cafe.box/api/public/services/status` succeeds.
 - `curl http://cafe.box/api/admin/services/chat/start` without session returns 401.
 - Portal HTML does not contain any link to `/admin/`.
+- Tests are written and pass: rendered nginx config passes `nginx -t` and contains `location /api/` and `location /admin/` blocks.
