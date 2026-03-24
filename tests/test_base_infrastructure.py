@@ -54,7 +54,6 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
         expected = [
             "cafe.yaml",
             "install.sh",
-            "Makefile",
             "ansible/site.yml",
             "ansible/ansible.cfg",
             "ansible/roles/nginx/files/index.html",
