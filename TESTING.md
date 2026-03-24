@@ -118,8 +118,8 @@ python -m pytest tests/test_task112_nginx.py -v
 Use Vagrant provisioning to validate cross-role behavior and runtime wiring:
 
 ```bash
-make vm-start
-make logs
+vagrant up
+vagrant ssh -c "journalctl -f -u 'cafebox-*'"
 ```
 
 Use this for changes affecting:
@@ -158,10 +158,9 @@ python -m pytest tests/ -v
 ### Pre-merge / release-sensitive loop
 
 ```bash
-make vm-start
-# optionally reprovision explicitly
-vagrant provision
-make logs
+vagrant up
+vagrant provision   # optionally reprovision explicitly
+vagrant ssh -c "journalctl -f -u 'cafebox-*'"
 ```
 
 ## CI Alignment
@@ -198,7 +197,6 @@ If Vagrant output is noisy or slow to diagnose, isolate with targeted pytest fir
 ## Related Files
 
 - `README.md`
-- `Makefile`
 - `.github/workflows/ci.yml`
 - `tests/test_base_infrastructure.py`
 - `tests/test_admin_backend.py`

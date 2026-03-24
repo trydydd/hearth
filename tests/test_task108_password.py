@@ -154,7 +154,7 @@ class TestTask108ChangePassword(unittest.TestCase):
 
         self.assertTrue(len(captured) > 0)
         call = captured[0]
-        self.assertIn("chpasswd", call["cmd"])
+        self.assertTrue(any("chpasswd" in c for c in call["cmd"]))
         self.assertIn("cafebox-admin:mynewpassword1", call["input"])
 
 

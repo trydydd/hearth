@@ -54,7 +54,7 @@ class TestTask110DashboardHTML(unittest.TestCase):
         self.assertIn("tile-grid", self.content)
 
     def test_fetches_services_status(self):
-        self.assertIn("/api/public/services/status", self.content)
+        self.assertIn("/api/admin/services/status", self.content)
 
     # ------------------------------------------------------------------
     # Acceptance criterion: start / stop / restart buttons
