@@ -24,6 +24,19 @@ from csrf import verify_csrf_token
 from services_map import SERVICE_MAP
 from session import require_session
 
+
+def _service_active(unit: str) -> bool:
+    """Return ``True`` if the systemd unit is currently active."""
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", "--quiet", unit],
+            capture_output=True,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
 router = APIRouter(
     prefix="/api/admin/services",
     dependencies=[Depends(require_session), Depends(verify_csrf_token)],
@@ -54,6 +67,43 @@ def _get_unit(service_id: str) -> str:
     if info is None:
         raise HTTPException(status_code=404, detail=f"Unknown service: {service_id}")
     return info["unit"]
+
+
+@router.get("/status")
+async def services_status():
+    """Return enabled and live running state for all known services.
+
+    ``enabled`` reflects ``cafe.yaml``; ``running`` reflects the current
+    systemd unit state.
+
+    Response shape::
+
+        {
+          "services": [
+            {"id": "kiwix", "name": "Kiwix", "enabled": true, "running": true},
+            ...
+          ]
+        }
+    """
+    try:
+        from config import load_config as _load_config  # local import avoids module collision
+        cfg = _load_config(None)
+    except FileNotFoundError:
+        cfg = {}
+
+    services_cfg: dict = cfg.get("services", {})
+
+    return {
+        "services": [
+            {
+                "id": service_id,
+                "name": info["name"],
+                "enabled": services_cfg.get(service_id, {}).get("enabled", False),
+                "running": _service_active(info["unit"]),
+            }
+            for service_id, info in SERVICE_MAP.items()
+        ]
+    }
 
 
 @router.post("/{service_id}/start")

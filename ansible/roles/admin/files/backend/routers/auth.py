@@ -92,10 +92,12 @@ async def change_password(
     if not verify_password(username, body.current_password):
         raise HTTPException(status_code=403, detail="Current password is incorrect")
 
-    # Update system account password via chpasswd (no shell — safe)
+    # Update system account password via chpasswd (no shell — safe).
+    # sudo is required because the backend runs as an unprivileged user;
+    # the sudoers rule grants exactly /usr/sbin/chpasswd with no arguments.
     try:
         result = subprocess.run(
-            ["chpasswd"],
+            ["sudo", "/usr/sbin/chpasswd"],
             input=f"{username}:{body.new_password}",
             capture_output=True,
             text=True,

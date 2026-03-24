@@ -12,6 +12,7 @@
 Defaults!CAFEBOX_CMDS !requiretty
 
 Cmnd_Alias CAFEBOX_CMDS = \
+    /usr/sbin/chpasswd, \
     /bin/systemctl start conduit.service, \
     /bin/systemctl stop conduit.service, \
     /bin/systemctl restart conduit.service, \

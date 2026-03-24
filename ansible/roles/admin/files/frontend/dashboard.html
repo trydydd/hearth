@@ -300,7 +300,15 @@
 
         var statusEl = document.createElement("p");
         statusEl.className = "tile-status";
-        statusEl.textContent = enabled ? "Enabled" : "Unavailable on this box";
+        if (!enabled) {
+          statusEl.textContent = "Unavailable on this box";
+        } else if (svc.running) {
+          statusEl.classList.add("tile-status--running");
+          statusEl.textContent = "Running";
+        } else {
+          statusEl.classList.add("tile-status--stopped");
+          statusEl.textContent = "Stopped";
+        }
 
         article.appendChild(nameEl);
         article.appendChild(statusEl);
@@ -338,8 +346,9 @@
       /* Fetch service list and render tiles                               */
       /* ---------------------------------------------------------------- */
       function fetchAndRender() {
-        fetch("/api/public/services/status", { credentials: "same-origin" })
+        fetch("/api/admin/services/status", { credentials: "same-origin" })
           .then(function (res) {
+            if (res.status === 401) { window.location.href = "/admin/login.html"; return; }
             if (!res.ok) throw new Error("HTTP " + res.status);
             return res.json();
           })

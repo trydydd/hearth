@@ -127,11 +127,46 @@
     }
 
     .error-msg[aria-live] { display: block; }
+
+    .first-boot-banner {
+      background: #fffbe6;
+      border: 2px solid #d97706;
+      border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      font-size: 14px;
+      margin-bottom: var(--space-4);
+      display: none;
+    }
+
+    .first-boot-banner strong { display: block; margin-bottom: var(--space-2); }
+
+    .initial-password {
+      font-family: monospace;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      display: inline-block;
+      margin-top: var(--space-2);
+    }
+
+    #change-password-panel { display: none; }
   </style>
 </head>
 <body>
   <main class="card" role="main">
     <h1>CafeBox Admin</h1>
+
+    <!-- Shown on first boot before login -->
+    <div class="first-boot-banner" id="first-boot-banner" aria-live="polite">
+      <strong>First boot — set a new password after signing in.</strong>
+      Your temporary password is:
+      <span class="initial-password" id="initial-password-display"></span>
+    </div>
+
+    <!-- Login form -->
     <form id="login-form" novalidate>
       <div class="form-group">
         <label for="username">Username</label>
@@ -156,34 +191,126 @@
       </div>
       <button type="submit" class="btn-primary" id="submit-btn">Sign in</button>
     </form>
-    <p
-      class="error-msg"
-      id="error-msg"
-      role="alert"
-    ></p>
+    <p class="error-msg" id="error-msg" role="alert"></p>
+
+    <!-- Change-password panel — revealed after first-boot login -->
+    <form id="change-password-panel" novalidate>
+      <h2 style="font-size:18px;margin-bottom:var(--space-4);">Set a new password</h2>
+      <div class="form-group">
+        <label for="current-password">Current (temporary) password</label>
+        <input
+          type="password"
+          id="current-password"
+          name="current-password"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="new-password">New password (min. 12 characters)</label>
+        <input
+          type="password"
+          id="new-password"
+          name="new-password"
+          autocomplete="new-password"
+          required
+        />
+      </div>
+      <button type="submit" class="btn-primary" id="change-btn">Set password</button>
+      <p class="error-msg" id="change-error-msg" role="alert"></p>
+    </form>
   </main>
 
   <script>
     (function () {
       "use strict";
 
-      /* Read the CSRF token that the server set on GET /healthz or any page load */
+      var isFirstBoot = false;
+      var initialPassword = "";
+
       function getCsrfToken() {
         var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
         return match ? decodeURIComponent(match[1]) : "";
       }
 
-      /* Seed the CSRF cookie if it is absent by hitting /healthz */
-      function seedCsrfThenAttach() {
-        if (getCsrfToken()) {
-          attachSubmit();
-          return;
-        }
-        fetch("/healthz", { credentials: "same-origin" })
-          .then(function () { attachSubmit(); })
-          .catch(function () { attachSubmit(); });
+      /* ---------------------------------------------------------------- */
+      /* First-boot detection                                              */
+      /* ---------------------------------------------------------------- */
+      function checkFirstBoot(cb) {
+        fetch("/api/public/services/status", { credentials: "same-origin" })
+          .then(function (res) { return res.ok ? res.json() : {}; })
+          .then(function (data) {
+            if (data.first_boot) {
+              isFirstBoot = true;
+              initialPassword = data.initial_password || "";
+              var banner = document.getElementById("first-boot-banner");
+              document.getElementById("initial-password-display").textContent = initialPassword;
+              banner.style.display = "block";
+              /* Pre-fill the password field with the temporary password */
+              document.getElementById("password").value = initialPassword;
+            }
+          })
+          .catch(function () { /* non-fatal */ })
+          .finally(cb);
       }
 
+      /* ---------------------------------------------------------------- */
+      /* Change-password panel (shown after first-boot login)             */
+      /* ---------------------------------------------------------------- */
+      function showChangePanel() {
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("first-boot-banner").style.display = "none";
+        var panel = document.getElementById("change-password-panel");
+        panel.style.display = "block";
+        document.getElementById("current-password").value = initialPassword;
+        document.getElementById("new-password").focus();
+
+        var changeBtn = document.getElementById("change-btn");
+        var changeErr = document.getElementById("change-error-msg");
+
+        panel.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var currentPw = document.getElementById("current-password").value;
+          var newPw = document.getElementById("new-password").value;
+
+          changeErr.textContent = "";
+          changeErr.removeAttribute("aria-live");
+          changeBtn.disabled = true;
+          changeBtn.textContent = "Saving…";
+
+          fetch("/api/admin/auth/change-password", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": getCsrfToken()
+            },
+            body: JSON.stringify({ current_password: currentPw, new_password: newPw })
+          })
+            .then(function (res) {
+              if (res.ok) {
+                window.location.href = "/admin/dashboard.html";
+              } else {
+                return res.json().then(function (data) {
+                  changeErr.textContent = data.detail || "Could not change password. Please try again.";
+                  changeErr.setAttribute("aria-live", "assertive");
+                });
+              }
+            })
+            .catch(function () {
+              changeErr.textContent = "Network error. Please try again.";
+              changeErr.setAttribute("aria-live", "assertive");
+            })
+            .finally(function () {
+              changeBtn.disabled = false;
+              changeBtn.textContent = "Set password";
+            });
+        });
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* Login form                                                        */
+      /* ---------------------------------------------------------------- */
       function attachSubmit() {
         var form = document.getElementById("login-form");
         var submitBtn = document.getElementById("submit-btn");
@@ -199,20 +326,22 @@
           submitBtn.disabled = true;
           submitBtn.textContent = "Signing in…";
 
-          var csrfToken = getCsrfToken();
-
           fetch("/api/admin/login", {
             method: "POST",
             credentials: "same-origin",
             headers: {
               "Content-Type": "application/json",
-              "X-CSRF-Token": csrfToken
+              "X-CSRF-Token": getCsrfToken()
             },
             body: JSON.stringify({ username: username, password: password })
           })
             .then(function (res) {
               if (res.ok) {
-                window.location.href = "/admin/dashboard.html";
+                if (isFirstBoot) {
+                  showChangePanel();
+                } else {
+                  window.location.href = "/admin/dashboard.html";
+                }
               } else {
                 return res.json().then(function (data) {
                   errorMsg.textContent = data.detail || "Sign in failed. Please try again.";
@@ -231,7 +360,15 @@
         });
       }
 
-      seedCsrfThenAttach();
+      /* Seed CSRF cookie, then check first-boot state, then wire up form */
+      function init() {
+        fetch("/healthz", { credentials: "same-origin" })
+          .finally(function () {
+            checkFirstBoot(attachSubmit);
+          });
+      }
+
+      init();
     })();
   </script>
 </body>
