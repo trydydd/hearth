@@ -36,8 +36,8 @@ using the values from `cafe.yaml`.
 ### 3 — Bootstrap the VM or Pi
 
 ```bash
-make vm-start      # start the dev VM
-make install       # run install.sh inside the VM (or directly on a Pi)
+vagrant up         # start the dev VM
+vagrant ssh        # open a shell inside the VM
 ```
 
 ### 4 — (Optional) Build a flashable image
@@ -63,7 +63,6 @@ cafebox/
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
 ├── cafe.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
-├── Makefile                    # Dev shortcuts: vm-start, vm-ssh, vm-destroy, install, logs...
 ├── scripts/
 │   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
 │   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
@@ -169,16 +168,11 @@ vagrant ssh -c "sudo cat /run/cafebox/initial-password"
 ### Developer Workflow
 
 ```bash
-make help              # List all available targets
-
-make vm-start          # Start the dev VM (Vagrant)
-make vm-stop           # Stop the dev VM
-make vm-ssh            # SSH into the dev VM
-make vm-destroy        # Delete the dev VM
-
-make generate-configs  # Render system/templates/ → system/generated/
-make install           # Run install.sh (inside VM or on a Pi)
-make logs              # Tail journald logs for all cafebox-* services
+vagrant up                                                    # Start the dev VM
+vagrant halt                                                  # Stop the dev VM
+vagrant ssh                                                   # SSH into the dev VM
+vagrant destroy -f                                            # Delete the dev VM
+vagrant ssh -c "journalctl -f -u 'cafebox-*'"                # Tail service logs
 ```
 
 For testing strategy, role-level validation, and Python runtime standards, see

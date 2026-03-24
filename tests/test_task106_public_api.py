@@ -123,16 +123,19 @@ class TestTask106PublicAPI(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_first_boot_true_when_marker_exists(self):
-        with tempfile.NamedTemporaryFile() as marker:
-            marker_path = Path(marker.name)
-            old = public_router._FIRST_BOOT_MARKER
-            public_router._FIRST_BOOT_MARKER = marker_path
-            try:
-                with patch("config.load_config", return_value=_SAMPLE_CONFIG):
-                    response = self.client.get("/api/public/services/status")
-                self.assertTrue(response.json()["first_boot"])
-            finally:
-                public_router._FIRST_BOOT_MARKER = old
+        fd, marker_path_str = tempfile.mkstemp(suffix=".pw")
+        marker_path = Path(marker_path_str)
+        os.write(fd, b"TestPassXyz1\n")
+        os.close(fd)
+        old = public_router._FIRST_BOOT_MARKER
+        public_router._FIRST_BOOT_MARKER = marker_path
+        try:
+            with patch("config.load_config", return_value=_SAMPLE_CONFIG):
+                response = self.client.get("/api/public/services/status")
+            self.assertTrue(response.json()["first_boot"])
+        finally:
+            public_router._FIRST_BOOT_MARKER = old
+            marker_path.unlink(missing_ok=True)
 
     def test_first_boot_false_when_marker_absent(self):
         absent_path = Path("/tmp/cafebox-test-absent-marker-xyz")
@@ -143,6 +146,37 @@ class TestTask106PublicAPI(unittest.TestCase):
             with patch("config.load_config", return_value=_SAMPLE_CONFIG):
                 response = self.client.get("/api/public/services/status")
             self.assertFalse(response.json()["first_boot"])
+        finally:
+            public_router._FIRST_BOOT_MARKER = old
+
+    def test_initial_password_included_when_first_boot(self):
+        """Response includes initial_password when the marker file exists."""
+        fd, marker_path_str = tempfile.mkstemp(suffix=".pw")
+        marker_path = Path(marker_path_str)
+        os.write(fd, b"SecretPass99\n")
+        os.close(fd)
+        old = public_router._FIRST_BOOT_MARKER
+        public_router._FIRST_BOOT_MARKER = marker_path
+        try:
+            with patch("config.load_config", return_value=_SAMPLE_CONFIG):
+                response = self.client.get("/api/public/services/status")
+            data = response.json()
+            self.assertIn("initial_password", data)
+            self.assertEqual(data["initial_password"], "SecretPass99")
+        finally:
+            public_router._FIRST_BOOT_MARKER = old
+            marker_path.unlink(missing_ok=True)
+
+    def test_initial_password_absent_when_not_first_boot(self):
+        """Response must not include initial_password after first-boot is done."""
+        absent_path = Path("/tmp/cafebox-test-absent-marker-xyz")
+        absent_path.unlink(missing_ok=True)
+        old = public_router._FIRST_BOOT_MARKER
+        public_router._FIRST_BOOT_MARKER = absent_path
+        try:
+            with patch("config.load_config", return_value=_SAMPLE_CONFIG):
+                response = self.client.get("/api/public/services/status")
+            self.assertNotIn("initial_password", response.json())
         finally:
             public_router._FIRST_BOOT_MARKER = old
 

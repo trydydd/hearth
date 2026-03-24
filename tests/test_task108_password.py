@@ -35,7 +35,7 @@ _CSRF_TOKEN = "test-csrf-token-abcdef1234567890"
 
 
 def _make_session_cookie() -> str:
-    return URLSafeTimedSerializer(_SECRET).dumps({"username": "admin"})
+    return URLSafeTimedSerializer(_SECRET).dumps({"username": "cafebox-admin"})
 
 
 def _authed_client() -> TestClient:
@@ -154,8 +154,8 @@ class TestTask108ChangePassword(unittest.TestCase):
 
         self.assertTrue(len(captured) > 0)
         call = captured[0]
-        self.assertIn("chpasswd", call["cmd"])
-        self.assertIn("admin:mynewpassword1", call["input"])
+        self.assertTrue(any("chpasswd" in c for c in call["cmd"]))
+        self.assertIn("cafebox-admin:mynewpassword1", call["input"])
 
 
 if __name__ == "__main__":

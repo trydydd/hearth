@@ -76,7 +76,7 @@ echo it in an `X-CSRF-Token` request header.
 
 ---
 
-## Task 1.04 — Login / Logout Endpoints
+## Task 1.04 — Login / Logout Endpoints ✅
 
 Implement the admin login flow.
 
@@ -93,9 +93,11 @@ Implement the admin login flow.
 - Logout clears the session cookie.
 - Tests are written and pass: correct credentials → 200 with session cookie set; wrong credentials → 401; logout → session cookie cleared.
 
+**Status: Complete**
+
 ---
 
-## Task 1.05 — `cafebox-admin` System User + Sudoers
+## Task 1.05 — `cafebox-admin` System User + Sudoers ✅
 
 Create the minimal privilege setup for the admin backend process:
 - `cafebox-admin` system user (no login shell, no home directory).
@@ -112,9 +114,11 @@ Create the minimal privilege setup for the admin backend process:
   not blanket sudo.
 - Tests are written and pass: rendered sudoers file contains only the expected `systemctl` commands and no blanket `ALL` grants.
 
+**Status: Complete**
+
 ---
 
-## Task 1.06 — Public API: `GET /api/public/services/status`
+## Task 1.06 — Public API: `GET /api/public/services/status` ✅
 
 Implement the unauthenticated endpoint consumed by the portal landing page.
 
@@ -141,9 +145,11 @@ Response shape:
 - Does not require authentication.
 - Tests are written and pass: response matches the documented shape; a disabled service appears with `"enabled": false`; endpoint is accessible without authentication.
 
+**Status: Complete**
+
 ---
 
-## Task 1.07 — Admin API: Service Start / Stop
+## Task 1.07 — Admin API: Service Start / Stop ✅
 
 Implement authenticated endpoints for service management.
 
@@ -164,9 +170,11 @@ Implement authenticated endpoints for service management.
 - No shell injection: use a list argument, not a shell string.
 - Tests are written and pass: unknown `service_id` → 404; `systemctl` failure → 500 with stderr; valid service_id with valid session and CSRF token → 200.
 
+**Status: Complete**
+
 ---
 
-## Task 1.08 — Admin API: Password Change
+## Task 1.08 — Admin API: Password Change ✅
 
 Allow the operator to change their admin password.
 
@@ -185,9 +193,11 @@ Allow the operator to change their admin password.
 - After successful change, `/api/public/services/status` returns `first_boot: false`.
 - Tests are written and pass: wrong current password → 403; new password shorter than 12 characters → 422; after a successful change `first_boot` is `false`.
 
+**Status: Complete**
+
 ---
 
-## Task 1.09 — Admin Frontend: Login Page
+## Task 1.09 — Admin Frontend: Login Page ✅
 
 Build a minimal login page for the admin UI.
 
@@ -203,9 +213,11 @@ Build a minimal login page for the admin UI.
 - Form is accessible: labels are associated with inputs.
 - Tests are written and pass: login page HTML contains a `<form>` element with properly labelled inputs and no external resource references.
 
+**Status: Complete**
+
 ---
 
-## Task 1.10 — Admin Frontend: Dashboard — Service Tiles
+## Task 1.10 — Admin Frontend: Dashboard — Service Tiles ✅
 
 Build the main admin dashboard page.
 
@@ -223,9 +235,11 @@ Build the main admin dashboard page.
 - No external resources loaded.
 - Tests are written and pass: dashboard HTML contains tile elements, start/stop/restart buttons, and a logout button; no external resources are referenced.
 
+**Status: Complete**
+
 ---
 
-## Task 1.11 — Admin Frontend: File Upload UI
+## Task 1.11 — Admin Frontend: File Upload UI ✅
 
 Build the content upload section of the dashboard (or a separate page) for
 uploading Kiwix ZIM files, Calibre content, and music.
@@ -244,9 +258,11 @@ uploading Kiwix ZIM files, Calibre content, and music.
 - File extension validation rejects `.exe` with a clear error.
 - Tests are written and pass: upload to unknown `service_id` → 404; `.exe` upload → rejected with a clear error; valid file upload → success.
 
+**Status: Complete**
+
 ---
 
-## Task 1.12 — nginx Routing for Admin and API Paths
+## Task 1.12 — nginx Routing for Admin and API Paths ✅
 
 Update the nginx configuration template to route admin and API traffic:
 - `/api/` → admin backend (uvicorn, port 8000).
@@ -263,3 +279,5 @@ Update the nginx configuration template to route admin and API traffic:
 - `curl http://cafe.box/api/admin/services/chat/start` without session returns 401.
 - Portal HTML does not contain any link to `/admin/`.
 - Tests are written and pass: rendered nginx config passes `nginx -t` and contains `location /api/` and `location /admin/` blocks.
+
+**Status: Complete**

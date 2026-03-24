@@ -138,15 +138,27 @@
       margin-bottom: var(--space-2);
     }
 
-    .tile-status {
-      font-size: 14px;
-      color: var(--ink-soft);
+    .tile-badges {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
       margin-bottom: var(--space-3);
-      min-height: 20px;
+      min-height: 24px;
     }
 
-    .tile-status--running { color: var(--accent-success); font-weight: bold; }
-    .tile-status--stopped { color: var(--accent-danger);  font-weight: bold; }
+    .badge {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+
+    .badge--enabled  { color: var(--accent-success); }
+    .badge--disabled { color: var(--ink-soft); }
+    .badge--running  { color: var(--accent-success); background: rgba(47,158,68,0.1); }
+    .badge--stopped  { color: var(--accent-danger);  background: rgba(201,42,42,0.1); }
 
     .tile-actions {
       display: flex;
@@ -298,12 +310,23 @@
         nameEl.className = "tile-name";
         nameEl.textContent = svc.name || svc.id;
 
-        var statusEl = document.createElement("p");
-        statusEl.className = "tile-status";
-        statusEl.textContent = enabled ? "Enabled" : "Unavailable on this box";
+        var badges = document.createElement("div");
+        badges.className = "tile-badges";
+
+        var enabledBadge = document.createElement("span");
+        enabledBadge.className = "badge " + (enabled ? "badge--enabled" : "badge--disabled");
+        enabledBadge.textContent = enabled ? "Enabled" : "Disabled";
+        badges.appendChild(enabledBadge);
+
+        if (enabled) {
+          var runningBadge = document.createElement("span");
+          runningBadge.className = "badge " + (svc.running ? "badge--running" : "badge--stopped");
+          runningBadge.textContent = svc.running ? "Running" : "Stopped";
+          badges.appendChild(runningBadge);
+        }
 
         article.appendChild(nameEl);
-        article.appendChild(statusEl);
+        article.appendChild(badges);
 
         if (enabled) {
           var actions = document.createElement("div");
@@ -338,8 +361,9 @@
       /* Fetch service list and render tiles                               */
       /* ---------------------------------------------------------------- */
       function fetchAndRender() {
-        fetch("/api/public/services/status", { credentials: "same-origin" })
+        fetch("/api/admin/services/status", { credentials: "same-origin" })
           .then(function (res) {
+            if (res.status === 401) { window.location.href = "/admin/login.html"; return; }
             if (!res.ok) throw new Error("HTTP " + res.status);
             return res.json();
           })

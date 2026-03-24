@@ -54,7 +54,6 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
         expected = [
             "cafe.yaml",
             "install.sh",
-            "Makefile",
             "ansible/site.yml",
             "ansible/ansible.cfg",
             "ansible/roles/nginx/files/index.html",
@@ -170,41 +169,6 @@ class TestTask004TemplateRenderer(unittest.TestCase):
             self.assertEqual(ctx.exception.code, 1)
 
 
-class TestTask005MakefileTargets(unittest.TestCase):
-    def test_help_lists_expected_targets(self):
-        result = subprocess.run(
-            ["make", "help"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        for target in [
-            "vm-start",
-            "vm-stop",
-            "vm-ssh",
-            "vm-destroy",
-            "logs",
-        ]:
-            with self.subTest(target=target):
-                self.assertIn(target, result.stdout)
-
-    def test_vm_target_requires_vagrant(self):
-        result = subprocess.run(
-            ["make", "vm-start"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        combined = f"{result.stdout}\n{result.stderr}"
-        if result.returncode != 0:
-            # vagrant missing — guard should produce a helpful message
-            self.assertIn("vagrant", combined.lower())
-        else:
-            # vagrant present — guard passed, no "not installed" complaint
-            self.assertNotIn("vagrant is not installed", combined)
 
 
 class TestAnsibleRoleStructure(unittest.TestCase):
