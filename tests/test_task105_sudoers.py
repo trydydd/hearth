@@ -6,9 +6,9 @@ Verifies the sudoers template and Ansible task:
   - No blanket ALL grants.
   - visudo -c -f passes (if visudo is available in the test environment).
 
-Also verifies the cafebox-admin user / service-unit setup required for PAM
+Also verifies the hestia user / service-unit setup required for PAM
 password verification to work at runtime:
-  - cafebox-admin must be in the ``shadow`` group (common role).
+  - hestia must be in the ``shadow`` group (common role).
   - The systemd service unit must declare SupplementaryGroups=shadow.
 """
 
@@ -20,12 +20,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SUDOERS_TEMPLATE = (
-    REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "sudoers-cafebox.j2"
+    REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "sudoers-hearth.j2"
 )
 TASKS_MAIN = REPO_ROOT / "ansible" / "roles" / "admin" / "tasks" / "main.yml"
 COMMON_TASKS = REPO_ROOT / "ansible" / "roles" / "common" / "tasks" / "main.yml"
 SERVICE_UNIT = (
-    REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "cafebox-admin.service.j2"
+    REPO_ROOT / "ansible" / "roles" / "admin" / "templates" / "hearth-admin.service.j2"
 )
 
 # The template is static (no Jinja2 variables); read it directly as the
@@ -43,11 +43,11 @@ class TestTask105Sudoers(unittest.TestCase):
 
     def test_tasks_main_references_sudoers_template(self):
         tasks = TASKS_MAIN.read_text()
-        self.assertIn("sudoers-cafebox.j2", tasks)
+        self.assertIn("sudoers-hearth.j2", tasks)
 
-    def test_tasks_main_creates_cafebox_admin_user(self):
+    def test_tasks_main_creates_hearth_admin_user(self):
         tasks = TASKS_MAIN.read_text()
-        self.assertIn("cafebox-admin", tasks)
+        self.assertIn("hestia", tasks)
 
     # ------------------------------------------------------------------
     # Acceptance criterion: only expected systemctl commands
@@ -67,8 +67,8 @@ class TestTask105Sudoers(unittest.TestCase):
                 self.assertIn(f"systemctl stop {unit}", RENDERED)
                 self.assertIn(f"systemctl restart {unit}", RENDERED)
 
-    def test_assigns_to_cafebox_admin_user(self):
-        self.assertIn("cafebox-admin", RENDERED)
+    def test_assigns_to_hearth_admin_user(self):
+        self.assertIn("hestia", RENDERED)
 
     def test_uses_nopasswd(self):
         self.assertIn("NOPASSWD", RENDERED)
@@ -144,7 +144,7 @@ class TestTask105Sudoers(unittest.TestCase):
 
 
 class TestCafeboxAdminShadowGroup(unittest.TestCase):
-    """Verify that the common role grants cafebox-admin shadow group access.
+    """Verify that the common role grants hestia shadow group access.
 
     Without shadow group membership the admin backend process cannot read
     /etc/shadow, which means spwd.getspnam() raises PermissionError and
@@ -156,7 +156,7 @@ class TestCafeboxAdminShadowGroup(unittest.TestCase):
         self.common_tasks = COMMON_TASKS.read_text()
 
     def test_common_tasks_adds_shadow_group(self):
-        """cafebox-admin user task must include the shadow group."""
+        """hestia user task must include the shadow group."""
         self.assertIn("shadow", self.common_tasks)
 
     def test_common_tasks_appends_groups(self):
@@ -183,8 +183,8 @@ class TestCafeboxAdminServiceUnit(unittest.TestCase):
     def test_service_unit_has_supplementary_groups_shadow(self):
         self.assertIn("SupplementaryGroups=shadow", self.service_unit)
 
-    def test_service_unit_runs_as_cafebox_admin(self):
-        self.assertIn("User=cafebox-admin", self.service_unit)
+    def test_service_unit_runs_as_hearth_admin(self):
+        self.assertIn("User=hestia", self.service_unit)
 
 
 if __name__ == "__main__":

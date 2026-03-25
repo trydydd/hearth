@@ -2,20 +2,20 @@
 # diagnose-boot-dump.sh — write a comprehensive diagnostic report to the
 # FAT32 boot partition so it can be read by pulling the SD card.
 #
-# Deployed to /usr/local/share/cafebox/diag/ on the target host by the
+# Deployed to /usr/local/share/hearth/diag/ on the target host by the
 # diagnostics Ansible role.  Runs automatically on every boot via the
-# cafebox-boot-dump.service systemd unit (After=multi-user.target).
+# hearth-boot-dump.service systemd unit (After=multi-user.target).
 #
-# Output: /boot/firmware/cafebox-diagnostics.log (modern RPi OS layout)
-#         /boot/cafebox-diagnostics.log          (legacy layout)
+# Output: /boot/firmware/hearth-diagnostics.log (modern RPi OS layout)
+#         /boot/hearth-diagnostics.log          (legacy layout)
 #
 # The report is overwritten on each boot — only the latest state is kept.
 #
 # When the Pi won't give you a shell (no WiFi, no USB-OTG SSH), pull the
 # SD card, mount the FAT32 boot partition on any computer, and read the log.
 #
-# Secret redaction is controlled by the CAFEBOX_REDACT_SECRETS environment
-# variable (set via the systemd unit from cafe.yaml: diagnostics.redact_secrets).
+# Secret redaction is controlled by the HEARTH_REDACT_SECRETS environment
+# variable (set via the systemd unit from hearth.yaml: diagnostics.redact_secrets).
 # When "true", passwords and passphrases are replaced with <REDACTED>.
 
 set -euo pipefail
@@ -29,12 +29,12 @@ else
     BOOT_DIR="/boot"
 fi
 
-OUTPUT="${BOOT_DIR}/cafebox-diagnostics.log"
+OUTPUT="${BOOT_DIR}/hearth-diagnostics.log"
 
 # ---------------------------------------------------------------------------
 # Redaction helper
 # ---------------------------------------------------------------------------
-REDACT="${CAFEBOX_REDACT_SECRETS:-false}"
+REDACT="${HEARTH_REDACT_SECRETS:-false}"
 
 # Redact a value if redaction is enabled; otherwise print it as-is.
 # Usage: maybe_redact "some_secret_value"
@@ -77,7 +77,7 @@ fail(){ printf '  [FAIL] %s\n' "$1"; }
 # ---------------------------------------------------------------------------
 exec > "${OUTPUT}" 2>&1
 
-hdr "CafeBox Boot Diagnostics"
+hdr "Hearth Boot Diagnostics"
 printf '  Generated: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 printf '  Redaction: %s\n' "${REDACT}"
 
@@ -252,7 +252,7 @@ echo
 printf '  NetworkManager conflict check:\n'
 if systemctl is-active NetworkManager &>/dev/null; then
     ok "NetworkManager is running"
-    NM_UNMANAGED_FILE="/etc/NetworkManager/conf.d/cafebox-wifi.conf"
+    NM_UNMANAGED_FILE="/etc/NetworkManager/conf.d/hearth-wifi.conf"
     if [ -f "${NM_UNMANAGED_FILE}" ]; then
         ok "NM unmanaged config exists: ${NM_UNMANAGED_FILE}"
         cat "${NM_UNMANAGED_FILE}"
@@ -269,7 +269,7 @@ fi
 hdr "5. Systemd Service Status"
 
 SERVICES=(
-    "cafebox-first-boot.service"
+    "hearth-first-boot.service"
     "hostapd"
     "dnsmasq"
     "nftables"
@@ -281,7 +281,7 @@ for svc in "${SERVICES[@]}"; do
     ACTIVE="$(systemctl is-active "$svc" 2>/dev/null || echo unknown)"
     ENABLED="$(systemctl is-enabled "$svc" 2>/dev/null || echo unknown)"
 
-    if [ "$ACTIVE" = "active" ] || [ "$ACTIVE" = "inactive" -a "$svc" = "cafebox-first-boot.service" ]; then
+    if [ "$ACTIVE" = "active" ] || [ "$ACTIVE" = "inactive" -a "$svc" = "hearth-first-boot.service" ]; then
         # first-boot is oneshot RemainAfterExit — "inactive" after exit is fine
         ok "${svc}: active=${ACTIVE}  enabled=${ENABLED}"
     elif [ "$ACTIVE" = "inactive" ] && [ "$ENABLED" = "enabled" ]; then
@@ -320,7 +320,7 @@ if [ -f /etc/hostapd/hostapd.conf ]; then
         ok "country_code=${CONF_COUNTRY} (regulatory domain set)"
     else
         warn "country_code NOT set — Pi Zero 2 W may fail to transmit on most channels"
-        warn "Fix: set wifi.country_code in cafe.yaml (e.g. GB, US, DE)"
+        warn "Fix: set wifi.country_code in hearth.yaml (e.g. GB, US, DE)"
     fi
     # Check that /etc/default/hostapd points DAEMON_CONF at the config file.
     # If DAEMON_CONF is empty/commented-out, hostapd starts with no config
@@ -344,15 +344,15 @@ else
 fi
 
 echo
-printf '  --- dnsmasq (/etc/dnsmasq.d/cafebox.conf) ---\n'
-if [ -f /etc/dnsmasq.d/cafebox.conf ]; then
-    ok "cafebox dnsmasq config exists"
-    cat /etc/dnsmasq.d/cafebox.conf
+printf '  --- dnsmasq (/etc/dnsmasq.d/hearth.conf) ---\n'
+if [ -f /etc/dnsmasq.d/hearth.conf ]; then
+    ok "hearth dnsmasq config exists"
+    cat /etc/dnsmasq.d/hearth.conf
     echo
-    grep -q "address=/#/" /etc/dnsmasq.d/cafebox.conf && ok "DNS catch-all (address=/#/) present" || fail "DNS catch-all MISSING"
-    grep -q "dhcp-range=" /etc/dnsmasq.d/cafebox.conf && ok "dhcp-range present" || fail "dhcp-range MISSING"
+    grep -q "address=/#/" /etc/dnsmasq.d/hearth.conf && ok "DNS catch-all (address=/#/) present" || fail "DNS catch-all MISSING"
+    grep -q "dhcp-range=" /etc/dnsmasq.d/hearth.conf && ok "dhcp-range present" || fail "dhcp-range MISSING"
 else
-    fail "cafebox dnsmasq config NOT found at /etc/dnsmasq.d/cafebox.conf"
+    fail "hearth dnsmasq config NOT found at /etc/dnsmasq.d/hearth.conf"
 fi
 
 echo
@@ -369,19 +369,19 @@ fi
 
 echo
 printf '  --- nginx ---\n'
-if [ -L /etc/nginx/sites-enabled/cafebox.conf ]; then
-    ok "/etc/nginx/sites-enabled/cafebox.conf is a symlink"
-    ls -la /etc/nginx/sites-enabled/cafebox.conf
-elif [ -f /etc/nginx/sites-enabled/cafebox.conf ]; then
-    warn "/etc/nginx/sites-enabled/cafebox.conf exists but is NOT a symlink"
+if [ -L /etc/nginx/sites-enabled/hearth.conf ]; then
+    ok "/etc/nginx/sites-enabled/hearth.conf is a symlink"
+    ls -la /etc/nginx/sites-enabled/hearth.conf
+elif [ -f /etc/nginx/sites-enabled/hearth.conf ]; then
+    warn "/etc/nginx/sites-enabled/hearth.conf exists but is NOT a symlink"
 else
-    fail "/etc/nginx/sites-enabled/cafebox.conf does NOT exist"
+    fail "/etc/nginx/sites-enabled/hearth.conf does NOT exist"
 fi
-if [ -f /etc/nginx/sites-available/cafebox.conf ]; then
-    ok "/etc/nginx/sites-available/cafebox.conf exists"
-    cat /etc/nginx/sites-available/cafebox.conf
+if [ -f /etc/nginx/sites-available/hearth.conf ]; then
+    ok "/etc/nginx/sites-available/hearth.conf exists"
+    cat /etc/nginx/sites-available/hearth.conf
 else
-    fail "/etc/nginx/sites-available/cafebox.conf NOT found"
+    fail "/etc/nginx/sites-available/hearth.conf NOT found"
 fi
 if [ -e /etc/nginx/sites-enabled/default ]; then
     warn "default nginx site still enabled (should have been removed)"
@@ -390,10 +390,10 @@ else
 fi
 
 # ============================= Section 7 ====================================
-hdr "7. CafeBox Application State"
+hdr "7. Hearth Application State"
 
 # System users
-for user in cafebox cafebox-admin; do
+for user in hearth hestia; do
     if id "$user" &>/dev/null; then
         ok "user '$user' exists: $(id "$user")"
     else
@@ -402,9 +402,9 @@ for user in cafebox cafebox-admin; do
 done
 
 # First-boot state
-FLAG_FILE="/var/lib/cafebox/first-boot-done"
-PASSWORD_FILE="/run/cafebox/initial-password"
-STATUS_JSON="/run/cafebox/portal-status.json"
+FLAG_FILE="/var/lib/hearth/first-boot-done"
+PASSWORD_FILE="/run/hearth/initial-password"
+STATUS_JSON="/run/hearth/portal-status.json"
 
 echo
 if [ -f "$FLAG_FILE" ]; then
@@ -413,11 +413,11 @@ else
     fail "first-boot flag MISSING: $FLAG_FILE (first-boot.sh did not complete)"
 fi
 
-if [ -d /run/cafebox ]; then
-    ok "/run/cafebox directory exists"
-    ls -la /run/cafebox/ 2>/dev/null || true
+if [ -d /run/hearth ]; then
+    ok "/run/hearth directory exists"
+    ls -la /run/hearth/ 2>/dev/null || true
 else
-    fail "/run/cafebox directory MISSING"
+    fail "/run/hearth directory MISSING"
 fi
 
 if [ -f "$PASSWORD_FILE" ]; then
@@ -438,7 +438,7 @@ fi
 
 # Storage directories
 echo
-STORAGE_BASE="/srv/cafebox"
+STORAGE_BASE="/srv/hearth"
 for dir in "$STORAGE_BASE" "$STORAGE_BASE/conduit" "$STORAGE_BASE/calibre" "$STORAGE_BASE/kiwix" "$STORAGE_BASE/navidrome"; do
     if [ -d "$dir" ]; then
         ok "directory exists: $dir (owner: $(stat -c '%U:%G' "$dir" 2>/dev/null || echo unknown))"
@@ -449,7 +449,7 @@ done
 
 # Portal web root
 echo
-PORTAL_ROOT="/var/www/cafebox/portal"
+PORTAL_ROOT="/var/www/hearth/portal"
 if [ -d "$PORTAL_ROOT" ]; then
     ok "portal root exists: $PORTAL_ROOT"
     if [ -f "$PORTAL_ROOT/index.html" ]; then
@@ -470,7 +470,7 @@ ss -tlnp 'sport = :22 or sport = :53 or sport = :67 or sport = :80 or sport = :8
 # ============================= Section 9 ====================================
 hdr "9. Service Journals (last 30 lines each)"
 
-for svc in cafebox-first-boot hostapd dnsmasq nginx; do
+for svc in hearth-first-boot hostapd dnsmasq nginx; do
     echo
     printf '  --- %s ---\n' "$svc"
     journalctl -u "$svc" --no-pager -n 30 2>/dev/null || warn "could not read $svc journal"

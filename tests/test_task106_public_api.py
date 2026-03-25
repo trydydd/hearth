@@ -20,7 +20,7 @@ BACKEND_DIR = REPO_ROOT / "ansible" / "roles" / "admin" / "files" / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 import routers.public as public_router  # noqa: E402
 
@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 
 _SAMPLE_CONFIG = {
-    "box": {"domain": "cafe.box"},
+    "box": {"domain": "hearth.local"},
     "services": {
         "chat": {"enabled": True, "registration_token": "", "max_request_size": 20000000},
         "calibre_web": {"enabled": True},
@@ -96,7 +96,7 @@ class TestTask106PublicAPI(unittest.TestCase):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
         self.assertIsNotNone(services["chat"]["url"])
-        self.assertIn("cafe.box", services["chat"]["url"])
+        self.assertIn("hearth.local", services["chat"]["url"])
 
     def test_disabled_service_has_no_url(self):
         response = self._get_status()
@@ -136,7 +136,7 @@ class TestTask106PublicAPI(unittest.TestCase):
             marker_path.unlink(missing_ok=True)
 
     def test_first_boot_false_when_marker_absent(self):
-        absent_path = Path("/tmp/cafebox-test-absent-marker-xyz")
+        absent_path = Path("/tmp/hearth-test-absent-marker-xyz")
         absent_path.unlink(missing_ok=True)
         old = public_router._FIRST_BOOT_MARKER
         public_router._FIRST_BOOT_MARKER = absent_path
@@ -167,7 +167,7 @@ class TestTask106PublicAPI(unittest.TestCase):
 
     def test_initial_password_absent_when_not_first_boot(self):
         """Response must not include initial_password after first-boot is done."""
-        absent_path = Path("/tmp/cafebox-test-absent-marker-xyz")
+        absent_path = Path("/tmp/hearth-test-absent-marker-xyz")
         absent_path.unlink(missing_ok=True)
         old = public_router._FIRST_BOOT_MARKER
         public_router._FIRST_BOOT_MARKER = absent_path

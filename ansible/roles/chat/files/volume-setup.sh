@@ -12,9 +12,9 @@
 
 set -euo pipefail
 
-BACKING="/srv/cafebox/chat.img"
+BACKING="/srv/hearth/chat.img"
 MAPPING="chat-volume"
-MOUNT="/srv/cafebox/chat-data"
+MOUNT="/srv/hearth/chat-data"
 USER="hearth-chat"
 
 # ---- Clean up any stale state from an unclean shutdown --------------------

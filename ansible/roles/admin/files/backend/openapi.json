@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "CafeBox Admin API",
+    "title": "Hearth Admin API",
     "version": "0.1.0"
   },
   "paths": {

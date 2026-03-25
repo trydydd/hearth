@@ -1,6 +1,6 @@
-# CafeBox Portal Style Guide
+# Hearth Portal Style Guide
 
-This guide defines the visual and interaction language for the CafeBox portal landing page in Task 0.12.
+This guide defines the visual and interaction language for the Hearth portal landing page in Task 0.12.
 
 ## 1. Purpose And Scope
 
@@ -174,7 +174,7 @@ Loading:
 Empty:
 
 - Message: "No services are enabled yet."
-- Follow-up hint: "Enable services in CafeBox config and reprovision."
+- Follow-up hint: "Enable services in Hearth config and reprovision."
 
 Error:
 
@@ -230,7 +230,7 @@ Voice should be:
 
 Good examples:
 
-- "Welcome to CafeBox"
+- "Welcome to Hearth"
 - "Pick a service to get started"
 - "Unavailable on this box"
 

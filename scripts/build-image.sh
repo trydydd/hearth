@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# scripts/build-image.sh — Build a flashable CafeBox Raspberry Pi image
+# scripts/build-image.sh — Build a flashable Hearth Raspberry Pi image
 #
 # Usage:
 #   scripts/build-image.sh [--output <path>] [--work-dir <path>]
 #
 # Environment variables (override defaults):
-#   CAFE_CONFIG   Path to cafe.yaml                (default: cafe.yaml)
-#   OUTPUT_IMAGE  Destination .img.xz file         (default: image/cafebox.img.xz)
-#   WORK_DIR      Scratch directory for build artifacts (default: /tmp/cafebox-build)
+#   HEARTH_CONFIG Path to hearth.yaml              (default: hearth.yaml)
+#   OUTPUT_IMAGE  Destination .img.xz file         (default: image/hearth.img.xz)
+#   WORK_DIR      Scratch directory for build artifacts (default: /tmp/hearth-build)
 #   RPI_OS_URL    URL of the base Raspberry Pi OS Lite image
 #   KEEP_WORK     Set to "1" to keep WORK_DIR after a successful build
 #
@@ -41,9 +41,9 @@ set -euo pipefail
 # Defaults
 # ---------------------------------------------------------------------------
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CAFE_CONFIG="${CAFE_CONFIG:-${REPO_ROOT}/cafe.yaml}"
-OUTPUT_IMAGE="${OUTPUT_IMAGE:-${REPO_ROOT}/image/cafebox.img.xz}"
-WORK_DIR="${WORK_DIR:-/tmp/cafebox-build}"
+HEARTH_CONFIG="${HEARTH_CONFIG:-${REPO_ROOT}/hearth.yaml}"
+OUTPUT_IMAGE="${OUTPUT_IMAGE:-${REPO_ROOT}/image/hearth.img.xz}"
+WORK_DIR="${WORK_DIR:-/tmp/hearth-build}"
 KEEP_WORK="${KEEP_WORK:-0}"
 
 # Target image size.  6 GB gives ample headroom over the ~2 GB base image
@@ -129,14 +129,14 @@ if [ "$(id -u)" -ne 0 ]; then
     die "This script must be run as root (use sudo)."
 fi
 
-[ -f "${CAFE_CONFIG}" ] || die "cafe.yaml not found at ${CAFE_CONFIG}"
+[ -f "${HEARTH_CONFIG}" ] || die "hearth.yaml not found at ${HEARTH_CONFIG}"
 
 OUTPUT_DIR="$(dirname "${OUTPUT_IMAGE}")"
 mkdir -p "${OUTPUT_DIR}" "${WORK_DIR}"
 
 # Derived paths
 RAW_IMAGE="${WORK_DIR}/raspios-lite.img"
-WORK_IMAGE="${WORK_DIR}/cafebox-work.img"
+WORK_IMAGE="${WORK_DIR}/hearth-work.img"
 MOUNT_DIR="${WORK_DIR}/mnt"
 LOOP_DEV=""
 BOOT_MOUNT_DIR=""  # set after the root partition is mounted (modern vs legacy layout)
@@ -145,7 +145,7 @@ trap _cleanup EXIT
 
 log "Build started"
 log "  Host    : ${HOST_ARCH} (native — no emulation)"
-log "  Config  : ${CAFE_CONFIG}"
+log "  Config  : ${HEARTH_CONFIG}"
 log "  Output  : ${OUTPUT_IMAGE}"
 log "  WorkDir : ${WORK_DIR}"
 log "  ImgSize : ${IMAGE_SIZE} (root partition; SD card is expanded to full size on first boot)"
@@ -243,7 +243,7 @@ systemd-nspawn -D "${MOUNT_DIR}" \
         ansible-playbook \
             -i 'localhost,' \
             -c local \
-            --extra-vars @cafe.yaml \
+            --extra-vars @hearth.yaml \
             ansible/site.yml
     "
 
@@ -268,7 +268,7 @@ log "Step 5: Validating image configuration..."
 # Writing to a file and executing it directly avoids that entirely.
 # NOTE: /tmp must NOT be used here — systemd-nspawn mounts a fresh tmpfs
 # over /tmp inside the container, wiping anything written there from the host.
-VALIDATE_SCRIPT="${MOUNT_DIR}/root/cafebox-validate.sh"
+VALIDATE_SCRIPT="${MOUNT_DIR}/root/hearth-validate.sh"
 cat > "${VALIDATE_SCRIPT}" << 'DIAG_EOF'
 #!/bin/sh
 set +e  # accumulate all failures; exit 1 at the end if any failed
@@ -278,7 +278,7 @@ ok()   { printf '  [OK]   %s\n' "$1"; }
 warn() { printf '  [WARN] %s\n' "$1" >&2; }
 fail() { printf '  [FAIL] %s\n' "$1" >&2; FAIL=$((FAIL + 1)); }
 
-echo "=== CafeBox pre-capture configuration check ==="
+echo "=== Hearth pre-capture configuration check ==="
 
 echo ""
 echo "--- WiFi access point ---"
@@ -301,14 +301,14 @@ fi
     || fail "hostapd.service NOT enabled (no symlink in multi-user.target.wants)"
 
 # hostapd drop-in: waits for WiFi netdev and runs rfkill unblock
-[ -f /etc/systemd/system/hostapd.service.d/cafebox-wlan-wait.conf ] \
+[ -f /etc/systemd/system/hostapd.service.d/hearth-wlan-wait.conf ] \
     && ok "hostapd drop-in present" \
-    || fail "hostapd drop-in MISSING at hostapd.service.d/cafebox-wlan-wait.conf"
+    || fail "hostapd drop-in MISSING at hostapd.service.d/hearth-wlan-wait.conf"
 
 # dnsmasq configuration file
-[ -f /etc/dnsmasq.d/cafebox.conf ] \
-    && ok "dnsmasq cafebox.conf present" \
-    || fail "dnsmasq cafebox.conf MISSING at /etc/dnsmasq.d/cafebox.conf"
+[ -f /etc/dnsmasq.d/hearth.conf ] \
+    && ok "dnsmasq hearth.conf present" \
+    || fail "dnsmasq hearth.conf MISSING at /etc/dnsmasq.d/hearth.conf"
 
 # dnsmasq must be enabled
 [ -L /etc/systemd/system/multi-user.target.wants/dnsmasq.service ] \
@@ -316,9 +316,9 @@ fi
     || fail "dnsmasq.service NOT enabled (no symlink in multi-user.target.wants)"
 
 # dnsmasq drop-in: waits for hostapd and assigns the AP IP
-[ -f /etc/systemd/system/dnsmasq.service.d/cafebox-wlan-wait.conf ] \
+[ -f /etc/systemd/system/dnsmasq.service.d/hearth-wlan-wait.conf ] \
     && ok "dnsmasq drop-in present" \
-    || fail "dnsmasq drop-in MISSING at dnsmasq.service.d/cafebox-wlan-wait.conf"
+    || fail "dnsmasq drop-in MISSING at dnsmasq.service.d/hearth-wlan-wait.conf"
 
 # country code in wpa_supplicant.conf — required to lift rfkill soft-block
 if grep -qE "^country=" /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null; then
@@ -328,7 +328,7 @@ else
 fi
 
 # NetworkManager must not manage the AP interface
-if [ -f /etc/NetworkManager/conf.d/cafebox-wifi.conf ]; then
+if [ -f /etc/NetworkManager/conf.d/hearth-wifi.conf ]; then
     ok "NetworkManager unmanaged config present"
 else
     warn "NetworkManager unmanaged config not found — OK if NM is not installed"
@@ -375,7 +375,7 @@ fi
 echo "[OK] All pre-capture checks passed."
 DIAG_EOF
 chmod +x "${VALIDATE_SCRIPT}"
-systemd-nspawn -D "${MOUNT_DIR}" /root/cafebox-validate.sh
+systemd-nspawn -D "${MOUNT_DIR}" /root/hearth-validate.sh
 rm -f "${VALIDATE_SCRIPT}"
 
 # ---------------------------------------------------------------------------

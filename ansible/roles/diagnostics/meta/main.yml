@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: diagnostics
-  description: Diagnostic scripts for CafeBox — deployed in development only by default
+  description: Diagnostic scripts for Hearth — deployed in development only by default
   min_ansible_version: "2.12"
 dependencies:
   - role: common

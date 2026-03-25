@@ -25,7 +25,7 @@ BACKEND_DIR = REPO_ROOT / "ansible" / "roles" / "admin" / "files" / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 from itsdangerous import URLSafeTimedSerializer  # noqa: E402
 
@@ -52,7 +52,7 @@ class TestTask103CSRF(unittest.TestCase):
     def test_post_without_csrf_header_returns_403(self):
         """Valid session but no CSRF cookie/header → 403."""
         client = TestClient(app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie())
+        client.cookies.set("hearth_session", _make_session_cookie())
         response = client.post("/api/admin/services/chat/start")
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"detail": "CSRF validation failed"})
@@ -61,7 +61,7 @@ class TestTask103CSRF(unittest.TestCase):
         """CSRF cookie present but header missing → 403."""
         token = "abc123deadbeef"
         client = TestClient(app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie())
+        client.cookies.set("hearth_session", _make_session_cookie())
         client.cookies.set("csrf_token", token)
         response = client.post("/api/admin/services/chat/start")
         self.assertEqual(response.status_code, 403)
@@ -70,7 +70,7 @@ class TestTask103CSRF(unittest.TestCase):
     def test_post_with_mismatched_csrf_token_returns_403(self):
         """Cookie and header present but values differ → 403."""
         client = TestClient(app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie())
+        client.cookies.set("hearth_session", _make_session_cookie())
         client.cookies.set("csrf_token", "correct-token")
         response = client.post(
             "/api/admin/services/chat/start",
@@ -87,7 +87,7 @@ class TestTask103CSRF(unittest.TestCase):
         """Matching cookie and header → CSRF check passes (not 403)."""
         token = "valid-csrf-token-abcdef123456"
         client = TestClient(app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie())
+        client.cookies.set("hearth_session", _make_session_cookie())
         client.cookies.set("csrf_token", token)
         response = client.post(
             "/api/admin/services/chat/start",

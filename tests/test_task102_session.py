@@ -17,7 +17,7 @@ BACKEND_DIR = REPO_ROOT / "ansible" / "roles" / "admin" / "files" / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 from itsdangerous import URLSafeTimedSerializer  # noqa: E402
 
@@ -57,7 +57,7 @@ class TestTask102Session(unittest.TestCase):
     def test_protected_route_returns_401_with_tampered_cookie(self):
         """Tampered cookie → 401."""
         client = TestClient(_test_app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", "not-a-valid-signed-token")
+        client.cookies.set("hearth_session", "not-a-valid-signed-token")
         response = client.get("/protected")
         self.assertEqual(response.status_code, 401)
 
@@ -68,14 +68,14 @@ class TestTask102Session(unittest.TestCase):
     def test_protected_route_returns_200_with_valid_cookie(self):
         """Valid signed session cookie → 200."""
         client = TestClient(_test_app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie())
+        client.cookies.set("hearth_session", _make_session_cookie())
         response = client.get("/protected")
         self.assertEqual(response.status_code, 200)
 
     def test_protected_route_returns_session_payload(self):
         """Valid cookie → response contains session data."""
         client = TestClient(_test_app, raise_server_exceptions=False)
-        client.cookies.set("cafebox_session", _make_session_cookie("operator"))
+        client.cookies.set("hearth_session", _make_session_cookie("operator"))
         response = client.get("/protected")
         self.assertEqual(response.json()["username"], "operator")
 

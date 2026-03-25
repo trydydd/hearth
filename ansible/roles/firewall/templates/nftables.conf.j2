@@ -1,4 +1,4 @@
-# nftables.conf.j2 — CafeBox firewall rules template
+# nftables.conf.j2 — Hearth firewall rules template
 #
 # Rendered by:  ansible roles/firewall via ansible.builtin.template
 # Deployed to:  {{ firewall_nftables_conf }}
@@ -48,7 +48,7 @@ table inet filter {
         iifname "{{ wifi.interface }}" udp dport 67 accept comment "DHCP: clients request address on AP interface"
 
         # Threat-model: Allow DNS queries from clients (port 53) so dnsmasq
-        # can serve *.cafe.box resolution and captive-portal intercept.
+        # can serve *.hearth.local resolution and captive-portal intercept.
         iifname "{{ wifi.interface }}" tcp dport 53 accept comment "DNS/TCP: client name resolution on AP interface"
         iifname "{{ wifi.interface }}" udp dport 53 accept comment "DNS/UDP: client name resolution on AP interface"
 

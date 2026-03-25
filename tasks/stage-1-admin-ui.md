@@ -1,6 +1,6 @@
 # Stage 1 — Admin UI Tasks
 
-These tasks build the CafeBox administration interface: a secure, session-based
+These tasks build the Hearth administration interface: a secure, session-based
 web UI that lets the operator manage services, upload content, and change their
 password — all from the local hotspot network.
 
@@ -19,7 +19,7 @@ async, good for embedded use) inside `ansible/roles/admin/files/backend/`.
 **Deliverables:**
 - `ansible/roles/admin/files/backend/requirements.txt` (FastAPI, uvicorn, PyYAML, itsdangerous)
 - `ansible/roles/admin/files/backend/main.py` — application entry point; mounts routers
-- `ansible/roles/admin/files/backend/config.py` — loads `cafe.yaml`
+- `ansible/roles/admin/files/backend/config.py` — loads `hearth.yaml`
 - `ansible/roles/admin/README.md` — how to run locally
 
 **Acceptance criteria:**
@@ -38,8 +38,8 @@ embedded single-operator device). Use `itsdangerous` for signing.
 
 **Deliverables:**
 - `ansible/roles/admin/files/backend/session.py` — `SessionMiddleware` or dependency that reads/writes
-  a signed cookie named `cafebox_session`.
-- Secret key loaded from an environment variable `CAFEBOX_SECRET_KEY` with a
+  a signed cookie named `hearth_session`.
+- Secret key loaded from an environment variable `HEARTH_SECRET_KEY` with a
   clear startup error if unset.
 
 **Acceptance criteria:**
@@ -82,7 +82,7 @@ Implement the admin login flow.
 
 **Deliverables:**
 - `POST /api/admin/login` — accepts `{"username": "admin", "password": "..."}`,
-  validates against the `cafebox-admin` system account (use PAM or compare
+  validates against the `hestia` system account (use PAM or compare
   against the hashed password file from first-boot), issues session cookie.
 - `POST /api/admin/logout` — clears session cookie.
 - `ansible/roles/admin/files/backend/auth.py` — password verification helper.
@@ -97,20 +97,20 @@ Implement the admin login flow.
 
 ---
 
-## Task 1.05 — `cafebox-admin` System User + Sudoers ✅
+## Task 1.05 — `hestia` System User + Sudoers ✅
 
 Create the minimal privilege setup for the admin backend process:
-- `cafebox-admin` system user (no login shell, no home directory).
-- Sudoers file that allows `cafebox-admin` to run only the required
-  `systemctl start/stop/restart` commands for CafeBox services — nothing else.
+- `hestia` system user (no login shell, no home directory).
+- Sudoers file that allows `hestia` to run only the required
+  `systemctl start/stop/restart` commands for Hearth services — nothing else.
 
 **Deliverables:**
-- `ansible/roles/admin/templates/sudoers-cafebox.j2` rendered to `/etc/sudoers.d/cafebox`
+- `ansible/roles/admin/templates/sudoers-hearth.j2` rendered to `/etc/sudoers.d/hearth`
 - Section in `ansible/roles/admin/tasks/main.yml` that creates the user and installs the sudoers file.
 
 **Acceptance criteria:**
 - `visudo -c -f` passes against the rendered sudoers file.
-- Template only grants `systemctl` actions on the specific CafeBox service units,
+- Template only grants `systemctl` actions on the specific Hearth service units,
   not blanket sudo.
 - Tests are written and pass: rendered sudoers file contains only the expected `systemctl` commands and no blanket `ALL` grants.
 
@@ -127,7 +127,7 @@ Response shape:
 {
   "first_boot": true,
   "services": [
-    {"id": "chat", "name": "Matrix Chat", "enabled": true, "url": "http://chat.cafe.box"},
+    {"id": "chat", "name": "Matrix Chat", "enabled": true, "url": "http://chat.hearth.local"},
     ...
   ]
 }
@@ -135,9 +135,9 @@ Response shape:
 
 **Deliverables:**
 - `ansible/roles/admin/files/backend/routers/public.py` with the `/api/public/services/status` route.
-- Reads enabled/disabled state from `cafe.yaml` and live `systemctl is-active`
+- Reads enabled/disabled state from `hearth.yaml` and live `systemctl is-active`
   status.
-- `first_boot` is `true` when `/run/cafebox/initial-password` exists.
+- `first_boot` is `true` when `/run/hearth/initial-password` exists.
 
 **Acceptance criteria:**
 - Response is valid JSON matching the documented shape.
@@ -184,7 +184,7 @@ Allow the operator to change their admin password.
   - Validates current password before updating.
   - Enforces a minimum password length of 12 characters (return 422 otherwise).
   - Updates the system account password (`chpasswd` via subprocess).
-  - Deletes `/run/cafebox/initial-password` if it exists (clears the banner).
+  - Deletes `/run/hearth/initial-password` if it exists (clears the banner).
 - Requires session + CSRF token.
 
 **Acceptance criteria:**
@@ -247,7 +247,7 @@ uploading Kiwix ZIM files, Calibre content, and music.
 **Deliverables:**
 - `ansible/roles/admin/files/frontend/upload.html` (or section in `dashboard.html`)
 - `POST /api/admin/upload/{service_id}` backend endpoint that:
-  - Streams the uploaded file to the correct storage path (from `cafe.yaml`
+  - Streams the uploaded file to the correct storage path (from `hearth.yaml`
     `storage.locations`).
   - Validates that the file extension is appropriate for the service.
   - Returns progress information.
@@ -275,8 +275,8 @@ Update the nginx configuration template to route admin and API traffic:
 
 **Acceptance criteria:**
 - Rendered config passes `nginx -t`.
-- `curl http://cafe.box/api/public/services/status` succeeds.
-- `curl http://cafe.box/api/admin/services/chat/start` without session returns 401.
+- `curl http://hearth.local/api/public/services/status` succeeds.
+- `curl http://hearth.local/api/admin/services/chat/start` without session returns 401.
 - Portal HTML does not contain any link to `/admin/`.
 - Tests are written and pass: rendered nginx config passes `nginx -t` and contains `location /api/` and `location /admin/` blocks.
 

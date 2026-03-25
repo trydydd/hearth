@@ -1,8 +1,8 @@
 """
-main.py — CafeBox admin backend entry point.
+main.py — Hearth admin backend entry point.
 
 Start the server:
-    CAFEBOX_SECRET_KEY=<secret> uvicorn main:app
+    HEARTH_SECRET_KEY=<secret> uvicorn main:app
 
 The application is a FastAPI service that exposes:
   GET  /healthz                               → liveness check
@@ -24,7 +24,7 @@ from routers import public as public_router
 from routers import services as services_router
 from routers import upload as upload_router
 
-app = FastAPI(title="CafeBox Admin API", version="0.1.0")
+app = FastAPI(title="Hearth Admin API", version="0.1.0")
 
 app.include_router(public_router.router)
 app.include_router(auth_router.router)

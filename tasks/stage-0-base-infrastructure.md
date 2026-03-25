@@ -1,7 +1,7 @@
 # Stage 0 — Base Infrastructure Tasks
 
 These tasks establish the foundational repository structure, configuration system,
-networking stack, and image-build pipeline for CafeBox.
+networking stack, and image-build pipeline for Hearth.
 
 Complete tasks in the order they are numbered. Each task is scoped to approximately
 one hour of work for an intermediate software engineer.
@@ -15,7 +15,7 @@ structure diagram in `PLAN.md`. This gives every subsequent task a concrete plac
 to land.
 
 **Deliverables:**
-- Empty `cafe.yaml` (with `# TODO` comment)
+- Empty `hearth.yaml` (with `# TODO` comment)
 - Empty `Makefile`
 - Directories: `scripts/`
 
@@ -30,18 +30,18 @@ all Jinja2 templates and their rendered output live inside the
 
 ---
 
-## Task 0.02 — `cafe.yaml` Sample Configuration ✅
+## Task 0.02 — `hearth.yaml` Sample Configuration ✅
 
-Write a fully-commented sample `cafe.yaml` that covers every field referenced in
+Write a fully-commented sample `hearth.yaml` that covers every field referenced in
 the plan: box identity (`box.domain`, `box.name`), WiFi hotspot settings, storage
 paths, and per-service enable flags.
 
 **Deliverables:**
-- `cafe.yaml` with realistic defaults and inline comments
+- `hearth.yaml` with realistic defaults and inline comments
 
 **Acceptance criteria:**
 - All keys referenced elsewhere in the codebase load without KeyError.
-- File is valid YAML (`python -c "import yaml; yaml.safe_load(open('cafe.yaml'))"`).
+- File is valid YAML (`python -c "import yaml; yaml.safe_load(open('hearth.yaml'))"`).
 
 **Status: Complete**
 
@@ -49,12 +49,12 @@ paths, and per-service enable flags.
 
 ## Task 0.03 — `scripts/config.py` — Configuration Loader ✅
 
-Write a small Python module that loads and validates `cafe.yaml`. It must be
+Write a small Python module that loads and validates `hearth.yaml`. It must be
 importable by both `install.sh` (via `python scripts/config.py`) and the admin
 backend.
 
 **Deliverables:**
-- `scripts/config.py` exposing a `load_config(path="cafe.yaml")` function that
+- `scripts/config.py` exposing a `load_config(path="hearth.yaml")` function that
   returns a validated dict/namespace.
 - Basic sanity checks (required keys present, domain is a valid hostname, etc.).
 
@@ -68,7 +68,7 @@ backend.
 
 ## Task 0.04 — `scripts/generate-configs.py` — Jinja2 Template Renderer ✅
 
-Write the script that reads `cafe.yaml` (via `config.py`) and renders every
+Write the script that reads `hearth.yaml` (via `config.py`) and renders every
 Jinja2 template found across `ansible/roles/*/templates/` into `system/generated/`
 (grouped by role). Ansible's own `template` module renders templates directly onto
 the target host at provision time; `generate-configs.py` serves as a local
@@ -130,11 +130,11 @@ directly, and to build flashable SD card images.
 
 **Deliverables:**
 - `Vagrantfile` at the repository root with:
-  - `config.vm.box = "debian/trixie64"`, hostname `cafebox-dev`
+  - `config.vm.box = "debian/trixie64"`, hostname `hearth-dev`
   - Forwarded ports: guest 80 → host 8080 (portal), guest 8000 → host 8000
     (admin backend), both bound to `127.0.0.1`
   - Synced folder: repo root → `/vagrant` inside the VM
-  - VirtualBox provider: 1 GB RAM, 2 CPUs, name `cafebox-dev`
+  - VirtualBox provider: 1 GB RAM, 2 CPUs, name `hearth-dev`
   - Ansible provisioner: `ansible.playbook = "ansible/site.yml"`
 - `ansible/` directory with best-practice layout (see Task 0.06a below)
 - Updated `Makefile` `vm-*` targets that delegate to `vagrant` commands:
@@ -142,7 +142,7 @@ directly, and to build flashable SD card images.
   - `vm-stop` → `vagrant halt`
   - `vm-ssh` → `vagrant ssh`
   - `vm-destroy` → `vagrant destroy -f`
-  - `logs` → `vagrant ssh -c "journalctl -f -u 'cafebox-*'"`
+  - `logs` → `vagrant ssh -c "journalctl -f -u 'hearth-*'"`
   - Each target checks `command -v vagrant` and exits with a descriptive
     error message if vagrant is not installed.
 
@@ -161,18 +161,18 @@ directly, and to build flashable SD card images.
 
 Initialise the Ansible directory layout following
 [Ansible best practices](https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html).
-Each CafeBox service gets its own role so concerns are cleanly separated and
-roles can be enabled/disabled independently via `cafe.yaml`.
+Each Hearth service gets its own role so concerns are cleanly separated and
+roles can be enabled/disabled independently via `hearth.yaml`.
 
 **Deliverables:**
 - `ansible/ansible.cfg` — project-scoped Ansible config (roles path, inventory
   defaults, SSH settings)
 - `ansible/site.yml` — top-level playbook that applies all roles to the
-  `cafebox` host group
+  `hearth` host group
 - `ansible/inventory/development` — static inventory for the Vagrant dev VM
 - `ansible/inventory/production` — stub inventory for real Pi targets
 - `ansible/group_vars/all.yml` — variables shared across all hosts (loaded
-  from `cafe.yaml` values)
+  from `hearth.yaml` values)
 - `ansible/roles/<name>/` for each service, each containing:
   - `tasks/main.yml`
   - `handlers/main.yml`
@@ -205,7 +205,7 @@ roles can be enabled/disabled independently via `cafe.yaml`.
 
 ## Task 0.07 — `scripts/dev-hosts.sh` — Local DNS Entries ✅
 
-Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
+Write a script that adds (and can remove) `*.hearth.local` wildcard entries to
 `/etc/hosts` so the developer's browser resolves the box domain locally.
 
 **Deliverables:**
@@ -223,7 +223,7 @@ Write a script that adds (and can remove) `*.cafe.box` wildcard entries to
 ## Task 0.08 — `ansible/roles/common` Bootstrap Tasks ✅
 
 Implement the `common` Ansible role to bootstrap the box: install system packages,
-create the `cafebox` system user, set up the `/srv/cafebox` directory layout, call
+create the `hearth` system user, set up the `/srv/hearth` directory layout, call
 `scripts/generate-configs.py`, and enable systemd units.
 
 **Deliverables:**
@@ -266,10 +266,10 @@ Rules must enforce:
 ## Task 0.10 — `hostapd` + `dnsmasq` Configuration Templates ✅
 
 Create Jinja2 templates for `hostapd.conf` and `dnsmasq.conf` so the WiFi
-hotspot and captive-portal DNS are driven by `cafe.yaml`.
+hotspot and captive-portal DNS are driven by `hearth.yaml`.
 
 `dnsmasq` must:
-- Resolve `*.cafe.box` to the box IP.
+- Resolve `*.hearth.local` to the box IP.
 - Serve DHCP leases on the AP interface.
 - Return the box IP for all other DNS queries (captive portal intercept).
 
@@ -282,7 +282,7 @@ hotspot and captive-portal DNS are driven by `cafe.yaml`.
 - `ansible/roles/wifi/defaults/main.yml` with sensible defaults.
 
 **Acceptance criteria:**
-- Both templates render with the sample `cafe.yaml` without errors.
+- Both templates render with the sample `hearth.yaml` without errors.
 - Rendered `dnsmasq.conf` contains a `address=/#/<box_ip>` line.
 
 **Status: Complete**
@@ -338,11 +338,11 @@ Build the portal landing page. It must:
 
 Implement the one-shot first-boot credential generator:
 - Generate a random 12-character alphanumeric admin password.
-- Hash it and set it for the `cafebox-admin` system user.
-- Write a flag file (e.g., `/var/lib/cafebox/first-boot-done`) so the script
+- Hash it and set it for the `hestia` system user.
+- Write a flag file (e.g., `/var/lib/hearth/first-boot-done`) so the script
   does not re-run.
 - Store the plaintext password temporarily in a readable location so the portal
-  can display it (e.g., `/run/cafebox/initial-password`).
+  can display it (e.g., `/run/hearth/initial-password`).
 
 **Deliverables:**
 - `ansible/roles/common/files/first-boot.sh` (deployed to the target by the role)
@@ -351,7 +351,7 @@ Implement the one-shot first-boot credential generator:
 
 **Acceptance criteria:**
 - Script is idempotent: second run exits 0 and does nothing.
-- Password file has permissions `0400` owned by `cafebox-admin` (the admin
+- Password file has permissions `0400` owned by `hestia` (the admin
   backend process user from Task 1.05), so the API endpoint in Task 1.06 can
   read it. The portal landing page reads the flag via the
   `/api/public/services/status` API — not by accessing the file directly —
@@ -368,51 +368,51 @@ Finalise the storage directory layout so each service's writable data lives unde
 a single top-level mount point, making it easy to back up or migrate to external
 media.
 
-Service paths are declared in `cafe.yaml` (`storage.locations.*`) and mirrored in
+Service paths are declared in `hearth.yaml` (`storage.locations.*`) and mirrored in
 `ansible/group_vars/all.yml`. The `common` role creates them as plain directories
-via the `cafebox_storage_dirs` loop already present in Phase 2. No symlinks are
+via the `hearth_storage_dirs` loop already present in Phase 2. No symlinks are
 used: all service config templates reference `{{ storage.locations.<service> }}`
 rather than hard-coded system paths, so the entire data tree can be relocated by
-updating `storage.base` in `cafe.yaml` and re-provisioning.
+updating `storage.base` in `hearth.yaml` and re-provisioning.
 
 | Path (default) | Service | Data stored |
 |----------------|---------|-------------|
-| `/srv/cafebox/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
-| `/srv/cafebox/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
-| `/srv/cafebox/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
-| `/srv/cafebox/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+| `/srv/hearth/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
+| `/srv/hearth/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
+| `/srv/hearth/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
+| `/srv/hearth/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
 
 Centralising all writable data under a single `storage.base` means backup is one
-`rsync /srv/cafebox/` command, and moving to an external drive requires updating
-only one value in `cafe.yaml`.
+`rsync /srv/hearth/` command, and moving to an external drive requires updating
+only one value in `hearth.yaml`.
 
 **Deliverables:**
 
-1. **Sync `cafebox_storage_dirs`** in `ansible/roles/common/defaults/main.yml` with
-   `storage.locations.*` in `ansible/group_vars/all.yml` and `cafe.yaml`. Every
-   service directory defined in `cafe.yaml` must appear in this list so a fresh
+1. **Sync `hearth_storage_dirs`** in `ansible/roles/common/defaults/main.yml` with
+   `storage.locations.*` in `ansible/group_vars/all.yml` and `hearth.yaml`. Every
+   service directory defined in `hearth.yaml` must appear in this list so a fresh
    provision always produces a complete layout.
 
 2. **Per-service ownership.** The `common` role creates all service directories
-   owned by the `cafebox` system user. Any service role that runs under a different
+   owned by the `hearth` system user. Any service role that runs under a different
    dedicated user must `chown` its own storage subdirectory in its own role's
    tasks — not in `common`.
 
-3. **Document the external-storage migration path** in `cafe.yaml`. Add a comment
+3. **Document the external-storage migration path** in `hearth.yaml`. Add a comment
    block to the `storage:` section explaining the supported workflow for moving data
    to a USB drive:
-   - Mount the drive at `storage.base` (e.g. `/srv/cafebox`) before provisioning, OR
-   - Update `storage.base` to the new mount point (e.g. `/mnt/cafebox-data`) and
+   - Mount the drive at `storage.base` (e.g. `/srv/hearth`) before provisioning, OR
+   - Update `storage.base` to the new mount point (e.g. `/mnt/hearth-data`) and
      re-run `ansible-playbook`. All directories are recreated and service configs
      are re-rendered automatically.
 
 **Acceptance criteria:**
-- `cafebox_storage_dirs` in `defaults/main.yml` matches the keys in
-  `storage.locations` in `group_vars/all.yml` and `cafe.yaml`.
+- `hearth_storage_dirs` in `defaults/main.yml` matches the keys in
+  `storage.locations` in `group_vars/all.yml` and `hearth.yaml`.
 - Role is idempotent: running the playbook twice makes no changes on the second run.
 - `ansible-playbook --syntax-check -i ansible/inventory/development ansible/site.yml`
   passes.
-- `cafe.yaml` storage section includes a comment explaining the external-media
+- `hearth.yaml` storage section includes a comment explaining the external-media
   migration workflow.
 
 **Status: Complete**

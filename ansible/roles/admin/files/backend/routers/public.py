@@ -1,5 +1,5 @@
 """
-routers/public.py — Unauthenticated public API for the CafeBox portal.
+routers/public.py — Unauthenticated public API for the Hearth portal.
 
 GET /api/public/services/status
 
@@ -23,10 +23,10 @@ router = APIRouter(prefix="/api/public")
 # their password.  Its presence signals that the default password is still
 # active.
 _FIRST_BOOT_MARKER = Path(
-    os.environ.get("CAFEBOX_FIRST_BOOT_MARKER", "/run/cafebox/initial-password")
+    os.environ.get("HEARTH_FIRST_BOOT_MARKER", "/run/hearth/initial-password")
 )
 
-# Path to the cafe.yaml config; can be overridden via CAFEBOX_CONFIG env var.
+# Path to the hearth.yaml config; can be overridden via HEARTH_CONFIG env var.
 _CONFIG_PATH: Path | None = None
 
 
@@ -50,7 +50,7 @@ def _service_active(unit: str) -> bool:
 
 @router.get("/services/status")
 async def services_status():
-    """Return the status of all CafeBox services.
+    """Return the status of all Hearth services.
 
     Does **not** require authentication.
 
@@ -60,15 +60,15 @@ async def services_status():
           "first_boot": true,
           "initial_password": "Ab3Xy7Pq1Rz4",
           "services": [
-            {"id": "calibre_web", "name": "Calibre", "enabled": true, "url": "http://cafe.box/calibre_web/"},
+            {"id": "calibre_web", "name": "Calibre", "enabled": true, "url": "http://hearth.local/calibre_web/"},
             ...
           ]
         }
 
-    ``first_boot`` is ``true`` while ``/run/cafebox/initial-password`` exists.
+    ``first_boot`` is ``true`` while ``/run/hearth/initial-password`` exists.
     When ``first_boot`` is ``true`` the ``initial_password`` field is also
     present (the plaintext password read from the marker file).
-    ``enabled`` reflects ``cafe.yaml``; it does **not** indicate whether the
+    ``enabled`` reflects ``hearth.yaml``; it does **not** indicate whether the
     service is currently running.
     """
     try:
@@ -78,7 +78,7 @@ async def services_status():
         cfg = {}
 
     services_cfg: dict = cfg.get("services", {})
-    box_domain: str = cfg.get("box", {}).get("domain", "cafe.box")
+    box_domain: str = cfg.get("box", {}).get("domain", "hearth.local")
 
     service_list = []
     for tile_id, info in SERVICE_MAP.items():

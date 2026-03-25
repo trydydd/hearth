@@ -1,11 +1,11 @@
-# CafeBox
+# Hearth
 
 A self-contained offline community server running on a **Raspberry Pi Zero 2 W**.
-CafeBox broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
+Hearth broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
 content through a clean landing page. Each service is an independent systemd unit
 routed through a single nginx reverse proxy.
 
-CafeBox is a spiritual descendant of **PirateBox**:
+Hearth is a spiritual descendant of **PirateBox**:
 
 - **Offline during operation** — no WAN required; no runtime downloads.
 - **Builder can download during build** — CI/local build may fetch upstream releases.
@@ -19,9 +19,9 @@ CafeBox is a spiritual descendant of **PirateBox**:
 
 ## Quick Start
 
-### 1 — Edit `cafe.yaml`
+### 1 — Edit `hearth.yaml`
 
-`cafe.yaml` is the **only file an operator ever needs to edit**. Set the box name,
+`hearth.yaml` is the **only file an operator ever needs to edit**. Set the box name,
 domain, WiFi credentials, and toggle which services you want.
 
 ### 2 — Generate system configs
@@ -31,7 +31,7 @@ make generate-configs
 ```
 
 This renders all Jinja2 templates in `system/templates/` into `system/generated/`
-using the values from `cafe.yaml`.
+using the values from `hearth.yaml`.
 
 ### 3 — Bootstrap the VM or Pi
 
@@ -58,15 +58,15 @@ and Python runtime environment standards.
 ## Repository Structure
 
 ```
-cafebox/
+hearth/
 ├── README.md
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
-├── cafe.yaml                   # *** Single user-facing config file ***
+├── hearth.yaml                   # *** Single user-facing config file ***
 ├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
 ├── scripts/
-│   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
-│   ├── config.py               # Loads cafe.yaml, used by install.sh + admin backend
-│   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
+│   ├── dev-hosts.sh            # Adds *.hearth.local to /etc/hosts
+│   ├── config.py               # Loads hearth.yaml, used by install.sh + admin backend
+│   └── generate-configs.py     # Renders all Jinja2 templates from hearth.yaml
 ├── image/
 │   ├── build.sh                # Builds a flashable .img.xz
 │   ├── first-boot.sh           # Runs once on first boot: generates password, sets flag
@@ -79,7 +79,7 @@ cafebox/
 │   ├── templates/              # Jinja2 templates — never edit these directly
 │   └── generated/              # Auto-generated — never edit directly
 ├── storage/
-│   └── setup-symlinks.py       # Creates /srv/cafebox/* symlinks from cafe.yaml
+│   └── setup-symlinks.py       # Creates /srv/hearth/* symlinks from hearth.yaml
 ├── services/
 │   ├── conduit/                # Matrix homeserver
 │   ├── element-web/            # Matrix web client
@@ -97,7 +97,7 @@ cafebox/
 
 ## Configuration Reference
 
-`cafe.yaml` contains four top-level sections:
+`hearth.yaml` contains four top-level sections:
 
 | Section | Purpose |
 |---------|---------|
@@ -107,22 +107,22 @@ cafebox/
 | `services` | Per-service `enabled` flags |
 
 All system-level configs (nginx, hostapd, dnsmasq, nftables) are **auto-generated**
-from `cafe.yaml` by `scripts/generate-configs.py`. Never edit files in
+from `hearth.yaml` by `scripts/generate-configs.py`. Never edit files in
 `system/generated/` by hand.
 
 ### Storage locations
 
-All writable service data lives under `storage.base` (default `/srv/cafebox`),
-making backup and migration simple: `rsync /srv/cafebox/` captures everything, and
-moving to an external drive requires updating only `storage.base` in `cafe.yaml`
+All writable service data lives under `storage.base` (default `/srv/hearth`),
+making backup and migration simple: `rsync /srv/hearth/` captures everything, and
+moving to an external drive requires updating only `storage.base` in `hearth.yaml`
 and re-provisioning.
 
 | Path (default) | Service | Data stored |
 |----------------|---------|-------------|
-| `/srv/cafebox/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
-| `/srv/cafebox/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
-| `/srv/cafebox/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
-| `/srv/cafebox/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+| `/srv/hearth/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
+| `/srv/hearth/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
+| `/srv/hearth/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
+| `/srv/hearth/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
 
 ---
 
@@ -152,7 +152,7 @@ with the generated admin password. The banner disappears after a reboot because
 **VM already running? Reset and re-trigger first-boot:**
 
 ```bash
-vagrant ssh -c "sudo rm -f /var/lib/cafebox/first-boot-done && sudo systemctl start cafebox-first-boot.service"
+vagrant ssh -c "sudo rm -f /var/lib/hearth/first-boot-done && sudo systemctl start hearth-first-boot.service"
 ```
 
 Then refresh **http://localhost:8080**.
@@ -160,7 +160,7 @@ Then refresh **http://localhost:8080**.
 **Read the password directly from the VM:**
 
 ```bash
-vagrant ssh -c "sudo cat /run/cafebox/initial-password"
+vagrant ssh -c "sudo cat /run/hearth/initial-password"
 ```
 
 ---
@@ -172,7 +172,7 @@ vagrant up                                                    # Start the dev VM
 vagrant halt                                                  # Stop the dev VM
 vagrant ssh                                                   # SSH into the dev VM
 vagrant destroy -f                                            # Delete the dev VM
-vagrant ssh -c "journalctl -f -u 'cafebox-*'"                # Tail service logs
+vagrant ssh -c "journalctl -f -u 'hearth-*'"                # Tail service logs
 ```
 
 For testing strategy, role-level validation, and Python runtime standards, see
@@ -180,7 +180,7 @@ For testing strategy, role-level validation, and Python runtime standards, see
 
 ### Local DNS
 
-To resolve `*.cafe.box` from your development machine:
+To resolve `*.hearth.local` from your development machine:
 
 ```bash
 sudo bash scripts/dev-hosts.sh add     # add entries to /etc/hosts

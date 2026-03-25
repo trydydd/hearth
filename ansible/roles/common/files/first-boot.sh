@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# first-boot.sh — one-shot first-boot credential generator for CafeBox
+# first-boot.sh — one-shot first-boot credential generator for Hearth
 #
 # Generates a random 12-character alphanumeric admin password, sets it for
-# the cafebox-admin system user, and stores the plaintext temporarily at
-# /run/cafebox/initial-password (0400, owned by cafebox-admin) so the admin
+# the hestia system user, and stores the plaintext temporarily at
+# /run/hearth/initial-password (0400, owned by hestia) so the admin
 # API can expose it via /api/public/services/status on first boot.
 #
-# A flag file at /var/lib/cafebox/first-boot-done prevents re-execution on
+# A flag file at /var/lib/hearth/first-boot-done prevents re-execution on
 # subsequent boots.
 
 set -euo pipefail
 
-FLAG_FILE="/var/lib/cafebox/first-boot-done"
-PASSWORD_FILE="/run/cafebox/initial-password"
-STATUS_JSON="/run/cafebox/portal-status.json"
-ADMIN_USER="cafebox-admin"
+FLAG_FILE="/var/lib/hearth/first-boot-done"
+PASSWORD_FILE="/run/hearth/initial-password"
+STATUS_JSON="/run/hearth/portal-status.json"
+ADMIN_USER="hestia"
 
 # Idempotency guard — exit cleanly if already run
 if [ -f "${FLAG_FILE}" ]; then
@@ -39,7 +39,7 @@ printf '%s:%s\n' "${ADMIN_USER}" "${PASSWORD}" | chpasswd
 # guard here in case this service runs before systemd-tmpfiles-setup.service).
 # Mode 0755 lets nginx (www-data) traverse the directory to read portal-status.json
 # while the individual password file below remains locked to 0400.
-install -d -m 0755 -o "${ADMIN_USER}" -g "${ADMIN_USER}" /run/cafebox
+install -d -m 0755 -o "${ADMIN_USER}" -g "${ADMIN_USER}" /run/hearth
 
 # Write the plaintext password with tight permissions so only the admin
 # backend process user can read it

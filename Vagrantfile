@@ -1,4 +1,4 @@
-# Vagrantfile — CafeBox development VM
+# Vagrantfile — Hearth development VM
 #
 # Usage:
 #   vagrant up        Start (and provision on first run)
@@ -10,7 +10,7 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "debian/trixie64"
-  config.vm.hostname = "cafebox-dev"
+  config.vm.hostname = "hearth-dev"
 
   # Portal (nginx on port 80) → http://localhost:8080 on the host
   config.vm.network "forwarded_port", guest: 80,   host: 8080, host_ip: "127.0.0.1"

@@ -35,10 +35,10 @@
         group: root
         mode: "0755"
 
-    - name: Deploy cafebox-boot-dump systemd unit
+    - name: Deploy hearth-boot-dump systemd unit
       ansible.builtin.template:
-        src: cafebox-boot-dump.service.j2
-        dest: /etc/systemd/system/cafebox-boot-dump.service
+        src: hearth-boot-dump.service.j2
+        dest: /etc/systemd/system/hearth-boot-dump.service
         owner: root
         group: root
         mode: "0644"
@@ -51,15 +51,15 @@
         path: /run/systemd/private
       register: _systemd_active
 
-    - name: Enable cafebox-boot-dump service (symlink — works in chroot and on live systems)
+    - name: Enable hearth-boot-dump service (symlink — works in chroot and on live systems)
       ansible.builtin.file:
-        src: /etc/systemd/system/cafebox-boot-dump.service
-        dest: /etc/systemd/system/multi-user.target.wants/cafebox-boot-dump.service
+        src: /etc/systemd/system/hearth-boot-dump.service
+        dest: /etc/systemd/system/multi-user.target.wants/hearth-boot-dump.service
         state: link
 
     - name: Reload systemd daemon (live system only — skipped during image build)
       ansible.builtin.systemd:
-        name: cafebox-boot-dump.service
+        name: hearth-boot-dump.service
         daemon_reload: true
       when: _systemd_active.stat.exists
 

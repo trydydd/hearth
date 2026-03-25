@@ -15,12 +15,12 @@ Deployment is **off by default** (`diagnostics_enabled: false`). This means:
 
 | Script | Installed path | Purpose |
 |--------|---------------|---------|
-| `diagnose-first-boot.sh` | `/usr/local/share/cafebox/diag/diagnose-first-boot.sh` | Checks the full first-boot credential chain: system users → service status & journal → portal root files → portal root HTTP response → API status endpoint → nginx error & access logs → network interfaces → nftables ruleset → listening ports |
-| `diagnose-wifi.sh` | `/usr/local/share/cafebox/diag/diagnose-wifi.sh` | Checks the full WiFi AP bringup chain: rfkill → interface → firmware/modules → IP address → regulatory domain → hostapd (config, service, journal) → dnsmasq (config, service) → boot config → network-manager conflicts → USB OTG gadget status |
+| `diagnose-first-boot.sh` | `/usr/local/share/hearth/diag/diagnose-first-boot.sh` | Checks the full first-boot credential chain: system users → service status & journal → portal root files → portal root HTTP response → API status endpoint → nginx error & access logs → network interfaces → nftables ruleset → listening ports |
+| `diagnose-wifi.sh` | `/usr/local/share/hearth/diag/diagnose-wifi.sh` | Checks the full WiFi AP bringup chain: rfkill → interface → firmware/modules → IP address → regulatory domain → hostapd (config, service, journal) → dnsmasq (config, service) → boot config → network-manager conflicts → USB OTG gadget status |
 
 ## SSH over USB OTG (primary fallback when WiFi is not broadcasting)
 
-Every CafeBox image configures SSH over USB by default so you can access the
+Every Hearth image configures SSH over USB by default so you can access the
 Pi when the WiFi AP is not working:
 
 | What gets configured | Where |
@@ -64,7 +64,7 @@ If `192.168.7.2` is not reachable:
 ## Running a diagnostic script (development VM)
 
 ```bash
-vagrant ssh -- sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
+vagrant ssh -- sudo /usr/local/share/hearth/diag/diagnose-first-boot.sh
 ```
 
 ### WiFi not broadcasting (Pi Zero 2 W)
@@ -73,17 +73,17 @@ If the WiFi network is never broadcast on the Pi:
 
 ```bash
 # Connect via USB cable first (see above), then run:
-ssh <user>@192.168.7.2 "sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh 2>&1" \
-  | tee /tmp/cafebox-wifi-diag.txt
+ssh <user>@192.168.7.2 "sudo /usr/local/share/hearth/diag/diagnose-wifi.sh 2>&1" \
+  | tee /tmp/hearth-wifi-diag.txt
 
 # Or run directly on the Pi (over HDMI+keyboard or serial console):
-sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh
+sudo /usr/local/share/hearth/diag/diagnose-wifi.sh
 ```
 
 The script accepts an optional interface name argument (default: `wlan0`):
 
 ```bash
-sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh wlan0
+sudo /usr/local/share/hearth/diag/diagnose-wifi.sh wlan0
 ```
 
 #### What the script checks
@@ -134,7 +134,7 @@ Paste the full output into the GitHub issue.
 ## Running a diagnostic script (development VM — first-boot credential chain)
 
 ```bash
-vagrant ssh -- sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
+vagrant ssh -- sudo /usr/local/share/hearth/diag/diagnose-first-boot.sh
 ```
 
 ### Reading the first-boot output
@@ -158,7 +158,7 @@ Key things to check when the portal is not loading in the host browser:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `diagnostics_enabled` | `false` | Set to `true` to deploy scripts. Enabled automatically in the dev VM via Vagrantfile. |
-| `diagnostics_dir` | `/usr/local/share/cafebox/diag` | Directory on the target host where scripts are installed. |
+| `diagnostics_dir` | `/usr/local/share/hearth/diag` | Directory on the target host where scripts are installed. |
 
 ## Deploying to production (override)
 
@@ -172,13 +172,13 @@ ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
 The scripts are installed to `diagnostics_dir` and can then be run over SSH:
 
 ```bash
-ssh pi@<host> sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh
-ssh pi@<host> sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
+ssh pi@<host> sudo /usr/local/share/hearth/diag/diagnose-wifi.sh
+ssh pi@<host> sudo /usr/local/share/hearth/diag/diagnose-first-boot.sh
 ```
 
 Remove the scripts afterwards if desired:
 
 ```bash
-ssh pi@<host> sudo rm -rf /usr/local/share/cafebox/diag
+ssh pi@<host> sudo rm -rf /usr/local/share/hearth/diag
 ```
 

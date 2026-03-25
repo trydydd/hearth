@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# diagnose-wifi.sh — collect diagnostic information for the CafeBox WiFi
+# diagnose-wifi.sh — collect diagnostic information for the Hearth WiFi
 # access point (hostapd broadcast issue).
 #
-# Deployed to /usr/local/share/cafebox/diag/ on the target host by the
+# Deployed to /usr/local/share/hearth/diag/ on the target host by the
 # diagnostics Ansible role (development only by default).
 #
 # Run on the Pi as root when the WiFi network is never broadcast:
 #
-#   sudo /usr/local/share/cafebox/diag/diagnose-wifi.sh
+#   sudo /usr/local/share/hearth/diag/diagnose-wifi.sh
 #
 # The script walks the full AP bringup chain:
 #   rfkill → interface present → firmware → IP address → regulatory domain
@@ -26,7 +26,7 @@ ok()  { printf '  [OK]   %s\n' "$1"; }
 warn(){ printf '  [WARN] %s\n' "$1"; }
 fail(){ printf '  [FAIL] %s\n' "$1"; }
 
-hdr "CafeBox WiFi diagnostics — interface: ${IFACE}"
+hdr "Hearth WiFi diagnostics — interface: ${IFACE}"
 printf '  Run as: %s   Date: %s\n' "$(id -un)" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 printf '  Kernel:  %s\n' "$(uname -r)"
 printf '  Machine: %s\n' "$(uname -m)"
@@ -99,7 +99,7 @@ hdr "4. Interface IP address and mode"
 if ip addr show "${IFACE}" &>/dev/null; then
     ip addr show "${IFACE}"
     echo
-    # Expected AP IP is 10.0.0.1 (cafe.yaml box.ip default)
+    # Expected AP IP is 10.0.0.1 (hearth.yaml box.ip default)
     if ip addr show "${IFACE}" 2>/dev/null | grep -q "10\.0\.0\.1"; then
         ok "AP IP address (10.0.0.1) is assigned to ${IFACE}"
     else
@@ -242,7 +242,7 @@ fi
 # ---------------------------------------------------------------------------
 hdr "10. dnsmasq configuration file"
 # ---------------------------------------------------------------------------
-DNSMASQ_CONF="/etc/dnsmasq.d/cafebox.conf"
+DNSMASQ_CONF="/etc/dnsmasq.d/hearth.conf"
 
 if [ -f "${DNSMASQ_CONF}" ]; then
     ok "dnsmasq config present: ${DNSMASQ_CONF}"
@@ -396,4 +396,4 @@ hdr "Done"
 # ---------------------------------------------------------------------------
 printf '  Paste the full output above into the GitHub issue.\n'
 printf '  Tip: save to a file with:\n'
-printf '    sudo %s 2>&1 | tee /tmp/cafebox-wifi-diag.txt\n' "$0"
+printf '    sudo %s 2>&1 | tee /tmp/hearth-wifi-diag.txt\n' "$0"

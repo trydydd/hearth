@@ -6,7 +6,7 @@
 # system is shutting down anyway.
 
 MAPPING="chat-volume"
-MOUNT="/srv/cafebox/chat-data"
+MOUNT="/srv/hearth/chat-data"
 
 umount "$MOUNT" 2>/dev/null || true
 cryptsetup close "$MAPPING" 2>/dev/null || true

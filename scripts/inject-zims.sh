@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/inject-zims.sh — Download ZIM content files and copy them onto a
-# freshly-flashed CafeBox SD card.
+# freshly-flashed Hearth SD card.
 #
 # Run this immediately after flashing the image with rpi-imager.
 #
@@ -11,13 +11,13 @@
 # Examples:
 #   sudo scripts/inject-zims.sh /dev/sdb
 #   sudo scripts/inject-zims.sh /dev/mmcblk0
-#   scripts/inject-zims.sh --dir /srv/cafebox/kiwix   # Vagrant dev test (no sudo needed)
+#   scripts/inject-zims.sh --dir /srv/hearth/kiwix   # Vagrant dev test (no sudo needed)
 #
 # What this does:
-#   1. Reads cafe.yaml for enabled ZIM files (name + download URL).
+#   1. Reads hearth.yaml for enabled ZIM files (name + download URL).
 #   2. Downloads any missing ZIMs to the local zims/ cache (skips if cached).
 #   3. Mounts the SD card root partition (partition 2).      [skipped with --dir]
-#   4. Copies ZIM files into /srv/cafebox/kiwix/ on the card.
+#   4. Copies ZIM files into /srv/hearth/kiwix/ on the card.
 #   5. Sets correct ownership and permissions.
 #   6. Unmounts cleanly and syncs.                          [skipped with --dir]
 #
@@ -30,9 +30,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CAFE_CONFIG="${CAFE_CONFIG:-${REPO_ROOT}/cafe.yaml}"
+HEARTH_CONFIG="${HEARTH_CONFIG:-${REPO_ROOT}/hearth.yaml}"
 ZIM_CACHE="${REPO_ROOT}/zims"
-KIWIX_STORAGE="/srv/cafebox/kiwix"
+KIWIX_STORAGE="/srv/hearth/kiwix"
 SCRIPT_NAME="$(basename "$0")"
 LOG_PREFIX="[${SCRIPT_NAME}]"
 MOUNT_DIR=""
@@ -79,7 +79,7 @@ case "${1:-}" in
         ;;
 esac
 
-[ -f "${CAFE_CONFIG}" ] || die "cafe.yaml not found at ${CAFE_CONFIG}"
+[ -f "${HEARTH_CONFIG}" ] || die "hearth.yaml not found at ${HEARTH_CONFIG}"
 
 command -v python3 >/dev/null 2>&1 || die "python3 is required but not found."
 command -v curl    >/dev/null 2>&1 || die "curl is required but not found."
@@ -102,12 +102,12 @@ if [ "${DIR_MODE}" -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Read ZIM list from cafe.yaml
+# Read ZIM list from hearth.yaml
 # ---------------------------------------------------------------------------
 
-log "Reading ZIM configuration from ${CAFE_CONFIG}..."
+log "Reading ZIM configuration from ${HEARTH_CONFIG}..."
 
-ZIM_LINES="$(python3 - "${CAFE_CONFIG}" <<'PYEOF'
+ZIM_LINES="$(python3 - "${HEARTH_CONFIG}" <<'PYEOF'
 import sys, yaml
 
 with open(sys.argv[1]) as f:
@@ -187,14 +187,14 @@ if [ "${DIR_MODE}" -eq 1 ]; then
     KIWIX_UID="$(stat -c '%u' "${DEST_DIR}")"
     KIWIX_GID="$(stat -c '%g' "${DEST_DIR}")"
 else
-    MOUNT_DIR="$(mktemp -d /tmp/cafebox-inject.XXXXXX)"
+    MOUNT_DIR="$(mktemp -d /tmp/hearth-inject.XXXXXX)"
     log "Mounting ${ROOT_PART} at ${MOUNT_DIR}..."
     mount "${ROOT_PART}" "${MOUNT_DIR}"
 
     DEST_DIR="${MOUNT_DIR}${KIWIX_STORAGE}"
     if [ ! -d "${DEST_DIR}" ]; then
         die "Kiwix storage directory not found on card: ${KIWIX_STORAGE}
-    Is this a CafeBox image? Was kiwix enabled in cafe.yaml at build time?"
+    Is this a Hearth image? Was kiwix enabled in hearth.yaml at build time?"
     fi
 
     # Resolve kiwix UID/GID from the card's own /etc/passwd — avoids hardcoding.

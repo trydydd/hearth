@@ -21,7 +21,7 @@ BACKEND_DIR = REPO_ROOT / "ansible" / "roles" / "admin" / "files" / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 from itsdangerous import URLSafeTimedSerializer  # noqa: E402
 
@@ -40,7 +40,7 @@ def _make_session_cookie() -> str:
 
 def _authed_client() -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    client.cookies.set("cafebox_session", _make_session_cookie())
+    client.cookies.set("hearth_session", _make_session_cookie())
     client.cookies.set("csrf_token", _CSRF_TOKEN)
     return client
 

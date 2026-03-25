@@ -1,5 +1,5 @@
 [Unit]
-Description=CafeBox first-boot credential generator
+Description=Hearth first-boot credential generator
 Documentation=https://github.com/trydydd/cafe-box
 # Must complete before nginx serves the portal (which may expose the
 # first-boot password banner via the admin API)
@@ -10,7 +10,7 @@ After=systemd-sysusers.service local-fs.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/cafebox-first-boot.sh
+ExecStart=/usr/local/sbin/hearth-first-boot.sh
 
 [Install]
 WantedBy=multi-user.target

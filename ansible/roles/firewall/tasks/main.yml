@@ -1,6 +1,6 @@
 ---
 # roles/firewall/tasks/main.yml
-# Deploy nftables firewall rules that enforce the CafeBox threat model:
+# Deploy nftables firewall rules that enforce the Hearth threat model:
 #   - No WAN routing/NAT for connected clients.
 #   - Allow DHCP (UDP 67/68), DNS (UDP/TCP 53), HTTP (TCP 80) on the AP
 #     interface only.

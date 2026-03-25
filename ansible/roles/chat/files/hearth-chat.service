@@ -17,7 +17,7 @@ PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/cafebox/chat-data
+ReadWritePaths=/srv/hearth/chat-data
 
 [Install]
 WantedBy=multi-user.target

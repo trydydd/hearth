@@ -1,4 +1,4 @@
-# CafeBox — Agent Build Plan
+# Hearth — Agent Build Plan
 
 A self-contained offline community server running on a Raspberry Pi Zero 2 W.
 Broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
@@ -19,10 +19,10 @@ This project is a spiritual descendant of **PirateBox**:
 ## Repository Structure
 
 ```
-cafebox/
+hearth/
 ├── README.md
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
-├── cafe.yaml                   # *** Single user-facing config file ***
+├── hearth.yaml                   # *** Single user-facing config file ***
 ├── Makefile                    # Dev shortcuts: vm-start, vm-stop, vm-ssh, vm-destroy, logs
 ├── ansible/                    # Ansible provisioner (dev VM, Pi over SSH, image builds)
 │   ├── ansible.cfg
@@ -44,9 +44,9 @@ cafebox/
 │       ├── wifi/               # hostapd + dnsmasq hotspot
 │       └── firewall/           # nftables rules
 ├── scripts/
-│   ├── dev-hosts.sh            # Adds *.cafe.box to /etc/hosts
-│   ├── config.py               # Loads cafe.yaml
-│   └── generate-configs.py     # Renders all Jinja2 templates from cafe.yaml
+│   ├── dev-hosts.sh            # Adds *.hearth.local to /etc/hosts
+│   ├── config.py               # Loads hearth.yaml
+│   └── generate-configs.py     # Renders all Jinja2 templates from hearth.yaml
 ├── .github/
 │   └── workflows/
 │       └── build-image.yml     # GitHub Action: builds and publishes image on tag
@@ -75,7 +75,7 @@ This is a personal project, so keep the workflow simple and pragmatic.
 
 ## Central Configuration
 
-**`cafe.yaml`** — The only file an operator ever needs to edit.
+**`hearth.yaml`** — The only file an operator ever needs to edit.
 
 All system-level configs are **auto-generated** from this file by `scripts/generate-configs.py` using
 Jinja2 templates.
@@ -84,7 +84,7 @@ Jinja2 templates.
 
 ### Service Identity Map (Naming Consistency)
 
-CafeBox deals with three different “names” for the same conceptual service:
+Hearth deals with three different “names” for the same conceptual service:
 
 - **Tile id**: what the portal shows and what `/api/public/services/status` returns.
 - **systemd unit**: what `systemctl` controls.
@@ -144,7 +144,7 @@ Keep the password banner:
 
 - Clarify SessionMiddleware is signed-cookie based unless a server-side store is added.
 - Add a simple CSRF defense: require CSRF token header on state-changing requests.
-- Use a dedicated `cafebox-admin` user; tighten sudoers.
+- Use a dedicated `hearth-admin` user; tighten sudoers.
 
 ---
 
@@ -152,4 +152,4 @@ Keep the password banner:
 
 ### 2.0 — Reality Check: E2EE vs Ephemerality
 
-CafeBox does not promise messages are erased when users disconnect.
+Hearth does not promise messages are erased when users disconnect.

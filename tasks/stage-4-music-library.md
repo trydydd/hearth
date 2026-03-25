@@ -28,12 +28,12 @@ starting Stage 4.
 ┌────────────────────▼────────────────────────────┐
 │ navidrome.service                               │
 │  • Web UI + Subsonic API on 127.0.0.1:4533     │
-│  • Scans /srv/cafebox/navidrome/music/          │
-│  • Stores metadata DB in /srv/cafebox/navidrome/│
+│  • Scans /srv/hearth/navidrome/music/          │
+│  • Stores metadata DB in /srv/hearth/navidrome/│
 └────────────────────┬────────────────────────────┘
                      │ reads audio files
 ┌────────────────────▼────────────────────────────┐
-│ /srv/cafebox/navidrome/                         │
+│ /srv/hearth/navidrome/                         │
 │   music/        ← operator uploads here        │
 │   navidrome.db  ← SQLite metadata / scan cache │
 └─────────────────────────────────────────────────┘
@@ -69,7 +69,7 @@ on GitHub at `navidrome/navidrome`.
   - Detect architecture and download the correct Navidrome release binary
     to `/usr/local/bin/navidrome`.
   - Set `mode: "0755"`.
-  - Ensure `/srv/cafebox/navidrome/` and `/srv/cafebox/navidrome/music/`
+  - Ensure `/srv/hearth/navidrome/` and `/srv/hearth/navidrome/music/`
     exist and are owned by `navidrome:navidrome`.
 - `ansible/roles/navidrome/vars/main.yml` — pin the Navidrome version.
 
@@ -88,8 +88,8 @@ Write the Navidrome configuration file. Navidrome reads a TOML config file
 **Deliverables:**
 - `ansible/roles/navidrome/templates/navidrome.toml.j2`:
   ```toml
-  MusicFolder = "/srv/cafebox/navidrome/music"
-  DataFolder  = "/srv/cafebox/navidrome"
+  MusicFolder = "/srv/hearth/navidrome/music"
+  DataFolder  = "/srv/hearth/navidrome"
   Address     = "127.0.0.1"
   Port        = 4533
   BaseUrl     = "/music"
@@ -134,7 +134,7 @@ Create and enable the systemd service.
   NoNewPrivileges=true
   ProtectSystem=strict
   ProtectHome=true
-  ReadWritePaths=/srv/cafebox/navidrome
+  ReadWritePaths=/srv/hearth/navidrome
 
   [Install]
   WantedBy=multi-user.target
@@ -167,8 +167,8 @@ Ensure headers pass the real host and protocol.
 - Updated `ansible/roles/nginx/templates/nginx.conf.j2`.
 
 **Acceptance criteria:**
-- `curl -I http://cafe.box/music` returns 301 to `/music/`.
-- `curl http://cafe.box/music/` returns the Navidrome web UI.
+- `curl -I http://hearth.local/music` returns 301 to `/music/`.
+- `curl http://hearth.local/music/` returns the Navidrome web UI.
 - Album art and audio streaming work through the proxy.
 - Blocks are absent when `services.navidrome.enabled: false`.
 - Tests pass: rendered config contains the redirect and proxy blocks when
@@ -196,12 +196,12 @@ add a rescan trigger.
       "url_path": "/music/",
   }
   ```
-- Update `ansible/roles/admin/templates/sudoers-cafebox.j2` to include
+- Update `ansible/roles/admin/templates/sudoers-hearth.j2` to include
   `navidrome.service` start/stop/restart.
 
 **Acceptance criteria:**
 - Uploading an MP3 via `POST /api/admin/upload/navidrome` places the file
-  in `/srv/cafebox/navidrome/music/`.
+  in `/srv/hearth/navidrome/music/`.
 - Uploading a `.exe` returns 422.
 - After uploading and calling `/rescan`, the track appears in the Navidrome
   library.
@@ -210,14 +210,14 @@ add a rescan trigger.
 
 ---
 
-## Task 4.06 — Portal Tile + cafe.yaml Integration
+## Task 4.06 — Portal Tile + hearth.yaml Integration
 
 Wire Navidrome into the portal tile system.
 
 **Deliverables:**
 - `ansible/roles/nginx/files/index.html` — ensure the Music tile links
   to `/music/` and is conditionally rendered based on `services.navidrome.enabled`.
-- `cafe.yaml` — add a comment to the `navidrome` service entry noting that:
+- `hearth.yaml` — add a comment to the `navidrome` service entry noting that:
   - No transcoding is performed; upload browser-playable formats (MP3, OGG, FLAC, AAC).
   - Recommended max upload size per file is 50 MB (configurable in nginx if needed).
 

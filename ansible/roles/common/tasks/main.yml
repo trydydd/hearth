@@ -1,6 +1,6 @@
 ---
 # roles/common/tasks/main.yml
-# Bootstrap the CafeBox host in three clearly separated phases:
+# Bootstrap the Hearth host in three clearly separated phases:
 #   1. Package installation
 #   2. User and directory setup
 #   3. Service enablement
@@ -38,7 +38,7 @@
 
     - name: Install required packages
       ansible.builtin.apt:
-        name: "{{ cafebox_base_packages }}"
+        name: "{{ hearth_base_packages }}"
         state: present
 
   rescue:
@@ -53,32 +53,32 @@
 # ---------------------------------------------------------------------------
 - name: "Phase 2 — Create system user and directory layout"
   block:
-    - name: Create cafebox system group
+    - name: Create hearth system group
       ansible.builtin.group:
-        name: "{{ cafebox_group }}"
+        name: "{{ hearth_group }}"
         system: true
         state: present
 
-    - name: Create cafebox system user
+    - name: Create hearth system user
       ansible.builtin.user:
-        name: "{{ cafebox_user }}"
-        group: "{{ cafebox_group }}"
+        name: "{{ hearth_user }}"
+        group: "{{ hearth_group }}"
         system: true
         shell: /usr/sbin/nologin
-        home: "{{ cafebox_storage_base }}"
+        home: "{{ hearth_storage_base }}"
         create_home: false
         state: present
 
-    - name: Create cafebox-admin system group
+    - name: Create hestia system group
       ansible.builtin.group:
-        name: cafebox-admin
+        name: hestia
         system: true
         state: present
 
-    - name: Create cafebox-admin system user (admin backend process user)
+    - name: Create hestia system user (admin backend process user)
       ansible.builtin.user:
-        name: cafebox-admin
-        group: cafebox-admin
+        name: hestia
+        group: hestia
         # shadow group membership lets the backend process read /etc/shadow so
         # that PAM / spwd can verify the first-boot credential without root.
         groups: shadow
@@ -90,39 +90,39 @@
 
     - name: Create storage base directory
       ansible.builtin.file:
-        path: "{{ cafebox_storage_base }}"
+        path: "{{ hearth_storage_base }}"
         state: directory
-        owner: "{{ cafebox_user }}"
-        group: "{{ cafebox_group }}"
+        owner: "{{ hearth_user }}"
+        group: "{{ hearth_group }}"
         mode: "0755"
 
     - name: Create per-service storage subdirectories
-      # Iterates over the full paths from storage.locations (via cafebox_storage_dirs).
-      # Directories are owned by the cafebox system user.
+      # Iterates over the full paths from storage.locations (via hearth_storage_dirs).
+      # Directories are owned by the hearth system user.
       # Convention: if a service role runs under a different dedicated user it must
       # chown its own subdirectory inside that role's tasks — not here.
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ cafebox_user }}"
-        group: "{{ cafebox_group }}"
+        owner: "{{ hearth_user }}"
+        group: "{{ hearth_group }}"
         mode: "0755"
-      loop: "{{ cafebox_storage_dirs }}"
+      loop: "{{ hearth_storage_dirs }}"
 
-    - name: Create /run/cafebox directory (tmpfiles.d)
+    - name: Create /run/hearth directory (tmpfiles.d)
       ansible.builtin.copy:
-        dest: /etc/tmpfiles.d/cafebox.conf
-        content: "d /run/cafebox 0755 {{ cafebox_user }} {{ cafebox_group }} -\n"
+        dest: /etc/tmpfiles.d/hearth.conf
+        content: "d /run/hearth 0755 {{ hearth_user }} {{ hearth_group }} -\n"
         owner: root
         group: root
         mode: "0644"
 
-    - name: Create /var/lib/cafebox state directory
+    - name: Create /var/lib/hearth state directory
       ansible.builtin.file:
-        path: /var/lib/cafebox
+        path: /var/lib/hearth
         state: directory
-        owner: "{{ cafebox_user }}"
-        group: "{{ cafebox_group }}"
+        owner: "{{ hearth_user }}"
+        group: "{{ hearth_group }}"
         mode: "0750"
 
   rescue:
@@ -137,9 +137,9 @@
 # ---------------------------------------------------------------------------
 - name: "Phase 3 — Enable and start core systemd services"
   block:
-    - name: Apply tmpfiles.d configuration to create /run/cafebox immediately
+    - name: Apply tmpfiles.d configuration to create /run/hearth immediately
       ansible.builtin.command:
-        cmd: systemd-tmpfiles --create /etc/tmpfiles.d/cafebox.conf
+        cmd: systemd-tmpfiles --create /etc/tmpfiles.d/hearth.conf
       changed_when: false
 
   rescue:
@@ -166,7 +166,7 @@
     - name: Deploy first-boot script
       ansible.builtin.copy:
         src: first-boot.sh
-        dest: /usr/local/sbin/cafebox-first-boot.sh
+        dest: /usr/local/sbin/hearth-first-boot.sh
         owner: root
         group: root
         mode: "0700"
@@ -174,20 +174,20 @@
     - name: Deploy first-boot systemd unit
       ansible.builtin.copy:
         src: first-boot.service
-        dest: /etc/systemd/system/cafebox-first-boot.service
+        dest: /etc/systemd/system/hearth-first-boot.service
         owner: root
         group: root
         mode: "0644"
 
     - name: Enable first-boot service (symlink — works in chroot and on live systems)
       ansible.builtin.file:
-        src: /etc/systemd/system/cafebox-first-boot.service
-        dest: /etc/systemd/system/multi-user.target.wants/cafebox-first-boot.service
+        src: /etc/systemd/system/hearth-first-boot.service
+        dest: /etc/systemd/system/multi-user.target.wants/hearth-first-boot.service
         state: link
 
     - name: Reload systemd daemon and start first-boot service (live system only)
       ansible.builtin.systemd:
-        name: cafebox-first-boot.service
+        name: hearth-first-boot.service
         state: started
         daemon_reload: true
       when: _systemd_active.stat.exists
@@ -206,8 +206,8 @@
 # USB cable when the WiFi AP is not broadcasting.  Works on Pi Zero 2 W (and
 # any other Pi with a USB OTG port) running Raspberry Pi OS Bookworm or later.
 #
-# Controlled by usb_ssh.enabled (cafe.yaml: usb_ssh.enabled, default true).
-# Set usb_ssh.enabled: false in cafe.yaml to skip this entire phase.
+# Controlled by usb_ssh.enabled (hearth.yaml: usb_ssh.enabled, default true).
+# Set usb_ssh.enabled: false in hearth.yaml to skip this entire phase.
 #
 # What this phase does:
 #   1. Creates an OS user (usb_ssh.username / usb_ssh.password) so the
@@ -353,7 +353,7 @@
         block: |
           interface usb0
           static ip_address={{ usb_ssh.ip }}/24
-        marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox usb0"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK — hearth usb0"
       when: _dhcpcd_conf.stat.exists
 
     # ---- Static IP for usb0 via NetworkManager (RPi OS Trixie and later) ----
@@ -380,13 +380,13 @@
       # The UUID is generated deterministically from the connection name so it
       # does not change between provisioning runs.
       ansible.builtin.copy:
-        dest: /etc/NetworkManager/system-connections/cafebox-usb0.nmconnection
+        dest: /etc/NetworkManager/system-connections/hearth-usb0.nmconnection
         content: |
-          # Managed by Ansible (CafeBox common role)
+          # Managed by Ansible (Hearth common role)
           # Static IP for the USB OTG gadget ethernet interface.
           [connection]
-          id=cafebox-usb0
-          uuid={{ 'cafebox-usb0' | to_uuid }}
+          id=hearth-usb0
+          uuid={{ 'hearth-usb0' | to_uuid }}
           type=ethernet
           interface-name=usb0
           autoconnect=yes

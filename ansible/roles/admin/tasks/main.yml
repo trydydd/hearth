@@ -1,22 +1,22 @@
 ---
-# roles/admin/tasks/main.yml — CafeBox admin backend provisioning
+# roles/admin/tasks/main.yml — Hearth admin backend provisioning
 
 # -----------------------------------------------------------------------
-# Task 1.05 — cafebox-admin system user + sudoers
+# Task 1.05 — hestia system user + sudoers
 # -----------------------------------------------------------------------
 
-- name: Create cafebox-admin system user
+- name: Create hestia system user
   ansible.builtin.user:
-    name: cafebox-admin
+    name: hestia
     system: true
     shell: /usr/sbin/nologin
     create_home: false
-    comment: "CafeBox admin backend service account"
+    comment: "Hearth admin backend service account"
 
-- name: Install cafebox sudoers file
+- name: Install hearth sudoers file
   ansible.builtin.template:
-    src: sudoers-cafebox.j2
-    dest: /etc/sudoers.d/cafebox
+    src: sudoers-hearth.j2
+    dest: /etc/sudoers.d/hearth
     owner: root
     group: root
     mode: "0440"
@@ -36,38 +36,38 @@
     cache_valid_time: 3600
 
 # -----------------------------------------------------------------------
-# Runtime config directory, secret key env file, and cafe.yaml copy
+# Runtime config directory, secret key env file, and hearth.yaml copy
 # -----------------------------------------------------------------------
 
-- name: Create /etc/cafebox directory
+- name: Create /etc/hearth directory
   ansible.builtin.file:
-    path: /etc/cafebox
+    path: /etc/hearth
     state: directory
     owner: root
-    group: cafebox-admin
+    group: hestia
     mode: "0750"
 
-- name: Deploy cafe.yaml to /etc/cafebox/cafe.yaml
+- name: Deploy hearth.yaml to /etc/hearth/hearth.yaml
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../cafe.yaml"
-    dest: /etc/cafebox/cafe.yaml
+    src: "{{ playbook_dir }}/../hearth.yaml"
+    dest: /etc/hearth/hearth.yaml
     owner: root
-    group: cafebox-admin
+    group: hestia
     mode: "0640"
 
 - name: Generate admin backend environment file (first run only)
   ansible.builtin.shell:
     cmd: >-
-      printf 'CAFEBOX_SECRET_KEY=%s\nCAFEBOX_CONFIG=/etc/cafebox/cafe.yaml\n'
-      "$(openssl rand -hex 32)" > /etc/cafebox/admin.env
-    creates: /etc/cafebox/admin.env
+      printf 'HEARTH_SECRET_KEY=%s\nHEARTH_CONFIG=/etc/hearth/hearth.yaml\n'
+      "$(openssl rand -hex 32)" > /etc/hearth/admin.env
+    creates: /etc/hearth/admin.env
   no_log: true
 
 - name: Secure admin backend environment file
   ansible.builtin.file:
-    path: /etc/cafebox/admin.env
+    path: /etc/hearth/admin.env
     owner: root
-    group: cafebox-admin
+    group: hestia
     mode: "0640"
 
 # -----------------------------------------------------------------------
@@ -76,55 +76,55 @@
 
 - name: Create admin backend source directory
   ansible.builtin.file:
-    path: /opt/cafebox/admin/backend
+    path: /opt/hearth/admin/backend
     state: directory
     owner: root
-    group: cafebox-admin
+    group: hestia
     mode: "0755"
 
 - name: Deploy admin backend source files
   ansible.builtin.copy:
     src: backend/
-    dest: /opt/cafebox/admin/backend/
+    dest: /opt/hearth/admin/backend/
     owner: root
-    group: cafebox-admin
+    group: hestia
     mode: "0644"
-  notify: Restart cafebox-admin-backend
+  notify: Restart hearth-admin-backend
 
 - name: Create Python virtualenv for admin backend
   ansible.builtin.command:
-    cmd: python3 -m venv /opt/cafebox/admin/venv
-    creates: /opt/cafebox/admin/venv/pyvenv.cfg
+    cmd: python3 -m venv /opt/hearth/admin/venv
+    creates: /opt/hearth/admin/venv/pyvenv.cfg
 
 - name: Install admin backend Python dependencies
   ansible.builtin.pip:
-    requirements: /opt/cafebox/admin/backend/requirements.txt
-    virtualenv: /opt/cafebox/admin/venv
-  notify: Restart cafebox-admin-backend
+    requirements: /opt/hearth/admin/backend/requirements.txt
+    virtualenv: /opt/hearth/admin/venv
+  notify: Restart hearth-admin-backend
 
 # -----------------------------------------------------------------------
 # Systemd service
 # -----------------------------------------------------------------------
 
-- name: Deploy cafebox-admin-backend systemd service unit
+- name: Deploy hearth-admin-backend systemd service unit
   ansible.builtin.template:
-    src: cafebox-admin.service.j2
-    dest: /etc/systemd/system/cafebox-admin-backend.service
+    src: hearth-admin.service.j2
+    dest: /etc/systemd/system/hearth-admin-backend.service
     owner: root
     group: root
     mode: "0644"
-  notify: Restart cafebox-admin-backend
+  notify: Restart hearth-admin-backend
 
-- name: Enable cafebox-admin-backend service
+- name: Enable hearth-admin-backend service
   ansible.builtin.systemd:
-    name: cafebox-admin-backend.service
+    name: hearth-admin-backend.service
     enabled: true
     daemon_reload: true
   when: _systemd_active.stat.exists
 
-- name: Start cafebox-admin-backend service (live system only)
+- name: Start hearth-admin-backend service (live system only)
   ansible.builtin.service:
-    name: cafebox-admin-backend.service
+    name: hearth-admin-backend.service
     state: started
   when: _systemd_active.stat.exists
 
@@ -134,7 +134,7 @@
 
 - name: Create admin frontend web root
   ansible.builtin.file:
-    path: /var/www/cafebox/admin
+    path: /var/www/hearth/admin
     state: directory
     owner: www-data
     group: www-data
@@ -143,7 +143,7 @@
 - name: Deploy admin frontend HTML files
   ansible.builtin.copy:
     src: frontend/
-    dest: /var/www/cafebox/admin/
+    dest: /var/www/hearth/admin/
     owner: www-data
     group: www-data
     mode: "0644"

@@ -1,4 +1,4 @@
-# CafeBox Image Builder
+# Hearth Image Builder
 
 This directory is the destination for the flashable Raspberry Pi image produced
 by `scripts/build-image.sh`.
@@ -54,7 +54,7 @@ repositories. A full build takes roughly 10–30 minutes:
 | Slow build (30 min, private repo) | ~$0.48 |
 
 The workflow lives at `.github/workflows/build-image.yml`. It triggers
-automatically on every `v*` tag push and attaches `cafebox.img.xz` to the
+automatically on every `v*` tag push and attaches `hearth.img.xz` to the
 GitHub Release.
 
 To trigger a build automatically via a version tag:
@@ -167,22 +167,22 @@ the required Linux kernel interfaces.
 sudo scripts/build-image.sh
 ```
 
-The finished image is written to `image/cafebox.img.xz` by default.
+The finished image is written to `image/hearth.img.xz` by default.
 
 ### Options
 
 | Flag / Variable | Default | Description |
 |-----------------|---------|-------------|
-| `--output <path>` | `image/cafebox.img.xz` | Where to write the compressed image |
-| `--work-dir <path>` | `/tmp/cafebox-build` | Scratch directory for build artifacts |
-| `CAFE_CONFIG` | `cafe.yaml` | Path to the operator config file |
+| `--output <path>` | `image/hearth.img.xz` | Where to write the compressed image |
+| `--work-dir <path>` | `/tmp/hearth-build` | Scratch directory for build artifacts |
+| `HEARTH_CONFIG` | `hearth.yaml` | Path to the operator config file |
 | `RPI_OS_URL` | *(latest RPi OS Lite 64-bit)* | Override the base image download URL |
 | `KEEP_WORK=1` | — | Keep the work directory after a successful build |
 
 Example — custom output path and retained work directory:
 
 ```bash
-sudo KEEP_WORK=1 scripts/build-image.sh --output /tmp/cafebox-$(date +%Y%m%d).img.xz
+sudo KEEP_WORK=1 scripts/build-image.sh --output /tmp/hearth-$(date +%Y%m%d).img.xz
 ```
 
 ---
@@ -211,7 +211,7 @@ QEMU userspace emulation on an x86-64 host.
 lsblk
 
 # Flash (replace /dev/sdX with your device — double-check before running!)
-xzcat image/cafebox.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
+xzcat image/hearth.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 sudo sync
 ```
 
@@ -229,17 +229,17 @@ flashes automatically.
 ## First Boot
 
 1. Insert the SD card and power on the Raspberry Pi.
-2. The box broadcasts a WiFi hotspot named **CafeBox** (configurable in
-   `cafe.yaml`).
+2. The box broadcasts a WiFi hotspot named **Hearth** (configurable in
+   `hearth.yaml`).
 3. Connect any device to the hotspot. The captive portal detection redirect
    opens the landing page automatically on most devices.
 4. The landing page displays a **one-time admin password** generated on first
-   boot. Log in at `http://admin.cafe.box` and change it immediately.
+   boot. Log in at `http://admin.hearth.local` and change it immediately.
 
 ---
 
 ## Customising the Image
 
-Edit `cafe.yaml` before running `scripts/build-image.sh` to customise the box
+Edit `hearth.yaml` before running `scripts/build-image.sh` to customise the box
 identity, WiFi settings, enabled services, and storage paths. All configuration
 is baked into the image at build time.

@@ -23,13 +23,13 @@ starting Stage 3.
                      │ HTTP reverse proxy
 ┌────────────────────▼────────────────────────────┐
 │ kiwix.service  (kiwix-serve)                    │
-│  • Serves ZIM files from /srv/cafebox/kiwix/    │
+│  • Serves ZIM files from /srv/hearth/kiwix/    │
 │  • Handles search, article rendering            │
 │  • Exposes HTTP on 127.0.0.1:8888              │
 └────────────────────┬────────────────────────────┘
                      │ ZIM files
 ┌────────────────────▼────────────────────────────┐
-│ /srv/cafebox/kiwix/                             │
+│ /srv/hearth/kiwix/                             │
 │  wikipedia_en_all_mini_*.zim   (≈ 1 GB)        │
 │  or wikipedia_en_all_maxi_*.zim (≈ 90 GB)      │
 │  (operator uploads via admin UI or scp)         │
@@ -42,9 +42,9 @@ starting Stage 3.
 - **Storage planning is the operator's responsibility.** The mini Wikipedia ZIM
   is ≈ 1 GB (text only). The maxi ZIM with images is ≈ 90 GB — larger than a
   typical SD card. Operators deploying the full Wikipedia must provide external
-  storage (USB SSD) mounted at or under `/srv/cafebox/`.
+  storage (USB SSD) mounted at or under `/srv/hearth/`.
 - **ZIM uploads** use the existing admin upload endpoint from Task 1.11; the
-  `kiwix` storage location is already declared in `cafe.yaml`.
+  `kiwix` storage location is already declared in `hearth.yaml`.
 - **No content is bundled** with the Ansible role. The role installs kiwix-serve
   and configures the service; ZIM files are added by the operator post-provision.
 - **Graceful no-content state:** if no ZIM files are present, kiwix-serve still
@@ -81,14 +81,14 @@ binary for the detected platform.
   - Detect architecture (`ansible_architecture`) and download the correct
     kiwix-serve binary from the Kiwix GitHub releases to `/usr/local/bin/kiwix-serve`.
   - Set `mode: "0755"` on the binary.
-  - Ensure `/srv/cafebox/kiwix/` exists and is owned by `kiwix:kiwix`.
+  - Ensure `/srv/hearth/kiwix/` exists and is owned by `kiwix:kiwix`.
 - `ansible/roles/kiwix/vars/main.yml` — pin the kiwix-serve version.
 
 **Acceptance criteria:**
 - `/usr/local/bin/kiwix-serve --version` succeeds on both `armv7l` (Pi) and
   `x86_64` (Vagrant VM) architectures.
 - Binary is owned by `root` and executable by all.
-- `/srv/cafebox/kiwix/` exists and is writable by the `kiwix` user.
+- `/srv/hearth/kiwix/` exists and is writable by the `kiwix` user.
 - Tests pass: binary exists; storage directory exists.
 
 ---
@@ -112,14 +112,14 @@ Create and enable the systemd service that runs kiwix-serve.
       --library \
       --port=8888 \
       --address=127.0.0.1 \
-      /srv/cafebox/kiwix/
+      /srv/hearth/kiwix/
   Restart=on-failure
   RestartSec=5
   PrivateTmp=true
   NoNewPrivileges=true
   ProtectSystem=strict
   ProtectHome=true
-  ReadWritePaths=/srv/cafebox/kiwix
+  ReadWritePaths=/srv/hearth/kiwix
 
   [Install]
   WantedBy=multi-user.target
@@ -152,8 +152,8 @@ work without rewriting. Test with and without trailing slash.
 - Updated `ansible/roles/nginx/templates/nginx.conf.j2`.
 
 **Acceptance criteria:**
-- `curl -I http://cafe.box/wiki` returns 301 to `/wiki/`.
-- `curl http://cafe.box/wiki/` returns a valid HTML response from kiwix-serve.
+- `curl -I http://hearth.local/wiki` returns 301 to `/wiki/`.
+- `curl http://hearth.local/wiki/` returns a valid HTML response from kiwix-serve.
 - Blocks are absent when `services.kiwix.enabled: false`.
 - Tests pass: rendered config contains `= /wiki` redirect and `/wiki/` proxy
   block when enabled; both are absent when disabled.
@@ -181,11 +181,11 @@ a manual service restart.
       "url_path": "/wiki/",
   }
   ```
-- Update `ansible/roles/admin/templates/sudoers-cafebox.j2` to include
+- Update `ansible/roles/admin/templates/sudoers-hearth.j2` to include
   `kiwix.service` start/stop/restart entries.
 
 **Acceptance criteria:**
-- Adding a ZIM file to `/srv/cafebox/kiwix/` and calling the rescan endpoint
+- Adding a ZIM file to `/srv/hearth/kiwix/` and calling the rescan endpoint
   causes the new content to appear in the kiwix library page.
 - The service can be started/stopped via the standard admin API.
 - Tests pass: sudoers template contains `kiwix.service` entries; `services_map.py`
@@ -193,22 +193,22 @@ a manual service restart.
 
 ---
 
-## Task 3.05 — Portal Tile + cafe.yaml Integration
+## Task 3.05 — Portal Tile + hearth.yaml Integration
 
-Wire Kiwix into the portal tile system and `cafe.yaml`.
+Wire Kiwix into the portal tile system and `hearth.yaml`.
 
 **Deliverables:**
-- `cafe.yaml` — `services.kiwix.enabled` is already present; verify it
+- `hearth.yaml` — `services.kiwix.enabled` is already present; verify it
   drives the nginx conditional and the public API tile.
 - `ansible/roles/nginx/files/index.html` — ensure the Wikipedia tile links
   to `/wiki/` (currently the tile may link to a placeholder URL).
-- Brief operator note added to `cafe.yaml` comments explaining storage
+- Brief operator note added to `hearth.yaml` comments explaining storage
   requirements and where to find ZIM files.
 
 **Acceptance criteria:**
 - When `services.kiwix.enabled: true`, the portal tile appears and links
   to `/wiki/`.
 - When `services.kiwix.enabled: false`, the tile is absent from the portal.
-- `cafe.yaml` comments explain minimum storage requirements.
+- `hearth.yaml` comments explain minimum storage requirements.
 - Tests pass: public services API includes/excludes kiwix tile based on
   enabled flag; index.html links to `/wiki/` when enabled.

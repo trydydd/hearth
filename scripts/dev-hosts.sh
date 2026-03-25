@@ -1,25 +1,20 @@
 #!/usr/bin/env bash
-# scripts/dev-hosts.sh — Add or remove local /etc/hosts entries for CafeBox dev
+# scripts/dev-hosts.sh — Add or remove local /etc/hosts entries for Hearth dev
 #
 # Usage:
-#   sudo scripts/dev-hosts.sh add     # Append *.cafe.box entries (idempotent)
+#   sudo scripts/dev-hosts.sh add     # Append *.hearth.local entries (idempotent)
 #   sudo scripts/dev-hosts.sh remove  # Remove the entries
 #
-# The entries map the services that CafeBox exposes under the cafe.box domain
+# The entries map the services that Hearth exposes under the hearth.local domain
 # to 127.0.0.1 so a developer's browser resolves them without a real hotspot.
 
 set -euo pipefail
 
 HOSTS_FILE="/etc/hosts"
-MARKER_START="# BEGIN cafebox-dev"
-MARKER_END="# END cafebox-dev"
+MARKER_START="# BEGIN hearth-dev"
+MARKER_END="# END hearth-dev"
 
-ENTRIES="127.0.0.1 cafe.box
-127.0.0.1 element.cafe.box
-127.0.0.1 books.cafe.box
-127.0.0.1 wiki.cafe.box
-127.0.0.1 music.cafe.box
-127.0.0.1 admin.cafe.box"
+ENTRIES="127.0.0.1 hearth.local"
 
 _require_root() {
     if [ "$(id -u)" -ne 0 ]; then
@@ -32,7 +27,7 @@ cmd_add() {
     _require_root
     # Idempotent: do nothing if the marker block already exists
     if grep -qF "$MARKER_START" "$HOSTS_FILE"; then
-        echo "cafebox-dev entries already present in $HOSTS_FILE — nothing to do."
+        echo "hearth-dev entries already present in $HOSTS_FILE — nothing to do."
         return 0
     fi
     # Ensure the file ends with a newline before appending
@@ -40,18 +35,18 @@ cmd_add() {
         echo "" >> "$HOSTS_FILE"
     fi
     printf '%s\n%s\n%s\n' "$MARKER_START" "$ENTRIES" "$MARKER_END" >> "$HOSTS_FILE"
-    echo "cafebox-dev entries added to $HOSTS_FILE."
+    echo "hearth-dev entries added to $HOSTS_FILE."
 }
 
 cmd_remove() {
     _require_root
     if ! grep -qF "$MARKER_START" "$HOSTS_FILE"; then
-        echo "No cafebox-dev entries found in $HOSTS_FILE — nothing to do."
+        echo "No hearth-dev entries found in $HOSTS_FILE — nothing to do."
         return 0
     fi
     # Remove the block between (and including) the markers
     sed -i "/$MARKER_START/,/$MARKER_END/d" "$HOSTS_FILE"
-    echo "cafebox-dev entries removed from $HOSTS_FILE."
+    echo "hearth-dev entries removed from $HOSTS_FILE."
 }
 
 case "${1:-}" in

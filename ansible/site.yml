@@ -1,16 +1,16 @@
 ---
-# site.yml — CafeBox top-level playbook
+# site.yml — Hearth top-level playbook
 #
-# Apply all roles to the cafebox host group.
+# Apply all roles to the hearth host group.
 # Run against the dev VM:   ansible-playbook -i inventory/development site.yml
 # Run against real Pi:      ansible-playbook -i inventory/production  site.yml
 
-- name: Provision CafeBox
+- name: Provision Hearth
   hosts: all
   become: true
 
   vars_files:
-    - ../cafe.yaml
+    - ../hearth.yaml
 
   pre_tasks:
     - name: Smoke test — verify playbook execution reaches the host

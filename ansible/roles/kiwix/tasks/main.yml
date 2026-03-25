@@ -51,6 +51,15 @@
   become: false
   when: not _kiwix_binary.stat.exists
 
+- name: Check if kiwix tarball is already cached locally
+  ansible.builtin.stat:
+    path: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball }}"
+    get_checksum: false
+  delegate_to: localhost
+  become: false
+  register: _kiwix_tarball_cached
+  when: not _kiwix_binary.stat.exists
+
 - name: Download kiwix-tools archive to build machine
   ansible.builtin.get_url:
     url: "{{ kiwix_download_url }}"
@@ -58,7 +67,9 @@
     mode: "0644"
   delegate_to: localhost
   become: false
-  when: not _kiwix_binary.stat.exists
+  when:
+    - not _kiwix_binary.stat.exists
+    - not (_kiwix_tarball_cached.stat.exists | default(false))
 
 - name: Extract kiwix-serve from archive on build machine
   ansible.builtin.unarchive:
@@ -91,13 +102,13 @@
 # ---- ZIM content -----------------------------------------------------------
 # Download ZIM files to a local staging directory on the build machine, then
 # copy them into the image. Set services.kiwix.download_zims: false in
-# cafe.yaml to skip both steps (for dev environments).
+# hearth.yaml to skip both steps (for dev environments).
 
 - name: Stat ZIM files on target
   ansible.builtin.stat:
     path: "{{ kiwix_storage }}/{{ item.name }}"
     get_checksum: false
-  # services.kiwix.content from cafe.yaml takes precedence; falls back to role defaults.
+  # services.kiwix.content from hearth.yaml takes precedence; falls back to role defaults.
   loop: "{{ (services.kiwix.content | default(kiwix_zims)) | selectattr('enabled', 'equalto', true) | list }}"
   loop_control:
     label: "{{ item.name }}"

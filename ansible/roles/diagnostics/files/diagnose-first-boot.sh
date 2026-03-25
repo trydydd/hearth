@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# diagnose-first-boot.sh — collect diagnostic information for the CafeBox
+# diagnose-first-boot.sh — collect diagnostic information for the Hearth
 # first-boot password flow.
 #
-# Deployed to /usr/local/share/cafebox/diag/ on the target host by the
+# Deployed to /usr/local/share/hearth/diag/ on the target host by the
 # diagnostics Ansible role (development only by default).
 #
 # Run inside the VM as root when the initial password banner is not
 # appearing in the portal:
 #
-#   vagrant ssh -- sudo /usr/local/share/cafebox/diag/diagnose-first-boot.sh
+#   vagrant ssh -- sudo /usr/local/share/hearth/diag/diagnose-first-boot.sh
 #
 # The script checks every component in the chain:
-#   first-boot service → /run/cafebox/portal-status.json → nginx → browser
+#   first-boot service → /run/hearth/portal-status.json → nginx → browser
 #
 # It prints a clearly labelled report; share the full output when filing an
 # issue.
@@ -25,7 +25,7 @@ warn(){ printf '  [WARN] %s\n' "$1"; }
 fail(){ printf '  [FAIL] %s\n' "$1"; }
 
 hdr "1. System users"
-for user in cafebox cafebox-admin; do
+for user in hearth hestia; do
     if id "$user" &>/dev/null; then
         ok "user '$user' exists: $(id "$user")"
     else
@@ -34,15 +34,15 @@ for user in cafebox cafebox-admin; do
 done
 
 hdr "2. First-boot service status"
-systemctl status cafebox-first-boot.service --no-pager --full || true
+systemctl status hearth-first-boot.service --no-pager --full || true
 
 hdr "3. First-boot service journal (last 50 lines)"
-journalctl -u cafebox-first-boot.service --no-pager -n 50 || true
+journalctl -u hearth-first-boot.service --no-pager -n 50 || true
 
 hdr "4. Flag and runtime files"
-FLAG_FILE="/var/lib/cafebox/first-boot-done"
-PASSWORD_FILE="/run/cafebox/initial-password"
-STATUS_JSON="/run/cafebox/portal-status.json"
+FLAG_FILE="/var/lib/hearth/first-boot-done"
+PASSWORD_FILE="/run/hearth/initial-password"
+STATUS_JSON="/run/hearth/portal-status.json"
 
 if [ -f "$FLAG_FILE" ]; then
     ok "flag file present: $FLAG_FILE"
@@ -50,11 +50,11 @@ else
     fail "flag file MISSING: $FLAG_FILE  (first-boot.sh did not complete)"
 fi
 
-if [ -d /run/cafebox ]; then
-    ok "/run/cafebox directory exists"
-    ls -la /run/cafebox/
+if [ -d /run/hearth ]; then
+    ok "/run/hearth directory exists"
+    ls -la /run/hearth/
 else
-    fail "/run/cafebox directory MISSING"
+    fail "/run/hearth directory MISSING"
 fi
 
 if [ -f "$PASSWORD_FILE" ]; then
@@ -82,10 +82,10 @@ else
     systemctl status nginx --no-pager || true
 fi
 
-hdr "6. nginx configuration (cafebox site)"
+hdr "6. nginx configuration (hearth site)"
 CONF_PATHS=(
-    /etc/nginx/sites-enabled/cafebox.conf
-    /etc/nginx/sites-available/cafebox.conf
+    /etc/nginx/sites-enabled/hearth.conf
+    /etc/nginx/sites-available/hearth.conf
 )
 for p in "${CONF_PATHS[@]}"; do
     if [ -e "$p" ]; then
@@ -99,7 +99,7 @@ printf '\n  nginx -T output (active config):\n'
 nginx -T 2>&1 | grep -A10 "services/status" || warn "no /api/public/services/status location found in nginx config"
 
 hdr "7. Portal web root files"
-PORTAL_ROOT="/var/www/cafebox/portal"
+PORTAL_ROOT="/var/www/hearth/portal"
 if [ -d "$PORTAL_ROOT" ]; then
     ok "portal root exists: $PORTAL_ROOT"
     ls -la "$PORTAL_ROOT/"

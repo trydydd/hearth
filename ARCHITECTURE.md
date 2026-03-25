@@ -1,4 +1,4 @@
-# CafeBox Architecture Guide
+# Hearth Architecture Guide
 
 This document is the source of truth for architectural and code-organization decisions.
 
