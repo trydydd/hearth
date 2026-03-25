@@ -13,7 +13,7 @@ ExecStartPre=/usr/local/bin/kiwix-rebuild-library
 ExecStart=/usr/local/bin/kiwix-serve \
     --port=8888 \
     --address=127.0.0.1 \
-    --urlRootLocation /wiki \
+    --urlRootLocation /library \
     --library \
     /srv/cafebox/kiwix/library.xml
 Restart=on-failure

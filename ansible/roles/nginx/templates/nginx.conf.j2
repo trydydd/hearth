@@ -102,15 +102,15 @@ server {
 
 {% if services.kiwix is defined and services.kiwix.enabled %}
     # -------------------------------------------------------------------------
-    # Kiwix offline content (Wikipedia + ZIM files)
+    # Kiwix offline library (Wikipedia, K-12 education, and other ZIM content)
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /wiki { return 301 /wiki/; }
+    location = /library { return 301 /library/; }
 
-    # Reverse proxy — kiwix-serve is configured with --urlRootLocation /wiki
-    # so it expects to receive the full /wiki/... path unchanged.
-    location /wiki/ {
+    # Reverse proxy — kiwix-serve is configured with --urlRootLocation /library
+    # so it expects to receive the full /library/... path unchanged.
+    location /library/ {
         proxy_pass         http://127.0.0.1:8888;
         proxy_set_header   Host       $host;
         proxy_set_header   X-Real-IP  $remote_addr;
