@@ -123,7 +123,7 @@ services:
     # ZIM files are injected onto the SD card after flashing via
     # scripts/inject-zims.sh — the image build never downloads ZIMs.
     # Set to true only when using a self-hosted build that has a local ZIM cache.
-    download_zims: false
+    download_zims: true
 
     # ZIM content packages to download and serve.
     # Browse available files: https://library.kiwix.org/
