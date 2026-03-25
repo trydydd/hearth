@@ -1,0 +1,29 @@
+#!/bin/bash
+# kiwix-rebuild-library — regenerate library.xml from all .zim files in the
+# kiwix storage directory. Run by kiwix.service as ExecStartPre.
+#
+# Adding or removing ZIM files takes effect on the next service restart.
+# This script always exits 0 so kiwix-serve starts even with no ZIM files
+# (it will show an empty library page).
+
+set -euo pipefail
+
+LIBRARY="/srv/cafebox/kiwix/library.xml"
+ZIM_DIR="/srv/cafebox/kiwix"
+
+# Remove stale library so kiwix-manage starts from a clean state
+rm -f "$LIBRARY"
+
+# Add each ZIM file to the library
+shopt -s nullglob
+zims=("$ZIM_DIR"/*.zim)
+
+if [[ ${#zims[@]} -gt 0 ]]; then
+    for zim in "${zims[@]}"; do
+        /usr/local/bin/kiwix-manage "$LIBRARY" add "$zim"
+    done
+else
+    # No ZIM files present — write a minimal empty library so kiwix-serve
+    # starts cleanly and shows an empty content page.
+    printf '<?xml version="1.0" encoding="UTF-8" ?>\n<library version="1.0"/>\n' > "$LIBRARY"
+fi

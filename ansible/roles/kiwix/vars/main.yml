@@ -1,0 +1,21 @@
+---
+# roles/kiwix/vars/main.yml
+#
+# Architecture-specific binary download configuration.
+# Not operator-overridable — change kiwix_version in defaults/main.yml to upgrade.
+
+# kiwix-tools moved from armhf to armv6/armv8 naming after 3.4.0.
+# Pi Zero 2W (32-bit OS) → armv6l → armv6
+# Pi Zero 2W / Pi 3+ (64-bit OS) → aarch64 → aarch64
+_kiwix_arch_map:
+  x86_64:  "x86_64"
+  aarch64: "aarch64"
+  armv7l:  "armv6"
+  armv6l:  "armv6"
+
+kiwix_arch: "{{ _kiwix_arch_map[ansible_architecture] | default('x86_64') }}"
+
+# Tarball stem matches the directory name inside the archive.
+kiwix_tarball_stem: "kiwix-tools_linux-{{ kiwix_arch }}-{{ kiwix_version }}"
+kiwix_tarball:      "{{ kiwix_tarball_stem }}.tar.gz"
+kiwix_download_url: "https://download.kiwix.org/release/kiwix-tools/{{ kiwix_tarball }}"

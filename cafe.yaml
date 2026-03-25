@@ -114,15 +114,29 @@ services:
 
   # eBook library (Calibre-Web)
   calibre_web:
-    enabled: true
+    enabled: false
 
-  # Offline Wikipedia / ZIM reader (Kiwix)
+  # Offline Wikipedia / ZIM reader (Kiwix) — served at /wiki/
   kiwix:
     enabled: true
 
+    # Set to false to skip ZIM downloads during provisioning (useful on a dev
+    # machine where a ~1 GB download is impractical). The service still
+    # installs and starts; add ZIM files manually or via the admin upload page.
+    download_zims: true
+
+    # ZIM content packages to download and serve.
+    # Browse available files: https://library.kiwix.org/
+    #   Mini Wikipedia (text only, ≈ 1 GB):    wikipedia_en_all_mini_YYYY-MM.zim
+    #   Maxi Wikipedia (with images, ≈ 90 GB): wikipedia_en_all_maxi_YYYY-MM.zim
+    content:
+      - name: "wikipedia_en_computer_maxi_2025-12.zim"
+        url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_computer_maxi_2025-12.zim"
+        enabled: true
+
   # Music streaming server (Navidrome)
   navidrome:
-    enabled: true
+    enabled: false
 
 # ---------------------------------------------------------------------------
 # Diagnostics
