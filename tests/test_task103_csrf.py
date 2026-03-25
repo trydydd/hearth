@@ -53,7 +53,7 @@ class TestTask103CSRF(unittest.TestCase):
         """Valid session but no CSRF cookie/header → 403."""
         client = TestClient(app, raise_server_exceptions=False)
         client.cookies.set("cafebox_session", _make_session_cookie())
-        response = client.post("/api/admin/services/conduit/start")
+        response = client.post("/api/admin/services/chat/start")
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"detail": "CSRF validation failed"})
 
@@ -63,7 +63,7 @@ class TestTask103CSRF(unittest.TestCase):
         client = TestClient(app, raise_server_exceptions=False)
         client.cookies.set("cafebox_session", _make_session_cookie())
         client.cookies.set("csrf_token", token)
-        response = client.post("/api/admin/services/conduit/start")
+        response = client.post("/api/admin/services/chat/start")
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"detail": "CSRF validation failed"})
 
@@ -73,7 +73,7 @@ class TestTask103CSRF(unittest.TestCase):
         client.cookies.set("cafebox_session", _make_session_cookie())
         client.cookies.set("csrf_token", "correct-token")
         response = client.post(
-            "/api/admin/services/conduit/start",
+            "/api/admin/services/chat/start",
             headers={"X-CSRF-Token": "wrong-token"},
         )
         self.assertEqual(response.status_code, 403)
@@ -90,7 +90,7 @@ class TestTask103CSRF(unittest.TestCase):
         client.cookies.set("cafebox_session", _make_session_cookie())
         client.cookies.set("csrf_token", token)
         response = client.post(
-            "/api/admin/services/conduit/start",
+            "/api/admin/services/chat/start",
             headers={"X-CSRF-Token": token},
         )
         self.assertNotEqual(response.status_code, 403)

@@ -1,6 +1,0 @@
----
-# roles/element_web/tasks/main.yml
-# TODO (Task 1.x): Install and configure Element Matrix web client.
-- name: Placeholder — element_web role tasks not yet implemented
-  debug:
-    msg: "element_web role: Element Matrix web client"

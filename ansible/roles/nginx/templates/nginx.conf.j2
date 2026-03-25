@@ -1,6 +1,4 @@
 {%- set service_ports = {
-    'conduit':     6167,
-    'element_web': 8080,
     'calibre_web': 8083,
     'kiwix':       8888,
     'navidrome':   4533
@@ -30,8 +28,6 @@
 #       location /api/ { proxy_pass http://127.0.0.1:8000; ... }
 #
 #       # Service reverse-proxy stubs (uncomment when service is installed)
-#       # location /conduit/     { proxy_pass http://127.0.0.1:6167/; }
-#       # location /element_web/ { proxy_pass http://127.0.0.1:8080/; }
 #       # location /calibre_web/ { proxy_pass http://127.0.0.1:8083/; }
 #       # location /kiwix/       { proxy_pass http://127.0.0.1:8888/; }
 #       # location /navidrome/   { proxy_pass http://127.0.0.1:4533/; }
@@ -78,9 +74,35 @@ server {
         try_files $uri $uri/ /admin/login.html;
     }
 
+{% if services.chat is defined and services.chat.enabled %}
+    # -------------------------------------------------------------------------
+    # Hearth Chat
+    # -------------------------------------------------------------------------
+
+    # No-trailing-slash redirect
+    location = /chat { return 301 /chat/; }
+
+    # WebSocket proxy — must come before /chat/ to avoid alias match
+    location /chat/ws {
+        proxy_pass         http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host       $host;
+        proxy_read_timeout 3600s;
+    }
+
+    # Static frontend
+    location /chat/ {
+        alias /var/www/hearth/chat/;
+        index index.html;
+        try_files $uri $uri/ /chat/index.html;
+    }
+{% endif %}
+
     # Service reverse-proxy stubs — uncomment the location block and remove the
     # leading '#' when the corresponding service is enabled in cafe.yaml.
-{% for name, svc in services.items() %}
+{% for name, svc in services.items() if name != 'chat' %}
 {%- set port = service_ports.get(name, 'PORT') -%}
 {%- if svc.enabled %}
     # {{ name }} — enabled; uncomment to activate reverse-proxy:

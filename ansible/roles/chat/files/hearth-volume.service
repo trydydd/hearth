@@ -1,0 +1,15 @@
+[Unit]
+Description=Hearth Chat Ephemeral Encrypted Volume
+Documentation=file:///opt/hearth/chat/server/PRIVACY.md
+DefaultDependencies=no
+After=local-fs.target
+Before=hearth-chat.service shutdown.target umount.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/lib/hearth/volume-setup.sh
+ExecStop=/usr/local/lib/hearth/volume-teardown.sh
+
+[Install]
+WantedBy=multi-user.target

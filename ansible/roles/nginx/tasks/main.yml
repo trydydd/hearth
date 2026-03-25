@@ -44,6 +44,14 @@
         group: www-data
         mode: "0644"
 
+    - name: Deploy Hearth shared stylesheet
+      ansible.builtin.copy:
+        src: hearth.css
+        dest: "{{ nginx_portal_root }}/hearth.css"
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
     - name: Deploy rendered nginx configuration to sites-available
       ansible.builtin.template:
         src: nginx.conf.j2

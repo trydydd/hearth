@@ -66,7 +66,6 @@ storage:
   base: "/srv/cafebox"
 
   locations:
-    conduit:      "/srv/cafebox/conduit"
     calibre_web:  "/srv/cafebox/calibre"
     kiwix:        "/srv/cafebox/kiwix"
     navidrome:    "/srv/cafebox/navidrome"
@@ -106,12 +105,11 @@ usb_ssh:
 # Set a service to false to prevent it from being installed/started.
 # ---------------------------------------------------------------------------
 services:
-  # Matrix homeserver (Conduit)
-  conduit:
-    enabled: true
-
-  # Matrix web client (Element Web) — requires conduit
-  element_web:
+  # Hearth Chat — ephemeral anonymous chat.
+  # Messages are stored in an encrypted volume whose key is generated at boot
+  # and never written to disk. All messages are permanently deleted when the
+  # box restarts or powers off.
+  chat:
     enabled: true
 
   # eBook library (Calibre-Web)

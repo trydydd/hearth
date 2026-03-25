@@ -60,7 +60,7 @@ async def services_status():
           "first_boot": true,
           "initial_password": "Ab3Xy7Pq1Rz4",
           "services": [
-            {"id": "chat", "name": "Matrix Chat", "enabled": true, "url": "http://cafe.box/conduit/"},
+            {"id": "calibre_web", "name": "Calibre", "enabled": true, "url": "http://cafe.box/calibre_web/"},
             ...
           ]
         }

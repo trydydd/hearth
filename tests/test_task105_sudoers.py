@@ -55,8 +55,8 @@ class TestTask105Sudoers(unittest.TestCase):
 
     def test_contains_start_stop_restart_for_all_services(self):
         expected_units = [
-            "conduit.service",
-            "element-web.service",
+            "hearth-chat.service",
+            "hearth-volume.service",
             "calibre-web.service",
             "kiwix.service",
             "navidrome.service",

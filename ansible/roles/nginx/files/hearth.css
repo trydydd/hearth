@@ -1,0 +1,800 @@
+/*
+ * hearth.css — Hearth shared design system
+ *
+ * Deployed to: {{ nginx_portal_root }}/hearth.css  → served at /hearth.css
+ * Referenced by all portal and admin HTML pages via <link rel="stylesheet" href="/hearth.css">
+ *
+ * Sections:
+ *   1. Custom properties (light + dark mode)
+ *   2. Reset + base
+ *   3. Layout
+ *   4. Hero (portal)
+ *   5. First-boot banner
+ *   6. Tile grid + tiles + skeleton (portal + dashboard)
+ *   7. Buttons + links
+ *   8. Forms + card (login)
+ *   9. Admin header bar (dashboard + upload)
+ *  10. Dashboard: badges, service actions, notification
+ *  11. Upload: cards, file input, progress
+ *  12. Footer
+ *  13. Utility
+ */
+
+/* =========================================================================
+   1. Custom properties
+   ========================================================================= */
+
+:root {
+  /* Background gradient */
+  --bg-top:    #fde8c8;
+  --bg-bottom: #faf0dc;
+
+  /* Surfaces */
+  --surface-1: #fffaf3;
+  --surface-2: #f5e8d0;
+  --surface-3: #e8cfa8;
+
+  /* Ink */
+  --ink-strong:  #2c1206;
+  --ink-soft:    #6b3d20;
+  --ink-inverse: #fff8f0;
+
+  /* Accents */
+  --accent-primary:          #c84010;
+  --accent-primary-hover:    #a83208;
+  --accent-secondary:        #e05c18;
+  --accent-secondary-hover:  #c04810;
+  --accent-success:          #2a7a1a;
+  --accent-warning:          #b85c00;
+  --accent-danger:           #b52020;
+
+  /* Tiles */
+  --tile-enabled:  #fff8ef;
+  --tile-disabled: #e0ceb0;
+
+  /* Chrome */
+  --border-strong:    #2c1206;
+  --shadow-pixel:     4px 4px 0 #2c1206;
+  --shadow-pixel-sm:  2px 2px 0 #2c1206;
+  --focus-ring:       #c84010;
+
+  /* Banners */
+  --banner-warning-bg: #fff3cd;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Near-black background — deep contrast with the lit surfaces */
+    --bg-top:    #0d0806;
+    --bg-bottom: #080503;
+
+    /* Surfaces glow like firelit wood — much more saturated than bg */
+    --surface-1: #3d1f08;
+    --surface-2: #5c2e10;
+    --surface-3: #7a4020;
+
+    --ink-strong:  #f5e6c8;
+    --ink-soft:    #c8a070;
+    --ink-inverse: #1c0d04;
+
+    /* Brighter, more saturated fire accents to pop against dark bg */
+    --accent-primary:         #ff6820;
+    --accent-primary-hover:   #e05010;
+    --accent-secondary:       #ff8c38;
+    --accent-secondary-hover: #e07028;
+    --accent-success:         #48c030;
+    --accent-warning:         #f0a020;
+    --accent-danger:          #f04848;
+
+    --tile-enabled:  #4a2510;
+    --tile-disabled: #1e1008;
+
+    /* Golden border, very dark shadow for depth */
+    --border-strong:   #d4a060;
+    --shadow-pixel:    4px 4px 0 #050302;
+    --shadow-pixel-sm: 2px 2px 0 #050302;
+    --focus-ring:      #ff6820;
+
+    --banner-warning-bg: #2a1805;
+  }
+}
+
+
+/* =========================================================================
+   2. Reset + base
+   ========================================================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Verdana, Tahoma, sans-serif;
+  font-size: 16px;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  min-height: 100vh;
+  color: var(--ink-strong);
+}
+
+/* Login page: center the card */
+body.layout-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* =========================================================================
+   3. Layout
+   ========================================================================= */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+@media (min-width: 600px)  { .page { padding: var(--space-5); } }
+@media (min-width: 1024px) { .page { padding: var(--space-6); } }
+
+
+/* =========================================================================
+   4. Hero (portal landing page)
+   ========================================================================= */
+
+.hero {
+  background: var(--surface-1);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Subtle dot-grid decoration */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--surface-3) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.hero-sprite {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink-strong);
+  line-height: 1.2;
+}
+
+@media (min-width: 600px) {
+  .hero-title { font-size: 32px; }
+}
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin-top: var(--space-1);
+}
+
+
+/* =========================================================================
+   5. First-boot banner
+   ========================================================================= */
+
+.first-boot-banner {
+  background: var(--banner-warning-bg);
+  border: 3px solid var(--accent-warning);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.first-boot-banner[hidden] { display: none; }
+
+/* Login-page variant (shown via JS style, not hidden attr) */
+.first-boot-banner.js-hidden { display: none; }
+
+.first-boot-banner h2,
+.first-boot-banner strong {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--ink-strong);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.first-boot-banner p {
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.first-boot-password,
+.initial-password {
+  display: inline-block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0;
+  letter-spacing: 0.1em;
+  color: var(--ink-strong);
+}
+
+
+/* =========================================================================
+   6. Tile grid + tiles + skeleton + states
+   ========================================================================= */
+
+.services-section h2 {
+  font-size: 20px;
+  color: var(--ink-strong);
+  margin-bottom: var(--space-4);
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 480px) { .tile-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .tile-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* --- Individual tile --- */
+
+.tile {
+  border: 3px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pixel);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 110px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+
+.tile--enabled  { background: var(--tile-enabled);  }
+.tile--disabled { background: var(--tile-disabled); opacity: 0.75; }
+
+.tile--enabled:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--border-strong);
+}
+
+.tile--enabled:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--border-strong);
+}
+
+/* Dashboard tiles don't navigate so suppress hover lift */
+.tile--static:hover,
+.tile--static:active {
+  transform: none;
+  box-shadow: var(--shadow-pixel);
+}
+
+.tile-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.tile-status {
+  font-size: 14px;
+  color: var(--ink-soft);
+  flex: 1;
+}
+
+/* --- Skeleton tiles --- */
+
+.tile--skeleton {
+  background: var(--surface-2);
+  pointer-events: none;
+}
+
+.tile--skeleton:hover,
+.tile--skeleton:active {
+  transform: none;
+  box-shadow: var(--shadow-pixel);
+}
+
+.skeleton-bar {
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+  height: 16px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-bar--title { width: 60%; height: 20px; }
+.skeleton-bar--text  { width: 80%; }
+.skeleton-bar--btn   { width: 40%; height: 30px; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1;    }
+  50%       { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar { animation: none; opacity: 0.6; }
+}
+
+/* --- Empty + error states --- */
+
+.state-message {
+  margin-top: var(--space-4);
+  background: var(--surface-1);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.state-message p        { font-size: 16px; color: var(--ink-soft); margin-bottom: var(--space-3); }
+.state-message .hint    { font-size: 14px; }
+
+
+/* =========================================================================
+   7. Buttons + links
+   ========================================================================= */
+
+/* Primary action button */
+.btn-primary,
+.btn-upload,
+.btn-retry {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-primary);
+  color: var(--ink-inverse);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pixel);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: var(--space-5);
+  transition: background 120ms;
+  min-height: 44px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-retry {
+  font-size: 14px;
+  margin-top: 0;
+  display: inline-block;
+  width: auto;
+}
+
+.btn-upload {
+  font-size: 14px;
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.btn-primary:hover,
+.btn-upload:hover,
+.btn-retry:hover   { background: var(--accent-primary-hover); }
+
+.btn-primary:focus-visible,
+.btn-upload:focus-visible,
+.btn-retry:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-primary:disabled,
+.btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary, .btn-upload, .btn-retry { transition: none; }
+}
+
+/* Secondary button (logout, back link) */
+.btn-secondary,
+.btn-logout,
+.back-link {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-2);
+  color: var(--ink-strong);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pixel-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  min-height: 44px;
+  line-height: calc(44px - 2 * var(--space-2) - 4px);
+  text-decoration: none;
+  display: inline-block;
+  transition: background 120ms;
+}
+
+.btn-secondary:hover,
+.btn-logout:hover,
+.back-link:hover { background: var(--surface-3); }
+
+.btn-secondary:focus-visible,
+.btn-logout:focus-visible,
+.back-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-logout:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-secondary, .btn-logout, .back-link { transition: none; }
+}
+
+/* Tile "Open" link button */
+.tile-link {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-inverse);
+  background: var(--accent-secondary);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  min-height: 44px;
+  min-width: 44px;
+  line-height: 26px;
+  align-self: flex-start;
+  transition: background 120ms ease;
+}
+
+.tile-link:hover { background: var(--accent-secondary-hover); }
+
+.tile-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) { .tile-link { transition: none; } }
+
+/* Upload link (primary-styled inline link in dashboard header) */
+.upload-link {
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-secondary);
+  color: var(--ink-inverse);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pixel-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-block;
+  min-height: 44px;
+  line-height: calc(44px - 2 * var(--space-2) - 4px);
+  transition: background 120ms;
+}
+
+.upload-link:hover { background: var(--accent-secondary-hover); }
+
+.upload-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) { .upload-link { transition: none; } }
+
+
+/* =========================================================================
+   8. Forms + card (login page)
+   ========================================================================= */
+
+.card {
+  background: var(--surface-1);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 380px;
+  margin: var(--space-4);
+}
+
+.card h1 {
+  font-size: 22px;
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+
+.form-group { margin-bottom: var(--space-4); }
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: var(--space-2);
+  color: var(--ink-soft);
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink-strong);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.error-msg {
+  background: var(--banner-warning-bg);
+  border: 2px solid var(--accent-danger);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  color: var(--accent-danger);
+  font-size: 14px;
+  margin-top: var(--space-4);
+  display: none;
+}
+
+.error-msg[aria-live] { display: block; }
+
+#change-password-panel { display: none; }
+
+
+/* =========================================================================
+   9. Admin header bar (dashboard + upload)
+   ========================================================================= */
+
+.header {
+  background: var(--surface-1);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.header h1 { font-size: 22px; }
+
+
+/* =========================================================================
+   10. Dashboard: badges, service actions, notification
+   ========================================================================= */
+
+.tile-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+  min-height: 24px;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.badge--enabled  { color: var(--accent-success); }
+.badge--disabled { color: var(--ink-soft); }
+.badge--running  { color: var(--accent-success); background: color-mix(in srgb, var(--accent-success) 12%, transparent); }
+.badge--stopped  { color: var(--accent-danger);  background: color-mix(in srgb, var(--accent-danger)  12%, transparent); }
+
+.tile-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pixel-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  min-height: 44px;
+  transition: filter 120ms;
+}
+
+.btn-action:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-start   { background: var(--accent-success); color: var(--ink-inverse); }
+.btn-stop    { background: var(--accent-danger);  color: var(--ink-inverse); }
+.btn-restart { background: var(--accent-warning); color: var(--ink-inverse); }
+
+.btn-start:hover,
+.btn-stop:hover,
+.btn-restart:hover { filter: brightness(1.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-action { transition: none; }
+}
+
+.notification {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink-strong);
+  color: var(--ink-inverse);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 180ms;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.notification--visible { opacity: 1; }
+
+
+/* =========================================================================
+   11. Upload: cards, file input, progress
+   ========================================================================= */
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 600px) { .upload-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .upload-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.upload-card {
+  background: var(--surface-1);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-pixel);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+
+.upload-card h2 {
+  font-size: 18px;
+  margin-bottom: var(--space-2);
+}
+
+.upload-card .hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: var(--space-4);
+}
+
+.file-input-wrapper { margin-bottom: var(--space-3); }
+
+label.file-label {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: var(--space-2);
+  color: var(--ink-soft);
+}
+
+input[type="file"] {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink-strong);
+}
+
+input[type="file"]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.progress-wrap {
+  margin-top: var(--space-3);
+  display: none;
+}
+
+.progress-wrap.visible { display: block; }
+
+progress {
+  width: 100%;
+  height: 12px;
+  appearance: none;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+progress::-webkit-progress-bar   { background: var(--surface-2); border-radius: var(--radius-sm); }
+progress::-webkit-progress-value { background: var(--accent-success); border-radius: var(--radius-sm); }
+progress::-moz-progress-bar      { background: var(--accent-success); border-radius: var(--radius-sm); }
+
+.status-msg            { font-size: 13px; margin-top: var(--space-2); min-height: 18px; }
+.status-msg--ok        { color: var(--accent-success); }
+.status-msg--error     { color: var(--accent-danger); }
+
+
+/* =========================================================================
+   12. Footer
+   ========================================================================= */
+
+.footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--surface-3);
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+
+/* =========================================================================
+   13. Utility
+   ========================================================================= */
+
+/* Ensure hidden attribute wins even when display is set by component rules */
+[hidden] { display: none !important; }

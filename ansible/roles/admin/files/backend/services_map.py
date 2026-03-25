@@ -23,15 +23,10 @@ UPLOAD_EXTENSIONS: dict[str, list[str]] = {
 # name      : human-readable label shown in portal/admin UI
 # url_path  : nginx location path used to build the full URL
 SERVICE_MAP: dict[str, dict[str, str]] = {
-    "conduit": {
-        "unit": "conduit.service",
-        "name": "Matrix Chat",
-        "url_path": "/conduit/",
-    },
-    "element_web": {
-        "unit": "element-web.service",
-        "name": "Element Web",
-        "url_path": "/element_web/",
+    "chat": {
+        "unit": "hearth-chat.service",
+        "name": "Chat",
+        "url_path": "/chat/",
     },
     "calibre_web": {
         "unit": "calibre-web.service",

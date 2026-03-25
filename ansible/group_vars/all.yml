@@ -35,7 +35,6 @@ wifi:
 storage:
   base: "/srv/cafebox"
   locations:
-    conduit:     "/srv/cafebox/conduit"
     calibre_web: "/srv/cafebox/calibre"
     kiwix:       "/srv/cafebox/kiwix"
     navidrome:   "/srv/cafebox/navidrome"
@@ -44,9 +43,7 @@ storage:
 # Services — per-service enable flags (mirrors cafe.yaml: services.*)
 # ---------------------------------------------------------------------------
 services:
-  conduit:
-    enabled: true
-  element_web:
+  chat:
     enabled: true
   calibre_web:
     enabled: true
