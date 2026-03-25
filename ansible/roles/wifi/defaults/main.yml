@@ -5,4 +5,4 @@
 wifi_hostapd_conf: /etc/hostapd/hostapd.conf
 
 # Path where the rendered dnsmasq configuration is deployed
-wifi_dnsmasq_conf: /etc/dnsmasq.d/cafebox.conf
+wifi_dnsmasq_conf: /etc/dnsmasq.d/hearth.conf

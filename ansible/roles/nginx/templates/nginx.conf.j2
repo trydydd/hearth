@@ -3,24 +3,24 @@
     'kiwix':       8888,
     'navidrome':   4533
 } -%}
-# nginx.conf.j2 — CafeBox nginx configuration template
+# nginx.conf.j2 — Hearth nginx configuration template
 #
 # Rendered by:  ansible roles/nginx via ansible.builtin.template
 # Deployed to:  {{ nginx_conf_dest }}
 #
-# Expected rendered form (with the sample cafe.yaml defaults):
+# Expected rendered form (with the sample hearth.yaml defaults):
 #
 #   server {
 #       listen 80 default_server;
-#       server_name cafe.box;
-#       root /var/www/cafebox/portal;
+#       server_name hearth.local;
+#       root /var/www/hearth/portal;
 #       index index.html;
 #
 #       # Captive-portal detection — redirect to portal on all OSes
-#       location /generate_204        { return 302 http://cafe.box/; }
-#       location /hotspot-detect.html { return 302 http://cafe.box/; }
-#       location /connecttest.txt     { return 302 http://cafe.box/; }
-#       location /ncsi.txt            { return 302 http://cafe.box/; }
+#       location /generate_204        { return 302 http://hearth.local/; }
+#       location /hotspot-detect.html { return 302 http://hearth.local/; }
+#       location /connecttest.txt     { return 302 http://hearth.local/; }
+#       location /ncsi.txt            { return 302 http://hearth.local/; }
 #
 #       location / { index index.html; try_files $uri $uri/ =404; }
 #
@@ -37,7 +37,7 @@ server {
     listen 80 default_server;
     server_name {{ box.domain }};
 
-    root /var/www/cafebox/portal;
+    root /var/www/hearth/portal;
     index index.html;
 
     # Captive-portal detection — redirect all OS probes to the portal
@@ -69,7 +69,7 @@ server {
 
     # Admin frontend static files — not linked from the portal
     location /admin/ {
-        alias /var/www/cafebox/admin/;
+        alias /var/www/hearth/admin/;
         index login.html;
         try_files $uri $uri/ /admin/login.html;
     }
@@ -118,14 +118,14 @@ server {
 {% endif %}
 
     # Service reverse-proxy stubs — uncomment the location block and remove the
-    # leading '#' when the corresponding service is enabled in cafe.yaml.
+    # leading '#' when the corresponding service is enabled in hearth.yaml.
 {% for name, svc in services.items() if name not in ['chat', 'kiwix'] %}
 {%- set port = service_ports.get(name, 'PORT') -%}
 {%- if svc.enabled %}
     # {{ name }} — enabled; uncomment to activate reverse-proxy:
     # location /{{ name }}/ { proxy_pass http://127.0.0.1:{{ port }}/; }
 {% else %}
-    # {{ name }} — disabled (set services.{{ name }}.enabled: true in cafe.yaml)
+    # {{ name }} — disabled (set services.{{ name }}.enabled: true in hearth.yaml)
     # location /{{ name }}/ { proxy_pass http://127.0.0.1:{{ port }}/; }
 {% endif %}
 {%- endfor %}

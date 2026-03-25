@@ -1,11 +1,11 @@
 [Unit]
-Description=CafeBox boot diagnostics — writes report to boot partition
+Description=Hearth boot diagnostics — writes report to boot partition
 After=multi-user.target hostapd.service dnsmasq.service
 Wants=multi-user.target
 
 [Service]
 Type=oneshot
-Environment=CAFEBOX_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false) | lower }}
+Environment=HEARTH_REDACT_SECRETS={{ diagnostics.redact_secrets | default(false) | lower }}
 # Poll for both the WiFi AP interface and the USB gadget interface up to 30 s
 # before capturing diagnostics.  On Pi Zero 2 W (brcmfmac/BCM43430) the kernel
 # registers {{ wifi.interface }} ~300 ms after firmware load, which coincides with

@@ -45,7 +45,7 @@ The music library must be populated with at least a few tracks before testing.
 └────────────────────┬────────────────────────────┘
                      │ reads files
 ┌────────────────────▼────────────────────────────┐
-│ /srv/cafebox/navidrome/music/                   │
+│ /srv/hearth/navidrome/music/                   │
 │  (shared read-only access — navidrome owns it)  │
 └─────────────────────────────────────────────────┘
 ```
@@ -62,7 +62,7 @@ The music library must be populated with at least a few tracks before testing.
   hearth-chat. The same service handles both the WebSocket control channel and
   the audio stream endpoint.
 - **Read-only access to the music library.** The jukebox process reads files
-  from `/srv/cafebox/navidrome/music/` but does not write to the Navidrome
+  from `/srv/hearth/navidrome/music/` but does not write to the Navidrome
   data directory. Navidrome continues to manage its own database.
 - **Queue is ephemeral.** The queue is stored in SQLite in `/tmp` or on the
   ephemeral chat volume. It is intentionally lost on reboot — a clean slate
@@ -114,7 +114,7 @@ Create the `hearth-jukebox` service: Python / FastAPI, port 8766.
   NoNewPrivileges=true
   ProtectSystem=strict
   ProtectHome=true
-  ReadOnlyPaths=/srv/cafebox/navidrome/music
+  ReadOnlyPaths=/srv/hearth/navidrome/music
   ReadWritePaths=/tmp
 
   [Install]
@@ -129,7 +129,7 @@ Create the `hearth-jukebox` service: Python / FastAPI, port 8766.
 - `hearth-jukebox.service` reaches `active (running)`.
 - `GET /jukebox/health` returns `{"status": "ok"}`.
 - `GET /jukebox/queue` returns an empty list `[]` on a fresh start.
-- Tests pass: service unit exists; contains `ReadOnlyPaths=/srv/cafebox/navidrome/music`;
+- Tests pass: service unit exists; contains `ReadOnlyPaths=/srv/hearth/navidrome/music`;
   tasks enable `hearth-jukebox.service`.
 
 ---
@@ -186,7 +186,7 @@ can present tracks for queuing without embedding Navidrome's admin UI.
 
 **Deliverables:**
 - `GET /jukebox/library` — returns a flat list of tracks found in
-  `/srv/cafebox/navidrome/music/` (recursive), with metadata extracted by
+  `/srv/hearth/navidrome/music/` (recursive), with metadata extracted by
   `mutagen`:
   ```jsonc
   [
@@ -243,9 +243,9 @@ server decides.
 - Streaming logic integrated into `main.py`.
 
 **Acceptance criteria:**
-- `curl -I http://cafe.box/jukebox/stream` returns `200 OK` with
+- `curl -I http://hearth.local/jukebox/stream` returns `200 OK` with
   `Accept-Ranges: bytes` while a track is playing.
-- `curl -H "Range: bytes=0-4095" http://cafe.box/jukebox/stream` returns
+- `curl -H "Range: bytes=0-4095" http://hearth.local/jukebox/stream` returns
   `206 Partial Content`.
 - The response body is the audio file content (not an HTML error page).
 - Tests pass: stream returns 204 when idle; returns 206 on a valid Range request
@@ -312,15 +312,15 @@ Wire the jukebox service into nginx and the admin panel.
       "url_path": "/jukebox/",
   }
   ```
-- `ansible/roles/admin/templates/sudoers-cafebox.j2` — add
+- `ansible/roles/admin/templates/sudoers-hearth.j2` — add
   `hearth-jukebox.service` start/stop/restart.
-- `cafe.yaml` — add `services.jukebox.enabled: true`.
+- `hearth.yaml` — add `services.jukebox.enabled: true`.
 - `ansible/site.yml` — add `jukebox` role.
 
 **Acceptance criteria:**
-- `curl -I http://cafe.box/jukebox` returns 301.
-- `curl http://cafe.box/jukebox/` returns the frontend HTML.
-- WebSocket handshake succeeds at `ws://cafe.box/jukebox/ws`.
+- `curl -I http://hearth.local/jukebox` returns 301.
+- `curl http://hearth.local/jukebox/` returns the frontend HTML.
+- WebSocket handshake succeeds at `ws://hearth.local/jukebox/ws`.
 - Admin can start/stop/restart `hearth-jukebox.service` via admin API.
 - Tests pass: rendered nginx config contains all four location blocks when
   enabled; sudoers contains `hearth-jukebox.service`; services_map contains

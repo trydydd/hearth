@@ -20,7 +20,7 @@ BACKEND_DIR = REPO_ROOT / "ansible" / "roles" / "admin" / "files" / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 from itsdangerous import URLSafeTimedSerializer  # noqa: E402
 
@@ -35,12 +35,12 @@ _CSRF_TOKEN = "test-csrf-token-abcdef1234567890"
 
 
 def _make_session_cookie() -> str:
-    return URLSafeTimedSerializer(_SECRET).dumps({"username": "cafebox-admin"})
+    return URLSafeTimedSerializer(_SECRET).dumps({"username": "hearth-admin"})
 
 
 def _authed_client() -> TestClient:
     client = TestClient(app, raise_server_exceptions=False)
-    client.cookies.set("cafebox_session", _make_session_cookie())
+    client.cookies.set("hearth_session", _make_session_cookie())
     client.cookies.set("csrf_token", _CSRF_TOKEN)
     return client
 
@@ -112,7 +112,7 @@ class TestTask108ChangePassword(unittest.TestCase):
             with (
                 patch("routers.auth.verify_password", return_value=True),
                 patch("routers.auth.subprocess.run", return_value=mock_result),
-                patch("config.load_config", return_value={"box": {"domain": "cafe.box"}, "services": {}}),
+                patch("config.load_config", return_value={"box": {"domain": "hearth.local"}, "services": {}}),
             ):
                 # First: confirm first_boot is true before change
                 client = _authed_client()
@@ -155,7 +155,7 @@ class TestTask108ChangePassword(unittest.TestCase):
         self.assertTrue(len(captured) > 0)
         call = captured[0]
         self.assertTrue(any("chpasswd" in c for c in call["cmd"]))
-        self.assertIn("cafebox-admin:mynewpassword1", call["input"])
+        self.assertIn("hearth-admin:mynewpassword1", call["input"])
 
 
 if __name__ == "__main__":

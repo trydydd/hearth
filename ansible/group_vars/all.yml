@@ -1,27 +1,27 @@
 ---
-# group_vars/all.yml — variables shared across all CafeBox hosts
+# group_vars/all.yml — variables shared across all Hearth hosts
 #
-# Values here mirror the structure of cafe.yaml so playbook tasks and Jinja2
+# Values here mirror the structure of hearth.yaml so playbook tasks and Jinja2
 # templates can reference them directly. Override per-host in host_vars/ as needed.
 #
-# The nested `box`, `wifi`, and `services` mappings match the cafe.yaml top-level
+# The nested `box`, `wifi`, and `services` mappings match the hearth.yaml top-level
 # structure so that role templates work identically whether rendered by
-# scripts/generate-configs.py (from cafe.yaml directly) or by the Ansible
+# scripts/generate-configs.py (from hearth.yaml directly) or by the Ansible
 # template module (from these group variables).
 
 # ---------------------------------------------------------------------------
-# Box identity (mirrors cafe.yaml: box.*)
+# Box identity (mirrors hearth.yaml: box.*)
 # ---------------------------------------------------------------------------
 box:
-  name:   "CafeBox"
-  domain: "cafe.box"
+  name:   "Hearth"
+  domain: "hearth.local"
   ip:     "10.0.0.1"
 
 # ---------------------------------------------------------------------------
-# WiFi hotspot (mirrors cafe.yaml: wifi.*)
+# WiFi hotspot (mirrors hearth.yaml: wifi.*)
 # ---------------------------------------------------------------------------
 wifi:
-  ssid:             "CafeBox"
+  ssid:             "Hearth"
   passphrase:       ""
   interface:        "wlan0"
   channel:          6
@@ -30,20 +30,20 @@ wifi:
   dhcp_lease:       "12h"
 
 # ---------------------------------------------------------------------------
-# Storage (mirrors cafe.yaml: storage.*)
+# Storage (mirrors hearth.yaml: storage.*)
 # ---------------------------------------------------------------------------
 storage:
-  base: "/srv/cafebox"
+  base: "/srv/hearth"
   locations:
-    calibre_web: "/srv/cafebox/calibre"
-    kiwix:       "/srv/cafebox/kiwix"
-    navidrome:   "/srv/cafebox/navidrome"
+    calibre_web: "/srv/hearth/calibre"
+    kiwix:       "/srv/hearth/kiwix"
+    navidrome:   "/srv/hearth/navidrome"
 
 # ---------------------------------------------------------------------------
-# Kiwix offline content (mirrors cafe.yaml: kiwix.*)
+# Kiwix offline content (mirrors hearth.yaml: kiwix.*)
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
-# Services — per-service enable flags (mirrors cafe.yaml: services.*)
+# Services — per-service enable flags (mirrors hearth.yaml: services.*)
 # ---------------------------------------------------------------------------
 services:
   chat:
@@ -64,7 +64,7 @@ services:
     enabled: true
 
 # ---------------------------------------------------------------------------
-# USB SSH — cable-based operator access via USB OTG (mirrors cafe.yaml: usb_ssh.*)
+# USB SSH — cable-based operator access via USB OTG (mirrors hearth.yaml: usb_ssh.*)
 # ---------------------------------------------------------------------------
 usb_ssh:
   enabled: true
@@ -73,16 +73,16 @@ usb_ssh:
   ip: "192.168.7.2"
 
 # ---------------------------------------------------------------------------
-# Diagnostics (mirrors cafe.yaml: diagnostics.*)
+# Diagnostics (mirrors hearth.yaml: diagnostics.*)
 # ---------------------------------------------------------------------------
 diagnostics:
   redact_secrets: false
 
 # ---------------------------------------------------------------------------
-# Flat cafebox_* aliases (kept for backward compatibility with tasks that
+# Flat hearth_* aliases (kept for backward compatibility with tasks that
 # reference individual variables directly)
 # ---------------------------------------------------------------------------
-cafebox_name:         "{{ box.name }}"
-cafebox_domain:       "{{ box.domain }}"
-cafebox_ip:           "{{ box.ip }}"
-cafebox_storage_base: "{{ storage.base }}"
+hearth_name:         "{{ box.name }}"
+hearth_domain:       "{{ box.domain }}"
+hearth_ip:           "{{ box.ip }}"
+hearth_storage_base: "{{ storage.base }}"

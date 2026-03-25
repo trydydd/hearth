@@ -2,7 +2,7 @@
 # roles/wifi/tasks/main.yml — Install and configure hostapd + dnsmasq WiFi hotspot
 #
 # Task 0.10: Deploy Jinja2-rendered hostapd.conf and dnsmasq.conf so the
-# WiFi access point and captive-portal DNS are driven by cafe.yaml.
+# WiFi access point and captive-portal DNS are driven by hearth.yaml.
 
 - name: Install hostapd and dnsmasq packages
   ansible.builtin.apt:
@@ -53,11 +53,11 @@
 
 - name: Prevent NetworkManager from managing the WiFi AP interface
   ansible.builtin.copy:
-    dest: /etc/NetworkManager/conf.d/cafebox-wifi.conf
+    dest: /etc/NetworkManager/conf.d/hearth-wifi.conf
     content: |
-      # Managed by Ansible (CafeBox wifi role)
+      # Managed by Ansible (Hearth wifi role)
       # Prevent NetworkManager from taking over the hostapd AP interface.
-      # usb0 is managed via a NM keyfile connection (cafebox-usb0.nmconnection)
+      # usb0 is managed via a NM keyfile connection (hearth-usb0.nmconnection)
       # and excluded here so NM does not run a second competing DHCP process.
       [keyfile]
       unmanaged-devices=interface-name:{{ wifi.interface }}
@@ -68,7 +68,7 @@
 
 # ---------------------------------------------------------------------------
 # Configure a static IP address for the WiFi AP interface.
-# The box.ip from cafe.yaml must be assigned to wlan0 so that:
+# The box.ip from hearth.yaml must be assigned to wlan0 so that:
 #   • dnsmasq can bind to the interface and serve DHCP/DNS responses
 #   • connected clients can route to the box at the advertised gateway IP
 # Use dhcpcd.conf (present on RPi OS) when available; skip on Vagrant VMs.
@@ -90,7 +90,7 @@
       interface {{ wifi.interface }}
       static ip_address={{ box.ip }}/24
       nohook wpa_supplicant
-    marker: "# {mark} ANSIBLE MANAGED BLOCK — cafebox {{ wifi.interface }} AP"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK — hearth {{ wifi.interface }} AP"
   when: _wifi_dhcpcd_conf.stat.exists
 
 # ---------------------------------------------------------------------------
@@ -203,7 +203,7 @@
 - name: Deploy hostapd drop-in — wait for WiFi netdev before starting
   ansible.builtin.template:
     src: hostapd-wlan-wait.conf.j2
-    dest: /etc/systemd/system/hostapd.service.d/cafebox-wlan-wait.conf
+    dest: /etc/systemd/system/hostapd.service.d/hearth-wlan-wait.conf
     owner: root
     group: root
     mode: "0644"
@@ -220,7 +220,7 @@
 - name: Deploy dnsmasq drop-in — wait for WiFi netdev before starting
   ansible.builtin.template:
     src: dnsmasq-wlan-wait.conf.j2
-    dest: /etc/systemd/system/dnsmasq.service.d/cafebox-wlan-wait.conf
+    dest: /etc/systemd/system/dnsmasq.service.d/hearth-wlan-wait.conf
     owner: root
     group: root
     mode: "0644"

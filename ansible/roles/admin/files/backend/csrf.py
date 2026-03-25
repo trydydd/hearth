@@ -1,5 +1,5 @@
 """
-csrf.py — CSRF token protection for the CafeBox admin backend.
+csrf.py — CSRF token protection for the Hearth admin backend.
 
 Uses the double-submit cookie pattern:
 

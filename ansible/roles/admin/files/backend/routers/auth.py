@@ -1,5 +1,5 @@
 """
-routers/auth.py — Authentication endpoints for the CafeBox admin backend.
+routers/auth.py — Authentication endpoints for the Hearth admin backend.
 
 POST /api/admin/login                — validate credentials; issue session cookie.
 POST /api/admin/logout               — clear session cookie.
@@ -20,13 +20,13 @@ from session import clear_session_cookie, require_session, set_session_cookie
 router = APIRouter(prefix="/api/admin")
 
 _FIRST_BOOT_MARKER = Path(
-    os.environ.get("CAFEBOX_FIRST_BOOT_MARKER", "/run/cafebox/initial-password")
+    os.environ.get("HEARTH_FIRST_BOOT_MARKER", "/run/hearth/initial-password")
 )
 _MIN_PASSWORD_LENGTH = 12
 # The only admin system account — used by every credential check so the
 # username submitted by the form cannot be used to authenticate as a
 # different system user.
-_ADMIN_USER = "cafebox-admin"
+_ADMIN_USER = "hearth-admin"
 
 
 class LoginRequest(BaseModel):
@@ -41,14 +41,14 @@ class ChangePasswordRequest(BaseModel):
 
 @router.post("/login")
 async def login(body: LoginRequest, response: Response):
-    """Authenticate with the ``cafebox-admin`` system account.
+    """Authenticate with the ``hearth-admin`` system account.
 
     The username submitted in the request body is ignored for security;
-    authentication is always performed against the ``cafebox-admin`` system
+    authentication is always performed against the ``hearth-admin`` system
     account so that a mis-typed username cannot be used to attempt access
     to other system accounts.
 
-    Returns HTTP 200 and sets a signed ``cafebox_session`` cookie on success.
+    Returns HTTP 200 and sets a signed ``hearth_session`` cookie on success.
     Returns HTTP 401 when the credentials are invalid.
     """
     if not verify_password(_ADMIN_USER, body.password):
@@ -77,7 +77,7 @@ async def change_password(
     * Validates the current password before updating.
     * Enforces a minimum length of 12 characters.
     * Updates the system account via ``chpasswd``.
-    * Deletes ``/run/cafebox/initial-password`` on success to clear the
+    * Deletes ``/run/hearth/initial-password`` on success to clear the
       first-boot banner.
     """
     # Validate minimum length first to give a clear 422 before touching auth

@@ -1,20 +1,20 @@
 ---
 # roles/common/defaults/main.yml
-cafebox_user:  "cafebox"
-cafebox_group: "cafebox"
+hearth_user:  "hearth"
+hearth_group: "hearth"
 
-cafebox_storage_base: "/srv/cafebox"
+hearth_storage_base: "/srv/hearth"
 
 # Directory on the target machine where project files are deployed by Ansible
-cafebox_app_dir: "/opt/cafebox"
+hearth_app_dir: "/opt/hearth"
 
 # Full paths of per-service storage directories, derived from storage.locations
-# in group_vars/all.yml (which mirrors cafe.yaml: storage.locations.*).
-# Do NOT edit this list directly — add/remove entries in cafe.yaml instead.
-cafebox_storage_dirs: "{{ storage.locations.values() | list }}"
+# in group_vars/all.yml (which mirrors hearth.yaml: storage.locations.*).
+# Do NOT edit this list directly — add/remove entries in hearth.yaml instead.
+hearth_storage_dirs: "{{ storage.locations.values() | list }}"
 
-# Base packages installed on every CafeBox host
-cafebox_base_packages:
+# Base packages installed on every Hearth host
+hearth_base_packages:
   - curl
   - git
   - vim
@@ -33,8 +33,8 @@ cafebox_base_packages:
 # ---------------------------------------------------------------------------
 # USB OTG SSH — cable-based admin access for debugging without WiFi
 # ---------------------------------------------------------------------------
-# These defaults mirror cafe.yaml: usb_ssh.* and are used as a fallback when
-# group_vars/all.yml (which mirrors cafe.yaml) does not define usb_ssh.
+# These defaults mirror hearth.yaml: usb_ssh.* and are used as a fallback when
+# group_vars/all.yml (which mirrors hearth.yaml) does not define usb_ssh.
 usb_ssh:
   enabled: true
   username: "cafe"

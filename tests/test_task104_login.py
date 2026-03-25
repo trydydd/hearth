@@ -2,9 +2,9 @@
 tests/test_task104_login.py — Task 1.04 acceptance tests
 
 Verifies the login / logout flow:
-  - Correct credentials → 200 + ``cafebox_session`` cookie set
+  - Correct credentials → 200 + ``hearth_session`` cookie set
   - Wrong credentials   → 401
-  - Logout              → ``cafebox_session`` cookie cleared
+  - Logout              → ``hearth_session`` cookie cleared
   - Protected route     → 401 without valid session cookie
 """
 
@@ -22,7 +22,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 # Provide a test secret key before importing the app so that the session
 # serialiser initialises without raising RuntimeError.
-os.environ.setdefault("CAFEBOX_SECRET_KEY", "test-secret-key-for-unit-tests-only")
+os.environ.setdefault("HEARTH_SECRET_KEY", "test-secret-key-for-unit-tests-only")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
@@ -41,7 +41,7 @@ class TestTask104Login(unittest.TestCase):
     def test_correct_credentials_returns_200(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "cafebox-admin", "password": "correct-password"},
+            json={"username": "hearth-admin", "password": "correct-password"},
         )
         self.assertEqual(response.status_code, 200)
 
@@ -49,9 +49,9 @@ class TestTask104Login(unittest.TestCase):
     def test_correct_credentials_sets_session_cookie(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "cafebox-admin", "password": "correct-password"},
+            json={"username": "hearth-admin", "password": "correct-password"},
         )
-        self.assertIn("cafebox_session", response.cookies)
+        self.assertIn("hearth_session", response.cookies)
 
     # ------------------------------------------------------------------
     # Acceptance criterion: wrong credentials → 401
@@ -61,7 +61,7 @@ class TestTask104Login(unittest.TestCase):
     def test_wrong_credentials_returns_401(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "cafebox-admin", "password": "wrong-password"},
+            json={"username": "hearth-admin", "password": "wrong-password"},
         )
         self.assertEqual(response.status_code, 401)
 
@@ -69,17 +69,17 @@ class TestTask104Login(unittest.TestCase):
     def test_wrong_credentials_does_not_set_session_cookie(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "cafebox-admin", "password": "wrong-password"},
+            json={"username": "hearth-admin", "password": "wrong-password"},
         )
-        self.assertNotIn("cafebox_session", response.cookies)
+        self.assertNotIn("hearth_session", response.cookies)
 
     # ------------------------------------------------------------------
-    # Acceptance criterion: backend always authenticates as cafebox-admin
+    # Acceptance criterion: backend always authenticates as hearth-admin
     # ------------------------------------------------------------------
 
     @patch("routers.auth.verify_password", return_value=True)
-    def test_login_always_authenticates_as_cafebox_admin(self, mock_vp):
-        """Even if the form submits username='admin', auth uses cafebox-admin."""
+    def test_login_always_authenticates_as_hearth_admin(self, mock_vp):
+        """Even if the form submits username='admin', auth uses hearth-admin."""
         self.client.post(
             "/api/admin/login",
             json={"username": "admin", "password": "correct-password"},
@@ -99,7 +99,7 @@ class TestTask104Login(unittest.TestCase):
         response = self.client.post("/api/admin/logout")
         set_cookie = response.headers.get("set-cookie", "")
         # Starlette delete_cookie sets Max-Age=0
-        self.assertIn("cafebox_session", set_cookie)
+        self.assertIn("hearth_session", set_cookie)
         self.assertIn("Max-Age=0", set_cookie)
 
 

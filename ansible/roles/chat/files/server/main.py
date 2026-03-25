@@ -31,7 +31,7 @@ from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-DB_PATH      = Path("/srv/cafebox/chat-data/chat.db")
+DB_PATH      = Path("/srv/hearth/chat-data/chat.db")
 ROOM         = "general"
 HISTORY_LIMIT = 100
 MESSAGE_TTL  = 86400   # seconds (24 hours)

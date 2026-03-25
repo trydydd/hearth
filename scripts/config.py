@@ -1,8 +1,8 @@
 """
-config.py — CafeBox configuration loader
+config.py — Hearth configuration loader
 
 Usage (standalone):
-    python scripts/config.py [path/to/cafe.yaml]
+    python scripts/config.py [path/to/hearth.yaml]
 
 Usage (as a module):
     from scripts.config import load_config
@@ -46,7 +46,7 @@ def _validate_hostname(domain: str) -> bool:
     return bool(re.match(pattern, domain))
 
 
-def load_config(path: str = "cafe.yaml") -> dict:
+def load_config(path: str = "hearth.yaml") -> dict:
     """Load, validate, and return the configuration from *path*.
 
     Raises:
@@ -77,7 +77,7 @@ def load_config(path: str = "cafe.yaml") -> dict:
 
 
 if __name__ == "__main__":
-    config_path = sys.argv[1] if len(sys.argv) > 1 else "cafe.yaml"
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "hearth.yaml"
     try:
         cfg = load_config(config_path)
         print(f"Configuration loaded successfully from '{config_path}':")

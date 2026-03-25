@@ -1,6 +1,6 @@
 # TESTING
 
-This document defines the testing strategy and quality guidelines for CafeBox.
+This document defines the testing strategy and quality guidelines for Hearth.
 
 ## Goals
 
@@ -42,7 +42,7 @@ pip install -r ansible/roles/admin/files/backend/requirements.txt
 
 ## Python Service Runtime Standard
 
-CafeBox uses two different Python environment scopes for different purposes:
+Hearth uses two different Python environment scopes for different purposes:
 
 1. **Root `.venv` (repository root)** for local development and tests.
 2. **Per-service runtime `.venv` (on target host)** for deployed Python services.
@@ -119,7 +119,7 @@ Use Vagrant provisioning to validate cross-role behavior and runtime wiring:
 
 ```bash
 vagrant up
-vagrant ssh -c "journalctl -f -u 'cafebox-*'"
+vagrant ssh -c "journalctl -f -u 'hearth-*'"
 ```
 
 Use this for changes affecting:
@@ -160,7 +160,7 @@ python -m pytest tests/ -v
 ```bash
 vagrant up
 vagrant provision   # optionally reprovision explicitly
-vagrant ssh -c "journalctl -f -u 'cafebox-*'"
+vagrant ssh -c "journalctl -f -u 'hearth-*'"
 ```
 
 ## CI Alignment

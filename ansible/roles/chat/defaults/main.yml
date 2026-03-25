@@ -2,7 +2,7 @@
 # roles/chat/defaults/main.yml
 
 # Path to the sparse backing file for the encrypted chat volume
-chat_backing_file: "/srv/cafebox/chat.img"
+chat_backing_file: "/srv/hearth/chat.img"
 
 # Size of the backing file in MB (sparse — real disk cost is negligible until used)
 chat_volume_size_mb: 256
@@ -11,7 +11,7 @@ chat_volume_size_mb: 256
 chat_mapping: "chat-volume"
 
 # Mount point for the encrypted volume
-chat_mount: "/srv/cafebox/chat-data"
+chat_mount: "/srv/hearth/chat-data"
 
 # Port the chat WebSocket server listens on (localhost only; nginx proxies /chat/ws)
 chat_port: 8765

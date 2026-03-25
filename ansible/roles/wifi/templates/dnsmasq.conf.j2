@@ -1,12 +1,12 @@
-# dnsmasq.conf.j2 — CafeBox DNS + DHCP configuration template
+# dnsmasq.conf.j2 — Hearth DNS + DHCP configuration template
 #
 # Rendered by:  ansible roles/wifi via ansible.builtin.template
 # Deployed to:  {{ wifi_dnsmasq_conf }}
 #
-# Driven by the wifi / box sections of cafe.yaml / group_vars/all.yml.
+# Driven by the wifi / box sections of hearth.yaml / group_vars/all.yml.
 #
 # Responsibilities:
-#   1. Resolve *.cafe.box (and all other DNS queries) to the box IP —
+#   1. Resolve *.hearth.local (and all other DNS queries) to the box IP —
 #      captive-portal intercept so every domain loads the portal.
 #   2. Serve DHCP leases on the AP interface to connected clients.
 
@@ -38,7 +38,7 @@ dhcp-option=option:dns-server,{{ box.ip }}
 # Do not forward unresolved names to upstream DNS (the box is offline)
 no-resolv
 
-# Resolve *.cafe.box to the box IP so every local service is reachable
+# Resolve *.hearth.local to the box IP so every local service is reachable
 address=/{{ box.domain }}/{{ box.ip }}
 
 # Return the box IP for ALL other DNS queries — this is the captive-portal

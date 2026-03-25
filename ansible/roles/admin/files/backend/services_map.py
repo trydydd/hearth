@@ -1,10 +1,10 @@
 """
-services_map.py — CafeBox Service Identity Map.
+services_map.py — Hearth Service Identity Map.
 
 Single source of truth mapping tile IDs (used in the API) to systemd unit
 names, human-readable display names, URL paths, and valid upload extensions.
 
-Tile IDs match the keys used in ``cafe.yaml`` ``services.*``.
+Tile IDs match the keys used in ``hearth.yaml`` ``services.*``.
 """
 
 from typing import Literal
@@ -18,7 +18,7 @@ UPLOAD_EXTENSIONS: dict[str, list[str]] = {
 
 # Service Identity Map
 #   tile_id → {unit, name, url_path}
-# tile_id   : key in cafe.yaml ``services`` section and in API responses
+# tile_id   : key in hearth.yaml ``services`` section and in API responses
 # unit      : systemd unit name passed to systemctl
 # name      : human-readable label shown in portal/admin UI
 # url_path  : nginx location path used to build the full URL

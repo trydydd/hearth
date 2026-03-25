@@ -21,11 +21,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 NGINX_TEMPLATE_DIR = REPO_ROOT / "ansible" / "roles" / "nginx" / "templates"
 NGINX_TEMPLATE = NGINX_TEMPLATE_DIR / "nginx.conf.j2"
 PORTAL_HTML = REPO_ROOT / "ansible" / "roles" / "nginx" / "files" / "index.html"
-CAFE_YAML = REPO_ROOT / "cafe.yaml"
+CAFE_YAML = REPO_ROOT / "hearth.yaml"
 
 
 def _render_nginx_template() -> str:
-    """Render the nginx Jinja2 template with the sample cafe.yaml config."""
+    """Render the nginx Jinja2 template with the sample hearth.yaml config."""
     with CAFE_YAML.open() as fh:
         cfg = yaml.safe_load(fh)
 
@@ -37,7 +37,7 @@ def _render_nginx_template() -> str:
     return template.render(
         box=cfg.get("box", {}),
         services=cfg.get("services", {}),
-        nginx_conf_dest="/etc/nginx/sites-enabled/cafebox",
+        nginx_conf_dest="/etc/nginx/sites-enabled/hearth",
     )
 
 

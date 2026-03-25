@@ -1,5 +1,5 @@
 """
-generate-configs.py — CafeBox Jinja2 template renderer (developer preview tool)
+generate-configs.py — Hearth Jinja2 template renderer (developer preview tool)
 
 Renders every *.j2 template found across ansible/roles/*/templates/ into
 system/generated/, preserving the base filename (e.g. nginx.conf.j2 →
@@ -13,7 +13,7 @@ exists purely so developers can inspect the rendered output locally without
 spinning up a VM or running a full playbook.
 
 Usage:
-    python scripts/generate-configs.py [--config path/to/cafe.yaml]
+    python scripts/generate-configs.py [--config path/to/hearth.yaml]
 
 Running the script twice (idempotent): files are only written when their
 content changes.
@@ -122,13 +122,13 @@ def render_templates(config: dict, templates_dir: str, output_dir: str) -> list[
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Render Jinja2 templates from cafe.yaml"
+        description="Render Jinja2 templates from hearth.yaml"
     )
     parser.add_argument(
         "--config",
-        default="cafe.yaml",
+        default="hearth.yaml",
         metavar="PATH",
-        help="Path to cafe.yaml (default: cafe.yaml)",
+        help="Path to hearth.yaml (default: hearth.yaml)",
     )
     args = parser.parse_args()
 

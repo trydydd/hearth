@@ -20,9 +20,9 @@ def _load_module(name: str, path: Path):
     return module
 
 
-config_module = _load_module("cafebox_config", REPO_ROOT / "scripts" / "config.py")
+config_module = _load_module("hearth_config", REPO_ROOT / "scripts" / "config.py")
 generate_module = _load_module(
-    "cafebox_generate_configs", REPO_ROOT / "scripts" / "generate-configs.py"
+    "hearth_generate_configs", REPO_ROOT / "scripts" / "generate-configs.py"
 )
 
 
@@ -51,7 +51,7 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
 
     def test_required_files_exist(self):
         expected = [
-            "cafe.yaml",
+            "hearth.yaml",
             "install.sh",
             "ansible/site.yml",
             "ansible/ansible.cfg",
@@ -72,11 +72,11 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
 
 class TestTask002SampleConfig(unittest.TestCase):
     def test_cafe_yaml_is_valid_yaml(self):
-        data = yaml.safe_load((REPO_ROOT / "cafe.yaml").read_text())
+        data = yaml.safe_load((REPO_ROOT / "hearth.yaml").read_text())
         self.assertIsInstance(data, dict)
 
     def test_cafe_yaml_contains_required_top_level_sections(self):
-        data = yaml.safe_load((REPO_ROOT / "cafe.yaml").read_text())
+        data = yaml.safe_load((REPO_ROOT / "hearth.yaml").read_text())
         for key in ["box", "wifi", "storage", "services", "diagnostics"]:
             with self.subTest(key=key):
                 self.assertIn(key, data)
@@ -84,16 +84,16 @@ class TestTask002SampleConfig(unittest.TestCase):
 
 class TestTask003ConfigLoader(unittest.TestCase):
     def test_load_config_returns_valid_mapping(self):
-        config = config_module.load_config(str(REPO_ROOT / "cafe.yaml"))
+        config = config_module.load_config(str(REPO_ROOT / "hearth.yaml"))
         self.assertIsInstance(config, dict)
         self.assertIn("box", config)
         self.assertIn("domain", config["box"])
 
     def test_missing_required_key_raises_configerror(self):
         broken = {
-            "box": {"name": "CafeBox", "ip": "10.0.0.1"},
-            "wifi": {"ssid": "CafeBox", "interface": "wlan0"},
-            "storage": {"base": "/srv/cafebox"},
+            "box": {"name": "Hearth", "ip": "10.0.0.1"},
+            "wifi": {"ssid": "Hearth", "interface": "wlan0"},
+            "storage": {"base": "/srv/hearth"},
             "services": {},
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -105,9 +105,9 @@ class TestTask003ConfigLoader(unittest.TestCase):
 
     def test_invalid_hostname_raises_configerror(self):
         broken = {
-            "box": {"name": "CafeBox", "domain": "not a hostname", "ip": "10.0.0.1"},
-            "wifi": {"ssid": "CafeBox", "interface": "wlan0"},
-            "storage": {"base": "/srv/cafebox"},
+            "box": {"name": "Hearth", "domain": "not a hostname", "ip": "10.0.0.1"},
+            "wifi": {"ssid": "Hearth", "interface": "wlan0"},
+            "storage": {"base": "/srv/hearth"},
             "services": {},
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -121,7 +121,7 @@ class TestTask003ConfigLoader(unittest.TestCase):
 class TestTask004TemplateRenderer(unittest.TestCase):
     def test_generate_configs_script_renders_templates(self):
         result = subprocess.run(
-            [sys.executable, "scripts/generate-configs.py", "--config", "cafe.yaml"],
+            [sys.executable, "scripts/generate-configs.py", "--config", "hearth.yaml"],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -135,14 +135,14 @@ class TestTask004TemplateRenderer(unittest.TestCase):
 
     def test_generate_configs_is_idempotent(self):
         first = subprocess.run(
-            [sys.executable, "scripts/generate-configs.py", "--config", "cafe.yaml"],
+            [sys.executable, "scripts/generate-configs.py", "--config", "hearth.yaml"],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
             check=False,
         )
         second = subprocess.run(
-            [sys.executable, "scripts/generate-configs.py", "--config", "cafe.yaml"],
+            [sys.executable, "scripts/generate-configs.py", "--config", "hearth.yaml"],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -161,7 +161,7 @@ class TestTask004TemplateRenderer(unittest.TestCase):
 
             with self.assertRaises(SystemExit) as ctx:
                 generate_module.render_templates(
-                    {"box": {"domain": "cafe.box"}},
+                    {"box": {"domain": "hearth.local"}},
                     str(templates_dir),
                     str(output_dir),
                 )
@@ -671,8 +671,8 @@ class TestDiagnosticsRole(unittest.TestCase):
 
     def test_boot_dump_service_template_exists(self):
         self.assertTrue(
-            (self.DIAG_TEMPLATES_DIR / "cafebox-boot-dump.service.j2").is_file(),
-            "Missing template: ansible/roles/diagnostics/templates/cafebox-boot-dump.service.j2",
+            (self.DIAG_TEMPLATES_DIR / "hearth-boot-dump.service.j2").is_file(),
+            "Missing template: ansible/roles/diagnostics/templates/hearth-boot-dump.service.j2",
         )
 
     def test_boot_dump_deployed_unconditionally(self):

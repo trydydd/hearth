@@ -8,8 +8,8 @@
 
 set -euo pipefail
 
-LIBRARY="/srv/cafebox/kiwix/library.xml"
-ZIM_DIR="/srv/cafebox/kiwix"
+LIBRARY="/srv/hearth/kiwix/library.xml"
+ZIM_DIR="/srv/hearth/kiwix"
 
 # Remove stale library so kiwix-manage starts from a clean state
 rm -f "$LIBRARY"

@@ -8,21 +8,21 @@ User=kiwix
 Group=kiwix
 # Regenerate the library index from whatever .zim files are present before
 # starting. This makes add/remove of ZIM files a matter of dropping files in
-# /srv/cafebox/kiwix/ and restarting the service — no manual config editing.
+# /srv/hearth/kiwix/ and restarting the service — no manual config editing.
 ExecStartPre=/usr/local/bin/kiwix-rebuild-library
 ExecStart=/usr/local/bin/kiwix-serve \
     --port=8888 \
     --address=127.0.0.1 \
     --urlRootLocation /library \
     --library \
-    /srv/cafebox/kiwix/library.xml
+    /srv/hearth/kiwix/library.xml
 Restart=on-failure
 RestartSec=5
 PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/cafebox/kiwix
+ReadWritePaths=/srv/hearth/kiwix
 
 [Install]
 WantedBy=multi-user.target

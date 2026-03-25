@@ -1,7 +1,7 @@
 # Admin Role
 
-Deploys the CafeBox admin backend (FastAPI/uvicorn) and frontend (static HTML),
-wires them together behind nginx, and sets up the `cafebox-admin` system account
+Deploys the Hearth admin backend (FastAPI/uvicorn) and frontend (static HTML),
+wires them together behind nginx, and sets up the `hearth-admin` system account
 with the minimal sudo permissions the service needs.
 
 ---
@@ -18,14 +18,14 @@ with the minimal sudo permissions the service needs.
 ┌─────────────────────────────────────────────────────────────────┐
 │  nginx                                                          │
 │                                                                 │
-│  /admin/*          →  /var/www/cafebox/admin/   (static files)  │
+│  /admin/*          →  /var/www/hearth/admin/   (static files)  │
 │  /api/*            →  127.0.0.1:8000            (proxy_pass)    │
 │  /healthz          →  127.0.0.1:8000            (proxy_pass)    │
 └────────────────────────────┬────────────────────────────────────┘
                              │ HTTP (loopback only)
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  uvicorn / FastAPI  (user: cafebox-admin, port 8000)            │
+│  uvicorn / FastAPI  (user: hearth-admin, port 8000)            │
 │                                                                 │
 │  routers/public.py    GET  /api/public/services/status          │
 │  routers/auth.py      POST /api/admin/login                     │
@@ -39,7 +39,7 @@ with the minimal sudo permissions the service needs.
 └───┬──────────────┬──────────────────────────────┬──────────────┘
     │              │                              │
     ▼              ▼                              ▼
- cafe.yaml      PAM                       sudo systemctl
+ hearth.yaml      PAM                       sudo systemctl
  (config)   (password auth)           (service management)
 ```
 
@@ -51,7 +51,7 @@ nginx handles:
 - Serving the static frontend files without involving Python
 - TLS termination (if added later)
 - The `proxy_pass` to the backend with consistent path rewriting
-- Serving the static `/run/cafebox/portal-status.json` on the portal
+- Serving the static `/run/hearth/portal-status.json` on the portal
   path while the backend is starting up
 
 ---
@@ -60,16 +60,16 @@ nginx handles:
 
 ### First Boot
 
-On the very first boot, `cafebox-first-boot.service` runs
-`first-boot.sh` **once** (guarded by `/var/lib/cafebox/first-boot-done`):
+On the very first boot, `hearth-first-boot.service` runs
+`first-boot.sh` **once** (guarded by `/var/lib/hearth/first-boot-done`):
 
 ```
-cafebox-first-boot.service
+hearth-first-boot.service
   │
   ├─ generate 12-char random alphanumeric password
-  ├─ /usr/sbin/chpasswd  →  sets cafebox-admin system account password
-  ├─ write /run/cafebox/initial-password  (mode 0400, owner cafebox-admin)
-  └─ touch /var/lib/cafebox/first-boot-done  (idempotency guard)
+  ├─ /usr/sbin/chpasswd  →  sets hearth-admin system account password
+  ├─ write /run/hearth/initial-password  (mode 0400, owner hearth-admin)
+  └─ touch /var/lib/hearth/first-boot-done  (idempotency guard)
 ```
 
 The browser login flow then detects and handles first boot automatically:
@@ -89,7 +89,7 @@ Browser                         Backend                      System
    ├─ POST /api/admin/login ───────>│                            │
    │   X-CSRF-Token: <token>       ├─ pam.authenticate() ──────>│
    │   { password: "…" }           │<── success ────────────────┤
-   │<── cafebox_session cookie ────┤                            │
+   │<── hearth_session cookie ────┤                            │
    │                               │                            │
    │  (change-password panel       │                            │
    │   shown in browser)           │                            │
@@ -116,8 +116,8 @@ Browser                         Backend
    ├─ POST /api/admin/login ───────>│
    │   X-CSRF-Token: <token>       ├─ verify CSRF (double-submit)
    │   { username: "…",            ├─ ignore submitted username
-   │     password: "…" }           ├─ pam.authenticate("cafebox-admin", pw)
-   │<── cafebox_session cookie ────┤  (signed, 24 h, HttpOnly)
+   │     password: "…" }           ├─ pam.authenticate("hearth-admin", pw)
+   │<── hearth_session cookie ────┤  (signed, 24 h, HttpOnly)
    │                               │
    └─ redirect → /admin/dashboard  │
 ```
@@ -129,7 +129,7 @@ Browser                         Backend                      systemd
    │                               │                            │
    ├─ GET /api/admin/              │                            │
    │     services/status ──────────>│                            │
-   │   cafebox_session cookie      ├─ verify session            │
+   │   hearth_session cookie      ├─ verify session            │
    │   X-CSRF-Token: <token>       ├─ systemctl is-active ─────>│
    │                               │  (per service, no sudo)    │
    │<── [{ id, name,               │<── active/inactive ─────────┤
@@ -147,10 +147,10 @@ Browser                         Backend                      systemd
 
 ## Security Design
 
-### Username is always `cafebox-admin`
+### Username is always `hearth-admin`
 
 The username submitted in the login form is **ignored**. Authentication
-is always performed against the `cafebox-admin` system account regardless
+is always performed against the `hearth-admin` system account regardless
 of what the browser sends. This prevents:
 
 - Username enumeration (an attacker cannot probe whether other system
@@ -166,12 +166,12 @@ value back in an `X-CSRF-Token` header. The server compares them with
 
 The `csrf_token` cookie is intentionally **not** `HttpOnly` — the
 JavaScript frontend must be able to read it to include it in the header.
-The session cookie (`cafebox_session`) **is** `HttpOnly`.
+The session cookie (`hearth_session`) **is** `HttpOnly`.
 
 ### Session cookies — signed, stateless
 
 Sessions use `itsdangerous.URLSafeTimedSerializer` with a secret key from
-`CAFEBOX_SECRET_KEY`. The signed token is stored entirely in the cookie;
+`HEARTH_SECRET_KEY`. The signed token is stored entirely in the cookie;
 no server-side session store is needed. Tokens expire after 24 hours.
 
 Both cookies use `SameSite=Strict`. `Secure=False` is intentional: the
@@ -188,8 +188,8 @@ is spawned for authentication.
 
 ### sudo scope
 
-`cafebox-admin` is granted exactly two categories of sudo commands (see
-`templates/sudoers-cafebox.j2`):
+`hearth-admin` is granted exactly two categories of sudo commands (see
+`templates/sudoers-hearth.j2`):
 
 | Command | Why sudo is needed |
 |---|---|
@@ -207,12 +207,12 @@ allowlist unreachable. The sudoers file is the security boundary.
 ## File Layout (deployed)
 
 ```
-/opt/cafebox/admin/
+/opt/hearth/admin/
   venv/                    Python virtualenv
   backend/                 FastAPI application
     main.py
     auth.py                PAM password verification helper
-    config.py              cafe.yaml loader
+    config.py              hearth.yaml loader
     csrf.py                Double-submit CSRF middleware
     session.py             Signed-cookie session helpers
     services_map.py        Service identity map (tile IDs → units)
@@ -222,17 +222,17 @@ allowlist unreachable. The sudoers file is the security boundary.
       services.py          /api/admin/services/*
       upload.py            /api/admin/upload/*
 
-/var/www/cafebox/admin/    Static frontend (served by nginx)
+/var/www/hearth/admin/    Static frontend (served by nginx)
   login.html
   dashboard.html
   upload.html
 
-/etc/cafebox/admin.env     CAFEBOX_SECRET_KEY (mode 0640)
-/etc/sudoers.d/cafebox     sudo allowlist for cafebox-admin
-/run/cafebox/
+/etc/hearth/admin.env     HEARTH_SECRET_KEY (mode 0640)
+/etc/sudoers.d/hearth     sudo allowlist for hearth-admin
+/run/hearth/
   initial-password         Temp password file (first-boot only, 0400)
   portal-status.json       Static fallback for portal (nginx)
-/var/lib/cafebox/
+/var/lib/hearth/
   first-boot-done          Idempotency flag for first-boot.service
 ```
 
@@ -247,7 +247,7 @@ source .venv/bin/activate
 pip install -r ansible/roles/admin/files/backend/requirements.txt
 
 cd ansible/roles/admin/files/backend
-CAFEBOX_SECRET_KEY=dev uvicorn main:app --reload
+HEARTH_SECRET_KEY=dev uvicorn main:app --reload
 ```
 
 Do not create a local `.venv` inside `files/backend/` — role payload
@@ -266,14 +266,14 @@ python -m pytest tests/ -v
 
 ## Configuration
 
-`cafe.yaml` is resolved in this order:
+`hearth.yaml` is resolved in this order:
 
 1. Explicit `path` argument to `load_config()`
-2. `CAFEBOX_CONFIG` environment variable
-3. `cafe.yaml` in the current working directory
+2. `HEARTH_CONFIG` environment variable
+3. `hearth.yaml` in the current working directory
 
 ```bash
-CAFEBOX_CONFIG=/etc/cafe/cafe.yaml uvicorn main:app
+HEARTH_CONFIG=/etc/cafe/hearth.yaml uvicorn main:app
 ```
 
 ## Regenerating the OpenAPI Schema

@@ -9,4 +9,4 @@
 diagnostics_enabled: false
 
 # Directory inside the VM where diagnostic scripts are installed.
-diagnostics_dir: /usr/local/share/cafebox/diag
+diagnostics_dir: /usr/local/share/hearth/diag

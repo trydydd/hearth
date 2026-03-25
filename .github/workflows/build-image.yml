@@ -1,4 +1,4 @@
-# .github/workflows/build-image.yml — Build and publish a CafeBox flashable image
+# .github/workflows/build-image.yml — Build and publish a Hearth flashable image
 #
 # Triggers:
 #   • Every version tag push (e.g. v1.0.0) — full build + GitHub Release.
@@ -89,8 +89,8 @@ jobs:
         if: ${{ inputs.mode == 'artifact' }}
         uses: actions/upload-artifact@v6
         with:
-          name: cafebox-image
-          path: image/cafebox.img.xz
+          name: hearth-image
+          path: image/hearth.img.xz
           retention-days: 7
 
       - name: Create GitHub Release and upload image
@@ -100,11 +100,11 @@ jobs:
         run: |
           if gh release view "${{ github.ref_name }}" > /dev/null 2>&1; then
             # Release already exists (e.g. created manually) — just attach the asset
-            gh release upload "${{ github.ref_name }}" image/cafebox.img.xz --clobber
+            gh release upload "${{ github.ref_name }}" image/hearth.img.xz --clobber
           else
             # First publish: create the release and attach the asset in one step
             gh release create "${{ github.ref_name }}" \
-              --title "CafeBox ${{ github.ref_name }}" \
+              --title "Hearth ${{ github.ref_name }}" \
               --generate-notes \
-              image/cafebox.img.xz
+              image/hearth.img.xz
           fi

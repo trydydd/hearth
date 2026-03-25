@@ -1,6 +1,6 @@
-[cafebox]
+[hearth]
 # The Vagrant dev VM — Vagrant's ansible provisioner populates connection
 # details automatically when run via `vagrant up` / `vagrant provision`.
 # For manual runs outside Vagrant use:
 #   ansible-playbook -i inventory/development site.yml
-cafebox-dev ansible_host=127.0.0.1 ansible_port=2222 ansible_user=vagrant ansible_private_key_file=.vagrant/machines/default/virtualbox/private_key
+hearth-dev ansible_host=127.0.0.1 ansible_port=2222 ansible_user=vagrant ansible_private_key_file=.vagrant/machines/default/virtualbox/private_key

@@ -35,7 +35,7 @@ one hour of work for an intermediate software engineer.
 └────────────────────┬────────────────────────────┘
                      │ SQLite
 ┌────────────────────▼────────────────────────────┐
-│ /srv/cafebox/chat-data/   (ext4, dm-crypt)      │
+│ /srv/hearth/chat-data/   (ext4, dm-crypt)      │
 │  Encrypted with a random key generated at boot. │
 │  Key is never written to disk — lives only in   │
 │  RAM. Volume and all messages are unrecoverable │
@@ -82,16 +82,16 @@ what they do not.
 
 Create the systemd service that sets up the ephemeral encrypted volume at boot.
 
-The volume is backed by a pre-allocated sparse file at `/srv/cafebox/chat.img`.
+The volume is backed by a pre-allocated sparse file at `/srv/hearth/chat.img`.
 At boot the service:
 1. Cleans up any stale state from an unclean shutdown — unconditionally unmounts
-   `/srv/cafebox/chat-data/` and closes any existing `chat-volume` dm-crypt mapping,
+   `/srv/hearth/chat-data/` and closes any existing `chat-volume` dm-crypt mapping,
    ignoring errors. This ensures only one mapping ever exists regardless of prior
    shutdown behaviour.
 2. Generates a 32-byte random key from `/dev/urandom` — key is never written to disk.
 3. Opens an encrypted dm-crypt (plain mode) device using that key.
 4. Formats the device as ext4 (run every boot — contents are ephemeral by design).
-5. Mounts the device at `/srv/cafebox/chat-data/`.
+5. Mounts the device at `/srv/hearth/chat-data/`.
 
 On stop/reboot the volume is unmounted and the dm-crypt mapping is closed. Without
 the key, the ciphertext in `chat.img` is unrecoverable.
@@ -104,7 +104,7 @@ the key, the ciphertext in `chat.img` is unrecoverable.
 
 **Acceptance criteria:**
 - Service reaches `active (exited)` after starting.
-- `/srv/cafebox/chat-data/` is a mounted ext4 filesystem after the service runs.
+- `/srv/hearth/chat-data/` is a mounted ext4 filesystem after the service runs.
 - After stopping the service, the mount is gone and the dm-crypt mapping is removed.
 - `chat.img` exists on disk; its contents are unreadable without the key.
 - Starting the service a second time (simulating a reboot after unclean shutdown)
@@ -127,7 +127,7 @@ Implement the Python WebSocket chat server as a FastAPI application.
   - Server stores in SQLite, prunes messages older than 24 h, broadcasts to all.
 - On disconnect: server releases the nickname and broadcasts a `left` event.
 
-**Database schema (SQLite, `/srv/cafebox/chat-data/chat.db`):**
+**Database schema (SQLite, `/srv/hearth/chat-data/chat.db`):**
 ```sql
 CREATE TABLE messages (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,9 +209,9 @@ the WebSocket connection.
 - Updated `ansible/roles/nginx/templates/nginx.conf.j2`.
 
 **Acceptance criteria:**
-- `curl -I http://cafe.box/chat` returns a 301 redirect to `/chat/`.
-- `curl http://cafe.box/chat/` returns the frontend HTML.
-- WebSocket handshake succeeds at `ws://cafe.box/chat/ws`.
+- `curl -I http://hearth.local/chat` returns a 301 redirect to `/chat/`.
+- `curl http://hearth.local/chat/` returns the frontend HTML.
+- WebSocket handshake succeeds at `ws://hearth.local/chat/ws`.
 - Location blocks are absent when `services.chat.enabled: false`.
 - Tests pass: rendered config contains `= /chat` redirect, `/chat/` static block,
   and `/chat/ws` proxy block when enabled; all three are absent when disabled.
@@ -231,9 +231,9 @@ Wire the chat service into the portal tile system and admin backend.
       "url_path": "/chat/",
   }
   ```
-- `ansible/roles/admin/templates/sudoers-cafebox.j2` — add `start/stop/restart`
+- `ansible/roles/admin/templates/sudoers-hearth.j2` — add `start/stop/restart`
   for `hearth-chat.service` and `hearth-volume.service`.
-- `cafe.yaml` — add `services.chat.enabled: true` with a comment explaining the
+- `hearth.yaml` — add `services.chat.enabled: true` with a comment explaining the
   ephemerality guarantee.
 - `ansible/site.yml` — add `chat` role.
 

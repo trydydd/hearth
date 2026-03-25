@@ -1,5 +1,5 @@
 ---
-# roles/nginx/tasks/main.yml — Install and configure nginx as the CafeBox portal
+# roles/nginx/tasks/main.yml — Install and configure nginx as the Hearth portal
 # and captive-portal redirect handler.
 #
 # Task 0.11: Deploy the Jinja2-rendered nginx configuration that:
@@ -61,7 +61,7 @@
         mode: "0644"
       notify: Reload nginx
 
-    - name: Enable cafebox nginx site (symlink into sites-enabled)
+    - name: Enable hearth nginx site (symlink into sites-enabled)
       ansible.builtin.file:
         src: "{{ nginx_conf_dest }}"
         dest: "{{ nginx_conf_enabled }}"

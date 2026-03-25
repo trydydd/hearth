@@ -1,17 +1,17 @@
-# /etc/sudoers.d/cafebox
+# /etc/sudoers.d/hearth
 #
-# CafeBox admin backend — minimal systemctl permissions.
-# Rendered by: ansible roles/admin template sudoers-cafebox.j2
+# Hearth admin backend — minimal systemctl permissions.
+# Rendered by: ansible roles/admin template sudoers-hearth.j2
 #
-# Grants the cafebox-admin user exactly the systemctl start/stop/restart
-# commands required for CafeBox service management — nothing else.
+# Grants the hearth-admin user exactly the systemctl start/stop/restart
+# commands required for Hearth service management — nothing else.
 # Only the specific service units listed below are permitted.
 #
-# Validate with: visudo -c -f /etc/sudoers.d/cafebox
+# Validate with: visudo -c -f /etc/sudoers.d/hearth
 
-Defaults!CAFEBOX_CMDS !requiretty
+Defaults!HEARTH_CMDS !requiretty
 
-Cmnd_Alias CAFEBOX_CMDS = \
+Cmnd_Alias HEARTH_CMDS = \
     /usr/sbin/chpasswd, \
     /bin/systemctl start hearth-chat.service, \
     /bin/systemctl stop hearth-chat.service, \
@@ -29,4 +29,4 @@ Cmnd_Alias CAFEBOX_CMDS = \
     /bin/systemctl stop navidrome.service, \
     /bin/systemctl restart navidrome.service
 
-cafebox-admin ALL=(root) NOPASSWD: CAFEBOX_CMDS
+hearth-admin ALL=(root) NOPASSWD: HEARTH_CMDS

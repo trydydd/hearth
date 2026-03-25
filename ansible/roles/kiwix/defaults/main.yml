@@ -5,7 +5,7 @@
 kiwix_version: "3.8.2"
 
 kiwix_port: 8888
-kiwix_storage: "/srv/cafebox/kiwix"
+kiwix_storage: "/srv/hearth/kiwix"
 
 # Local directories on the build machine used to stage files before copying
 # into the image. Both are gitignored. Override if your build system uses a
@@ -28,7 +28,7 @@ kiwix_download_zims: false
 #
 # To swap content:
 #   1. Set the old entry to enabled: false (or remove it).
-#   2. Manually delete the old .zim from /srv/cafebox/kiwix/ on the device.
+#   2. Manually delete the old .zim from /srv/hearth/kiwix/ on the device.
 #   3. Add a new entry and re-provision.
 #
 # Browse available ZIM files: https://library.kiwix.org/

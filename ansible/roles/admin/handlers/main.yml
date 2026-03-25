@@ -1,8 +1,8 @@
 ---
 # roles/admin/handlers/main.yml
 
-- name: Restart cafebox-admin-backend
+- name: Restart hearth-admin-backend
   ansible.builtin.service:
-    name: cafebox-admin-backend.service
+    name: hearth-admin-backend.service
     state: restarted
   when: _systemd_active.stat.exists

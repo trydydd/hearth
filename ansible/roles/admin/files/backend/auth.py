@@ -1,5 +1,5 @@
 """
-auth.py — Password verification helper for the CafeBox admin backend.
+auth.py — Password verification helper for the Hearth admin backend.
 
 Uses PAM (``python3-pam`` system package) to verify system account passwords.
 PAM is the correct and only supported method; the ``crypt``/``spwd`` modules
@@ -14,7 +14,7 @@ def verify_password(username: str, password: str) -> bool:
     """Return ``True`` if *password* is correct for system account *username*.
 
     Requires the ``python3-pam`` system package, which is installed by the
-    CafeBox common Ansible role.  Returns ``False`` when PAM is not available
+    Hearth common Ansible role.  Returns ``False`` when PAM is not available
     (e.g. CI / development environments without the system package) so that
     callers can stub / mock this function in tests.
     """

@@ -1,10 +1,10 @@
 """
-routers/upload.py — File upload endpoint for the CafeBox admin backend.
+routers/upload.py — File upload endpoint for the Hearth admin backend.
 
 POST /api/admin/upload/{service_id}
 
 Streams an uploaded file to the correct storage location defined in
-``cafe.yaml`` ``storage.locations``.  Validates the file extension before
+``hearth.yaml`` ``storage.locations``.  Validates the file extension before
 writing.
 
 Requires a valid session + CSRF token.
@@ -31,7 +31,7 @@ _CONFIG_PATH: Path | None = None
 
 
 def _storage_path(service_id: str) -> Path:
-    """Return the storage directory for *service_id* from cafe.yaml.
+    """Return the storage directory for *service_id* from hearth.yaml.
 
     Raises HTTP 404 for unknown service IDs.
     Raises HTTP 500 if the storage location is not configured.
@@ -50,7 +50,7 @@ def _storage_path(service_id: str) -> Path:
     if not path_str:
         raise HTTPException(
             status_code=500,
-            detail=f"Storage location for '{service_id}' not configured in cafe.yaml",
+            detail=f"Storage location for '{service_id}' not configured in hearth.yaml",
         )
     return Path(path_str)
 

@@ -1,19 +1,19 @@
 [Unit]
-Description=CafeBox admin backend
+Description=Hearth admin backend
 Documentation=https://github.com/trydydd/cafe-box
-After=network.target cafebox-first-boot.service
+After=network.target hearth-first-boot.service
 Wants=network.target
 
 [Service]
 Type=simple
-User=cafebox-admin
-Group=cafebox-admin
+User=hearth-admin
+Group=hearth-admin
 # shadow group membership is required so the backend can read /etc/shadow
 # for PAM / spwd-based password verification.
 SupplementaryGroups=shadow
-WorkingDirectory=/opt/cafebox/admin/backend
-EnvironmentFile=/etc/cafebox/admin.env
-ExecStart=/opt/cafebox/admin/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/opt/hearth/admin/backend
+EnvironmentFile=/etc/hearth/admin.env
+ExecStart=/opt/hearth/admin/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
 Restart=on-failure
 RestartSec=5s
 PrivateTmp=true

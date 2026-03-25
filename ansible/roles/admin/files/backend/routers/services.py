@@ -1,18 +1,18 @@
 """
-routers/services.py — Service management endpoints for the CafeBox admin backend.
+routers/services.py — Service management endpoints for the Hearth admin backend.
 
 POST /api/admin/services/{service_id}/start
 POST /api/admin/services/{service_id}/stop
 POST /api/admin/services/{service_id}/restart
 
 All endpoints require:
-  - A valid ``cafebox_session`` cookie  (require_session dependency)
+  - A valid ``hearth_session`` cookie  (require_session dependency)
   - A matching ``X-CSRF-Token`` header  (verify_csrf_token dependency)
 
-Service IDs are the tile IDs from cafe.yaml / Service Identity Map.
+Service IDs are the tile IDs from hearth.yaml / Service Identity Map.
 They are mapped to systemd unit names via ``services_map.SERVICE_MAP``.
 ``sudo systemctl`` is used because the backend runs as the unprivileged
-``cafebox-admin`` user and the sudoers rule (Task 1.05) grants only the
+``hearth-admin`` user and the sudoers rule (Task 1.05) grants only the
 exact ``systemctl start/stop/restart <unit>`` commands.
 """
 
@@ -73,7 +73,7 @@ def _get_unit(service_id: str) -> str:
 async def services_status():
     """Return enabled and live running state for all known services.
 
-    ``enabled`` reflects ``cafe.yaml``; ``running`` reflects the current
+    ``enabled`` reflects ``hearth.yaml``; ``running`` reflects the current
     systemd unit state.
 
     Response shape::

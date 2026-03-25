@@ -1,9 +1,9 @@
-# hostapd.conf.j2 — CafeBox WiFi access point configuration template
+# hostapd.conf.j2 — Hearth WiFi access point configuration template
 #
 # Rendered by:  ansible roles/wifi via ansible.builtin.template
 # Deployed to:  {{ wifi_hostapd_conf }}
 #
-# Driven by the wifi section of cafe.yaml / group_vars/all.yml.
+# Driven by the wifi section of hearth.yaml / group_vars/all.yml.
 
 # Wireless interface used for the access point
 interface={{ wifi.interface }}
@@ -42,7 +42,7 @@ country_code={{ wifi.country_code }}
 ieee80211d=1
 {% else %}
 # No country code configured — regulatory domain defaults to world (00).
-# Set wifi.country_code in cafe.yaml for proper channel access on Pi Zero 2 W.
+# Set wifi.country_code in hearth.yaml for proper channel access on Pi Zero 2 W.
 ieee80211d=0
 {% endif %}
 

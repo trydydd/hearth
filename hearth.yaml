@@ -1,5 +1,5 @@
-# cafe.yaml — CafeBox operator configuration
-# This is the only file you need to edit to customise your CafeBox.
+# hearth.yaml — Hearth operator configuration
+# This is the only file you need to edit to customise your Hearth.
 # All system configs (nginx, hostapd, dnsmasq, etc.) are auto-generated from here.
 
 # ---------------------------------------------------------------------------
@@ -7,10 +7,10 @@
 # ---------------------------------------------------------------------------
 box:
   # Human-readable name shown on the landing portal and in admin UI
-  name: "CafeBox"
+  name: "Hearth"
 
   # Domain used for all local services (resolved inside the hotspot only)
-  domain: "cafe.box"
+  domain: "hearth.local"
 
   # IP address assigned to the box's AP interface
   ip: "10.0.0.1"
@@ -20,7 +20,7 @@ box:
 # ---------------------------------------------------------------------------
 wifi:
   # SSID broadcast by the hotspot
-  ssid: "CafeBox"
+  ssid: "Hearth"
 
   # WPA2 passphrase — set to an empty string for an open network
   passphrase: ""
@@ -52,23 +52,23 @@ wifi:
 #
 # To move data to a USB drive or external SSD:
 #   Option A — mount first, then provision:
-#     Mount the drive at the current base path (e.g. /srv/cafebox) before
+#     Mount the drive at the current base path (e.g. /srv/hearth) before
 #     running ansible-playbook. Ansible creates the subdirectories on the
 #     mounted drive automatically.
 #   Option B — update base, then re-provision:
 #     Change storage.base (and each storage.locations entry) to the new
-#     mount point (e.g. /mnt/cafebox-data) and re-run ansible-playbook.
+#     mount point (e.g. /mnt/hearth-data) and re-run ansible-playbook.
 #     All directories are recreated and service configs are re-rendered.
 # ---------------------------------------------------------------------------
 storage:
   # Top-level base directory. Mount an external drive here before provisioning
   # (Option A above) or update this value and re-provision (Option B).
-  base: "/srv/cafebox"
+  base: "/srv/hearth"
 
   locations:
-    calibre_web:  "/srv/cafebox/calibre"
-    kiwix:        "/srv/cafebox/kiwix"
-    navidrome:    "/srv/cafebox/navidrome"
+    calibre_web:  "/srv/hearth/calibre"
+    kiwix:        "/srv/hearth/kiwix"
+    navidrome:    "/srv/hearth/navidrome"
 
 # ---------------------------------------------------------------------------
 # USB SSH — cable-based operator access via USB OTG (Pi Zero / Zero 2 W)
@@ -157,7 +157,7 @@ services:
 # The report is written to the FAT32 boot partition so it can be read by
 # pulling the SD card — no SSH, WiFi, or USB-OTG access required.
 #
-# Output file: /boot/firmware/cafebox-diagnostics.log
+# Output file: /boot/firmware/hearth-diagnostics.log
 # ---------------------------------------------------------------------------
 diagnostics:
   # When true, passwords and passphrases are replaced with <REDACTED> in the

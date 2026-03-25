@@ -48,7 +48,7 @@
     - /opt/hearth
     - "{{ chat_lib_dir }}"
     - "{{ chat_server_dir }}"
-    - /srv/cafebox
+    - /srv/hearth
 
 - name: Create chat volume mount point
   ansible.builtin.file:
