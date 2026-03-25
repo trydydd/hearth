@@ -144,7 +144,7 @@ Keep the password banner:
 
 - Clarify SessionMiddleware is signed-cookie based unless a server-side store is added.
 - Add a simple CSRF defense: require CSRF token header on state-changing requests.
-- Use a dedicated `hearth-admin` user; tighten sudoers.
+- Use a dedicated `hestia` user; tighten sudoers.
 
 ---
 
