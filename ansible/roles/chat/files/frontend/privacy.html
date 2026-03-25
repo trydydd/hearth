@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hearth Chat — Privacy</title>
+  <link rel="stylesheet" href="/hearth.css" />
+</head>
+<body>
+  <main class="page">
+
+    <header class="hero" role="banner">
+      <svg class="hero-sprite" aria-hidden="true" focusable="false"
+           viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="4"  width="32" height="5"  fill="#a08464"/>
+        <rect x="10" y="5" width="1"  height="3"  fill="#7a6040"/>
+        <rect x="21" y="5" width="1"  height="3"  fill="#7a6040"/>
+        <rect x="0" y="9"  width="6"  height="19" fill="#8a6848"/>
+        <rect x="26" y="9" width="6"  height="19" fill="#8a6848"/>
+        <rect x="0" y="28" width="32" height="4"  fill="#a08464"/>
+        <rect x="6" y="9"  width="20" height="19" fill="#180c04"/>
+        <rect x="8" y="26" width="16" height="2" rx="1" fill="#5c3014"/>
+        <path d="M10 27 Q9 21 12 17 Q15 12 16 10 Q17 12 20 17 Q23 21 22 27Z" fill="#c43808"/>
+        <path d="M13 27 Q12 22 14 18 Q16 14 18 18 Q19 22 18 27Z" fill="#e87020"/>
+        <path d="M15 27 Q14.5 23 16 20 Q16.5 23 17 27Z" fill="#ffc030"/>
+      </svg>
+      <div class="hero-text">
+        <h1 class="hero-title">Chat Privacy</h1>
+        <p class="hero-sub">What you should know before you type</p>
+      </div>
+    </header>
+
+    <section style="background:var(--surface-1);border:3px solid var(--border-strong);box-shadow:var(--shadow-pixel);border-radius:var(--radius-md);padding:var(--space-5) var(--space-6);margin-bottom:var(--space-5);">
+      <h2 style="font-size:18px;margin-bottom:var(--space-3);color:var(--ink-strong);">Messages disappear when the box restarts</h2>
+      <p style="color:var(--ink-soft);line-height:1.6;">Hearth stores chat messages in an encrypted space that only exists while the box is running. When the box powers off or restarts, the key to that space is gone forever. There is no way to recover the messages afterwards — not even for the person who runs the box.</p>
+    </section>
+
+    <section style="background:var(--surface-1);border:3px solid var(--border-strong);box-shadow:var(--shadow-pixel);border-radius:var(--radius-md);padding:var(--space-5) var(--space-6);margin-bottom:var(--space-5);">
+      <h2 style="font-size:18px;margin-bottom:var(--space-3);color:var(--ink-strong);">The box operator can read messages while the box is on</h2>
+      <p style="color:var(--ink-soft);line-height:1.6;">This is not end-to-end encrypted chat. While the box is running, someone with direct access to it could read the messages in the chat database. Keep sensitive conversations for in-person settings.</p>
+    </section>
+
+    <section style="background:var(--surface-1);border:3px solid var(--border-strong);box-shadow:var(--shadow-pixel);border-radius:var(--radius-md);padding:var(--space-5) var(--space-6);margin-bottom:var(--space-5);">
+      <h2 style="font-size:18px;margin-bottom:var(--space-3);color:var(--ink-strong);">No accounts, no tracking</h2>
+      <p style="color:var(--ink-soft);line-height:1.6;">You choose a nickname to join — that is all. No email address, no password, no account is created or stored. The nickname exists only for your current session.</p>
+    </section>
+
+    <section style="background:var(--surface-1);border:3px solid var(--border-strong);box-shadow:var(--shadow-pixel);border-radius:var(--radius-md);padding:var(--space-5) var(--space-6);margin-bottom:var(--space-5);">
+      <h2 style="font-size:18px;margin-bottom:var(--space-3);color:var(--ink-strong);">Messages never leave this box</h2>
+      <p style="color:var(--ink-soft);line-height:1.6;">This box does not connect to the internet. Messages are not sent to any outside service, logged remotely, or shared with anyone beyond the people currently in this room.</p>
+    </section>
+
+    <footer class="footer" role="contentinfo">
+      <p><a href="/chat/" style="color:var(--accent-secondary);">← Back to chat</a> &nbsp;·&nbsp; <a href="/" style="color:var(--accent-secondary);">Home</a></p>
+    </footer>
+
+  </main>
+</body>
+</html>

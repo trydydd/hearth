@@ -1,0 +1,23 @@
+[Unit]
+Description=Hearth Chat Server
+After=network.target hearth-volume.service
+Requires=hearth-volume.service
+
+[Service]
+Type=simple
+User=hearth-chat
+Group=hearth-chat
+WorkingDirectory=/opt/hearth/chat/server
+ExecStart=/opt/hearth/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8765
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/cafebox/chat-data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hearth — Chat</title>
+  <link rel="stylesheet" href="/hearth.css" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      color: var(--ink-strong);
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+    }
+
+    /* -----------------------------------------------------------------------
+       Join screen
+       ----------------------------------------------------------------------- */
+    #join-screen {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+
+    .join-card {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: var(--radius-md);
+      padding: var(--space-6);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .join-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .join-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink-strong);
+      line-height: 1.2;
+    }
+
+    .join-sub {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .join-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-strong);
+      margin-bottom: var(--space-2);
+    }
+
+    .join-input {
+      width: 100%;
+      padding: var(--space-3);
+      font-family: inherit;
+      font-size: 16px;
+      background: var(--surface-2);
+      color: var(--ink-strong);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .join-input:focus {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .join-error {
+      font-size: 13px;
+      color: var(--accent-danger);
+      margin-top: var(--space-2);
+      min-height: 18px;
+    }
+
+    .join-btn {
+      display: block;
+      width: 100%;
+      margin-top: var(--space-4);
+      padding: var(--space-3) var(--space-4);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink-inverse);
+      background: var(--accent-primary);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-pixel-sm);
+      cursor: pointer;
+      min-height: 44px;
+      transition: background 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+    }
+
+    .join-btn:hover  { background: var(--accent-primary-hover); }
+    .join-btn:active { box-shadow: none; transform: translate(2px, 2px); }
+    .join-btn:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .join-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .join-privacy {
+      font-size: 12px;
+      color: var(--ink-soft);
+      text-align: center;
+      margin-top: var(--space-4);
+    }
+
+    .join-privacy a {
+      color: var(--accent-secondary);
+    }
+
+    /* -----------------------------------------------------------------------
+       Chat screen
+       ----------------------------------------------------------------------- */
+    #chat-screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .chat-header {
+      background: var(--surface-1);
+      border-bottom: 3px solid var(--border-strong);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-shrink: 0;
+    }
+
+    .chat-header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink-strong);
+      flex: 1;
+    }
+
+    .chat-nick-badge {
+      font-size: 13px;
+      color: var(--ink-soft);
+      background: var(--surface-2);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-1) var(--space-3);
+    }
+
+    /* -----------------------------------------------------------------------
+       Message list
+       ----------------------------------------------------------------------- */
+    .msg-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      list-style: none;
+      margin: 0;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 80%;
+    }
+
+    .msg-own {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .msg-meta {
+      font-size: 12px;
+      color: var(--ink-soft);
+      padding: 0 var(--space-1);
+    }
+
+    .msg-nick {
+      font-weight: 700;
+      color: var(--accent-secondary);
+    }
+
+    .msg-own .msg-nick {
+      color: var(--accent-primary);
+    }
+
+    .msg-bubble {
+      background: var(--surface-1);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-pixel-sm);
+      padding: var(--space-2) var(--space-3);
+      font-size: 15px;
+      color: var(--ink-strong);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg-own .msg-bubble {
+      background: var(--surface-2);
+    }
+
+    .msg-system {
+      align-self: center;
+      font-size: 12px;
+      color: var(--ink-soft);
+      font-style: italic;
+      padding: var(--space-1) var(--space-3);
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+    }
+
+    /* -----------------------------------------------------------------------
+       Input bar
+       ----------------------------------------------------------------------- */
+    .chat-input-bar {
+      background: var(--surface-1);
+      border-top: 3px solid var(--border-strong);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      gap: var(--space-3);
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: var(--space-2) var(--space-3);
+      font-family: inherit;
+      font-size: 15px;
+      background: var(--surface-2);
+      color: var(--ink-strong);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      outline: none;
+      min-height: 44px;
+      resize: none;
+    }
+
+    .chat-input:focus {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .send-btn {
+      padding: var(--space-2) var(--space-4);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink-inverse);
+      background: var(--accent-primary);
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-pixel-sm);
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 80px;
+      transition: background 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+    }
+
+    .send-btn:hover  { background: var(--accent-primary-hover); }
+    .send-btn:active { box-shadow: none; transform: translate(2px, 2px); }
+    .send-btn:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .join-btn, .send-btn { transition: none; }
+    }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================================
+       Join screen
+       ===================================================================== -->
+  <div id="join-screen" role="main">
+    <div class="join-card">
+      <div class="join-header">
+        <svg width="44" height="44" aria-hidden="true" focusable="false"
+             viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="4"  width="32" height="5"  fill="#a08464"/>
+          <rect x="10" y="5" width="1"  height="3"  fill="#7a6040"/>
+          <rect x="21" y="5" width="1"  height="3"  fill="#7a6040"/>
+          <rect x="0" y="9"  width="6"  height="19" fill="#8a6848"/>
+          <rect x="26" y="9" width="6"  height="19" fill="#8a6848"/>
+          <rect x="0" y="28" width="32" height="4"  fill="#a08464"/>
+          <rect x="6" y="9"  width="20" height="19" fill="#180c04"/>
+          <rect x="8" y="26" width="16" height="2" rx="1" fill="#5c3014"/>
+          <path d="M10 27 Q9 21 12 17 Q15 12 16 10 Q17 12 20 17 Q23 21 22 27Z" fill="#c43808"/>
+          <path d="M13 27 Q12 22 14 18 Q16 14 18 18 Q19 22 18 27Z" fill="#e87020"/>
+          <path d="M15 27 Q14.5 23 16 20 Q16.5 23 17 27Z" fill="#ffc030"/>
+        </svg>
+        <div>
+          <div class="join-title">Hearth Chat</div>
+          <div class="join-sub">A network that doesn't watch you back</div>
+        </div>
+      </div>
+
+      <label class="join-label" for="nick-input">Choose a nickname</label>
+      <input
+        class="join-input"
+        id="nick-input"
+        type="text"
+        maxlength="24"
+        placeholder="e.g. wanderer"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="join-error"
+      />
+      <div class="join-error" id="join-error" role="alert" aria-live="polite"></div>
+      <button class="join-btn" id="join-btn" type="button">Join the room</button>
+      <p class="join-privacy">
+        Messages are deleted when this box restarts. <a href="/chat/privacy.html">Privacy info</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       Chat screen (shown after successful join)
+       ===================================================================== -->
+  <div id="chat-screen" role="main" aria-label="Chat room">
+
+    <header class="chat-header">
+      <svg width="28" height="28" aria-hidden="true" focusable="false"
+           viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="4"  width="32" height="5"  fill="#a08464"/>
+        <rect x="0" y="9"  width="6"  height="19" fill="#8a6848"/>
+        <rect x="26" y="9" width="6"  height="19" fill="#8a6848"/>
+        <rect x="0" y="28" width="32" height="4"  fill="#a08464"/>
+        <rect x="6" y="9"  width="20" height="19" fill="#180c04"/>
+        <rect x="8" y="26" width="16" height="2" rx="1" fill="#5c3014"/>
+        <path d="M10 27 Q9 21 12 17 Q15 12 16 10 Q17 12 20 17 Q23 21 22 27Z" fill="#c43808"/>
+        <path d="M13 27 Q12 22 14 18 Q16 14 18 18 Q19 22 18 27Z" fill="#e87020"/>
+        <path d="M15 27 Q14.5 23 16 20 Q16.5 23 17 27Z" fill="#ffc030"/>
+      </svg>
+      <span class="chat-header-title">Hearth Chat</span>
+      <span class="chat-nick-badge" id="nick-badge" aria-label="Signed in as"></span>
+    </header>
+
+    <ol class="msg-list" id="msg-list" aria-label="Chat messages" aria-live="polite" aria-atomic="false"></ol>
+
+    <div class="chat-input-bar">
+      <textarea
+        class="chat-input"
+        id="chat-input"
+        rows="1"
+        maxlength="2000"
+        placeholder="Say something…"
+        autocomplete="off"
+        aria-label="Message"
+        disabled
+      ></textarea>
+      <button class="send-btn" id="send-btn" type="button" disabled>Send</button>
+    </div>
+
+  </div>
+
+  <script>
+    "use strict";
+
+    var joinScreen = document.getElementById("join-screen");
+    var chatScreen = document.getElementById("chat-screen");
+    var nickInput  = document.getElementById("nick-input");
+    var joinBtn    = document.getElementById("join-btn");
+    var joinError  = document.getElementById("join-error");
+    var msgList    = document.getElementById("msg-list");
+    var chatInput  = document.getElementById("chat-input");
+    var sendBtn    = document.getElementById("send-btn");
+    var nickBadge  = document.getElementById("nick-badge");
+
+    var myNick = "";
+    var ws     = null;
+
+    // ---- Join ---------------------------------------------------------------
+
+    nickInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); joinBtn.click(); }
+    });
+
+    joinBtn.addEventListener("click", function () {
+      var nick = nickInput.value.trim();
+      if (!nick) { setJoinError("Please enter a nickname."); return; }
+      joinBtn.disabled = true;
+      setJoinError("");
+      connect(nick);
+    });
+
+    function setJoinError(msg) {
+      joinError.textContent = msg;
+    }
+
+    // ---- WebSocket ----------------------------------------------------------
+
+    function connect(nick) {
+      var proto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(proto + "//" + location.host + "/chat/ws");
+
+      ws.addEventListener("open", function () {
+        ws.send(JSON.stringify({ type: "join", nick: nick }));
+      });
+
+      ws.addEventListener("error", function () {
+        setJoinError("Could not connect to the chat server. Try refreshing.");
+        joinBtn.disabled = false;
+        ws = null;
+      });
+
+      ws.addEventListener("close", function (e) {
+        if (e.code === 4001) {
+          setJoinError("That nickname is already taken — try another.");
+          joinBtn.disabled = false;
+          ws = null;
+          return;
+        }
+        if (e.code === 4000) {
+          setJoinError("Connection error (" + (e.reason || "unknown") + "). Try again.");
+          joinBtn.disabled = false;
+          ws = null;
+          return;
+        }
+        // Disconnected after joining
+        if (myNick) {
+          appendSystem("Disconnected from the room.");
+          chatInput.disabled = true;
+          sendBtn.disabled   = true;
+        }
+      });
+
+      ws.addEventListener("message", function (e) {
+        var msg;
+        try { msg = JSON.parse(e.data); } catch (_) { return; }
+        handleServerMessage(msg, nick);
+      });
+    }
+
+    function handleServerMessage(msg, pendingNick) {
+      if (msg.type === "history") {
+        // Successful join — switch to chat view
+        myNick = pendingNick;
+        nickBadge.textContent = myNick;
+        joinScreen.style.display = "none";
+        chatScreen.style.display  = "flex";
+        msg.messages.forEach(appendMsg);
+        chatInput.disabled = false;
+        sendBtn.disabled   = false;
+        chatInput.focus();
+        scrollBottom();
+        return;
+      }
+
+      if (msg.type === "msg")    { appendMsg(msg);                       scrollBottom(); return; }
+      if (msg.type === "joined") { appendSystem(msg.nick + " joined.");  scrollBottom(); return; }
+      if (msg.type === "left")   { appendSystem(msg.nick + " left.");    scrollBottom(); return; }
+    }
+
+    // ---- Rendering ----------------------------------------------------------
+
+    function appendMsg(msg) {
+      var li   = document.createElement("li");
+      var own  = msg.nick === myNick;
+      li.className = "msg" + (own ? " msg-own" : "");
+
+      var meta   = document.createElement("div");
+      meta.className = "msg-meta";
+      var nickEl = document.createElement("span");
+      nickEl.className   = "msg-nick";
+      nickEl.textContent = msg.nick;
+      var timeEl = document.createElement("span");
+      timeEl.textContent = " · " + fmtTime(msg.ts);
+      meta.appendChild(nickEl);
+      meta.appendChild(timeEl);
+
+      var bubble = document.createElement("div");
+      bubble.className   = "msg-bubble";
+      bubble.textContent = msg.text;
+
+      li.appendChild(meta);
+      li.appendChild(bubble);
+      msgList.appendChild(li);
+    }
+
+    function appendSystem(text) {
+      var li = document.createElement("li");
+      li.className   = "msg-system";
+      li.textContent = text;
+      msgList.appendChild(li);
+    }
+
+    function fmtTime(ts) {
+      return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function scrollBottom() {
+      msgList.scrollTop = msgList.scrollHeight;
+    }
+
+    // ---- Sending ------------------------------------------------------------
+
+    chatInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+    });
+
+    sendBtn.addEventListener("click", function () {
+      var text = chatInput.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: "msg", text: text }));
+      chatInput.value = "";
+      chatInput.focus();
+    });
+
+    // ---- No-WebSocket fallback ----------------------------------------------
+    if (!("WebSocket" in window)) {
+      document.getElementById("join-screen").innerHTML =
+        "<p style='padding:2rem;text-align:center;'>Your browser does not support WebSockets. " +
+        "Please use a modern browser to access Hearth Chat.</p>";
+    }
+
+    // Auto-focus
+    nickInput.focus();
+  </script>
+</body>
+</html>

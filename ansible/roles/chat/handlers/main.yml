@@ -1,6 +1,6 @@
 ---
-- name: Restart conduit
+- name: Restart hearth-chat
   ansible.builtin.systemd:
-    name: conduit.service
+    name: hearth-chat.service
     state: restarted
     daemon_reload: true

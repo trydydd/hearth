@@ -1,0 +1,175 @@
+---
+# roles/chat/tasks/main.yml — Hearth ephemeral chat server provisioning
+#
+# Sets up:
+#   - hearth-chat system user
+#   - Sparse backing file for the encrypted volume
+#   - Volume setup/teardown scripts + hearth-volume.service
+#   - Python virtualenv + hearth-chat.service
+#   - Static frontend files served by nginx
+
+# ---- Packages --------------------------------------------------------------
+
+- name: Install chat server system dependencies
+  ansible.builtin.apt:
+    name:
+      - cryptsetup
+      - python3-venv
+    state: present
+    update_cache: false
+
+# ---- System user -----------------------------------------------------------
+
+- name: Create hearth-chat system group
+  ansible.builtin.group:
+    name: hearth-chat
+    system: true
+    state: present
+
+- name: Create hearth-chat system user
+  ansible.builtin.user:
+    name: hearth-chat
+    group: hearth-chat
+    system: true
+    shell: /usr/sbin/nologin
+    home: /opt/hearth
+    create_home: false
+
+# ---- Directories -----------------------------------------------------------
+
+- name: Create Hearth base directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /opt/hearth
+    - "{{ chat_lib_dir }}"
+    - "{{ chat_server_dir }}"
+    - /srv/cafebox
+
+- name: Create chat volume mount point
+  ansible.builtin.file:
+    path: "{{ chat_mount }}"
+    state: directory
+    owner: hearth-chat
+    group: hearth-chat
+    mode: "0750"
+
+- name: Create chat frontend directory
+  ansible.builtin.file:
+    path: "{{ chat_frontend_dir }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+# ---- Encrypted volume backing file -----------------------------------------
+
+- name: Create sparse backing file for chat volume ({{ chat_volume_size_mb }} MB)
+  ansible.builtin.command:
+    cmd: >
+      dd if=/dev/zero bs=1M count=0
+      seek={{ chat_volume_size_mb }}
+      of={{ chat_backing_file }}
+    creates: "{{ chat_backing_file }}"
+
+- name: Secure backing file permissions
+  ansible.builtin.file:
+    path: "{{ chat_backing_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+# ---- Volume scripts --------------------------------------------------------
+
+- name: Deploy volume setup script
+  ansible.builtin.copy:
+    src: volume-setup.sh
+    dest: "{{ chat_lib_dir }}/volume-setup.sh"
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Deploy volume teardown script
+  ansible.builtin.copy:
+    src: volume-teardown.sh
+    dest: "{{ chat_lib_dir }}/volume-teardown.sh"
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Deploy hearth-volume systemd service unit
+  ansible.builtin.copy:
+    src: hearth-volume.service
+    dest: /etc/systemd/system/hearth-volume.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start hearth-volume service
+  ansible.builtin.systemd:
+    name: hearth-volume.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---- Python chat server ----------------------------------------------------
+
+- name: Deploy chat server source files
+  ansible.builtin.copy:
+    src: server/
+    dest: "{{ chat_server_dir }}/"
+    owner: hearth-chat
+    group: hearth-chat
+    mode: "0644"
+  notify: Restart hearth-chat
+
+- name: Create Python virtualenv for chat server
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ chat_venv_dir }}
+    creates: "{{ chat_venv_dir }}/pyvenv.cfg"
+
+- name: Install chat server Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ chat_server_dir }}/requirements.txt"
+    virtualenv: "{{ chat_venv_dir }}"
+  notify: Restart hearth-chat
+
+- name: Deploy hearth-chat systemd service unit
+  ansible.builtin.copy:
+    src: hearth-chat.service
+    dest: /etc/systemd/system/hearth-chat.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hearth-chat
+
+- name: Enable and start hearth-chat service
+  ansible.builtin.systemd:
+    name: hearth-chat.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---- Frontend static files -------------------------------------------------
+
+- name: Deploy chat frontend files
+  ansible.builtin.copy:
+    src: frontend/
+    dest: "{{ chat_frontend_dir }}/"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+# ---- Privacy doc -----------------------------------------------------------
+
+- name: Deploy chat PRIVACY.md
+  ansible.builtin.copy:
+    src: PRIVACY.md
+    dest: "{{ chat_server_dir }}/PRIVACY.md"
+    owner: root
+    group: root
+    mode: "0644"

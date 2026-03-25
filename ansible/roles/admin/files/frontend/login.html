@@ -3,164 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CafeBox — Sign In</title>
-  <style>
-    /* Design tokens — matches STYLEGUIDE.md §4 */
-    :root {
-      --bg-sky-top: #84c8ff;
-      --bg-sky-bottom: #dff3ff;
-      --surface-1: #f6f1da;
-      --surface-2: #ece3c5;
-      --surface-3: #d7c79a;
-      --ink-strong: #1d2433;
-      --ink-soft: #36445e;
-      --ink-inverse: #fffdf2;
-      --accent-primary: #e85d44;
-      --accent-primary-hover: #c94c33;
-      --accent-danger: #c92a2a;
-      --border-strong: #1d2433;
-      --shadow-pixel: 4px 4px 0 #1d2433;
-      --focus-ring: #2e7dff;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 24px;
-      --space-6: 32px;
-      --radius-sm: 4px;
-      --radius-md: 8px;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: Verdana, Tahoma, sans-serif;
-      font-size: 16px;
-      background: linear-gradient(180deg, var(--bg-sky-top) 0%, var(--bg-sky-bottom) 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--ink-strong);
-    }
-
-    .card {
-      background: var(--surface-1);
-      border: 3px solid var(--border-strong);
-      box-shadow: var(--shadow-pixel);
-      border-radius: var(--radius-md);
-      padding: var(--space-6);
-      width: 100%;
-      max-width: 380px;
-      margin: var(--space-4);
-    }
-
-    h1 {
-      font-size: 22px;
-      margin-bottom: var(--space-5);
-      text-align: center;
-    }
-
-    .form-group {
-      margin-bottom: var(--space-4);
-    }
-
-    label {
-      display: block;
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: var(--space-2);
-      color: var(--ink-soft);
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: var(--space-3) var(--space-4);
-      border: 2px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      background: #fff;
-      font-family: inherit;
-      font-size: 16px;
-      color: var(--ink-strong);
-    }
-
-    input:focus {
-      outline: 3px solid var(--focus-ring);
-      outline-offset: 2px;
-    }
-
-    .btn-primary {
-      display: block;
-      width: 100%;
-      padding: var(--space-3) var(--space-4);
-      background: var(--accent-primary);
-      color: var(--ink-inverse);
-      border: 2px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      box-shadow: var(--shadow-pixel);
-      font-family: inherit;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: var(--space-5);
-      transition: background 120ms;
-      min-height: 44px;
-    }
-
-    .btn-primary:hover { background: var(--accent-primary-hover); }
-    .btn-primary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .btn-primary { transition: none; }
-    }
-
-    .error-msg {
-      background: #fff0f0;
-      border: 2px solid var(--accent-danger);
-      border-radius: var(--radius-sm);
-      padding: var(--space-3) var(--space-4);
-      color: var(--accent-danger);
-      font-size: 14px;
-      margin-top: var(--space-4);
-      display: none;
-    }
-
-    .error-msg[aria-live] { display: block; }
-
-    .first-boot-banner {
-      background: #fffbe6;
-      border: 2px solid #d97706;
-      border-radius: var(--radius-sm);
-      padding: var(--space-3) var(--space-4);
-      font-size: 14px;
-      margin-bottom: var(--space-4);
-      display: none;
-    }
-
-    .first-boot-banner strong { display: block; margin-bottom: var(--space-2); }
-
-    .initial-password {
-      font-family: monospace;
-      font-size: 18px;
-      letter-spacing: 0.05em;
-      background: var(--surface-2);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      padding: var(--space-2) var(--space-3);
-      display: inline-block;
-      margin-top: var(--space-2);
-    }
-
-    #change-password-panel { display: none; }
-  </style>
+  <title>Hearth — Sign In</title>
+  <link rel="stylesheet" href="/hearth.css" />
 </head>
-<body>
+<body class="layout-centered">
   <main class="card" role="main">
-    <h1>CafeBox Admin</h1>
+    <h1>Hearth Admin</h1>
 
     <!-- Shown on first boot before login -->
-    <div class="first-boot-banner" id="first-boot-banner" aria-live="polite">
+    <div class="first-boot-banner js-hidden" id="first-boot-banner" aria-live="polite">
       <strong>First boot — set a new password after signing in.</strong>
       Your temporary password is:
       <span class="initial-password" id="initial-password-display"></span>
@@ -233,9 +84,6 @@
         return match ? decodeURIComponent(match[1]) : "";
       }
 
-      /* ---------------------------------------------------------------- */
-      /* First-boot detection                                              */
-      /* ---------------------------------------------------------------- */
       function checkFirstBoot(cb) {
         fetch("/api/public/services/status", { credentials: "same-origin" })
           .then(function (res) { return res.ok ? res.json() : {}; })
@@ -245,8 +93,7 @@
               initialPassword = data.initial_password || "";
               var banner = document.getElementById("first-boot-banner");
               document.getElementById("initial-password-display").textContent = initialPassword;
-              banner.style.display = "block";
-              /* Pre-fill the password field with the temporary password */
+              banner.classList.remove("js-hidden");
               document.getElementById("password").value = initialPassword;
             }
           })
@@ -254,12 +101,9 @@
           .finally(cb);
       }
 
-      /* ---------------------------------------------------------------- */
-      /* Change-password panel (shown after first-boot login)             */
-      /* ---------------------------------------------------------------- */
       function showChangePanel() {
         document.getElementById("login-form").style.display = "none";
-        document.getElementById("first-boot-banner").style.display = "none";
+        document.getElementById("first-boot-banner").classList.add("js-hidden");
         var panel = document.getElementById("change-password-panel");
         panel.style.display = "block";
         document.getElementById("current-password").value = initialPassword;
@@ -271,7 +115,7 @@
         panel.addEventListener("submit", function (e) {
           e.preventDefault();
           var currentPw = document.getElementById("current-password").value;
-          var newPw = document.getElementById("new-password").value;
+          var newPw     = document.getElementById("new-password").value;
 
           changeErr.textContent = "";
           changeErr.removeAttribute("aria-live");
@@ -308,13 +152,10 @@
         });
       }
 
-      /* ---------------------------------------------------------------- */
-      /* Login form                                                        */
-      /* ---------------------------------------------------------------- */
       function attachSubmit() {
-        var form = document.getElementById("login-form");
+        var form      = document.getElementById("login-form");
         var submitBtn = document.getElementById("submit-btn");
-        var errorMsg = document.getElementById("error-msg");
+        var errorMsg  = document.getElementById("error-msg");
 
         form.addEventListener("submit", function (e) {
           e.preventDefault();
@@ -360,12 +201,9 @@
         });
       }
 
-      /* Seed CSRF cookie, then check first-boot state, then wire up form */
       function init() {
         fetch("/healthz", { credentials: "same-origin" })
-          .finally(function () {
-            checkFirstBoot(attachSubmit);
-          });
+          .finally(function () { checkFirstBoot(attachSubmit); });
       }
 
       init();

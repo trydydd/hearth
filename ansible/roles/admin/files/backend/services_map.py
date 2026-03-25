@@ -24,9 +24,9 @@ UPLOAD_EXTENSIONS: dict[str, list[str]] = {
 # url_path  : nginx location path used to build the full URL
 SERVICE_MAP: dict[str, dict[str, str]] = {
     "chat": {
-        "unit": "conduit.service",
+        "unit": "hearth-chat.service",
         "name": "Chat",
-        "url_path": "/element/",
+        "url_path": "/chat/",
     },
     "calibre_web": {
         "unit": "calibre-web.service",

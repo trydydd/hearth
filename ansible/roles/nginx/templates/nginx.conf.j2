@@ -27,12 +27,6 @@
 #       # Admin API (proxied to the local admin backend)
 #       location /api/ { proxy_pass http://127.0.0.1:8000; ... }
 #
-#       # Matrix / chat (when services.chat.enabled: true)
-#       location /_matrix/           { proxy_pass http://127.0.0.1:6167; }
-#       location /.well-known/matrix/server { return 200 '{"m.server":"cafe.box:80"}'; }
-#       location /.well-known/matrix/client { return 200 '{"m.homeserver":...}'; }
-#       location /element/           { alias /srv/cafebox/element-web/; }
-#
 #       # Service reverse-proxy stubs (uncomment when service is installed)
 #       # location /calibre_web/ { proxy_pass http://127.0.0.1:8083/; }
 #       # location /kiwix/       { proxy_pass http://127.0.0.1:8888/; }
@@ -82,39 +76,28 @@ server {
 
 {% if services.chat is defined and services.chat.enabled %}
     # -------------------------------------------------------------------------
-    # Matrix chat (Conduit homeserver + Element Web client)
+    # Hearth Chat
     # -------------------------------------------------------------------------
 
-    # Matrix client-server API — required path prefix per Matrix spec.
-    # client_max_body_size matches Conduit's max_request_size in conduit.toml.
-    location /_matrix/ {
-        proxy_pass http://127.0.0.1:6167;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        client_max_body_size {{ (services.chat.max_request_size | default(20000000) | int) // 1000000 }}m;
+    # No-trailing-slash redirect
+    location = /chat { return 301 /chat/; }
+
+    # WebSocket proxy — must come before /chat/ to avoid alias match
+    location /chat/ws {
+        proxy_pass         http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host       $host;
+        proxy_read_timeout 3600s;
     }
 
-    # Matrix server discovery (well-known delegation)
-    location /.well-known/matrix/server {
-        default_type application/json;
-        add_header Access-Control-Allow-Origin *;
-        return 200 '{"m.server":"{{ box.domain }}:80"}';
-    }
-
-    location /.well-known/matrix/client {
-        default_type application/json;
-        add_header Access-Control-Allow-Origin *;
-        return 200 '{"m.homeserver":{"base_url":"http://{{ box.domain }}"},"m.identity_server":{"base_url":""}}';
-    }
-
-    # Element Web static client
-    location /element/ {
-        alias /srv/cafebox/element-web/;
+    # Static frontend
+    location /chat/ {
+        alias /var/www/hearth/chat/;
         index index.html;
-        try_files $uri $uri/ /element/index.html;
+        try_files $uri $uri/ /chat/index.html;
     }
-{% else %}
-    # chat — disabled (set services.chat.enabled: true in cafe.yaml)
 {% endif %}
 
     # Service reverse-proxy stubs — uncomment the location block and remove the
