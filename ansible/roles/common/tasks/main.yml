@@ -69,16 +69,16 @@
         create_home: false
         state: present
 
-    - name: Create hearth-admin system group
+    - name: Create hestia system group
       ansible.builtin.group:
-        name: hearth-admin
+        name: hestia
         system: true
         state: present
 
-    - name: Create hearth-admin system user (admin backend process user)
+    - name: Create hestia system user (admin backend process user)
       ansible.builtin.user:
-        name: hearth-admin
-        group: hearth-admin
+        name: hestia
+        group: hestia
         # shadow group membership lets the backend process read /etc/shadow so
         # that PAM / spwd can verify the first-boot credential without root.
         groups: shadow

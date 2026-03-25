@@ -393,7 +393,7 @@ fi
 hdr "7. Hearth Application State"
 
 # System users
-for user in hearth hearth-admin; do
+for user in hearth hestia; do
     if id "$user" &>/dev/null; then
         ok "user '$user' exists: $(id "$user")"
     else

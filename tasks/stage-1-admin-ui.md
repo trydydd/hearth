@@ -82,7 +82,7 @@ Implement the admin login flow.
 
 **Deliverables:**
 - `POST /api/admin/login` — accepts `{"username": "admin", "password": "..."}`,
-  validates against the `hearth-admin` system account (use PAM or compare
+  validates against the `hestia` system account (use PAM or compare
   against the hashed password file from first-boot), issues session cookie.
 - `POST /api/admin/logout` — clears session cookie.
 - `ansible/roles/admin/files/backend/auth.py` — password verification helper.
@@ -97,11 +97,11 @@ Implement the admin login flow.
 
 ---
 
-## Task 1.05 — `hearth-admin` System User + Sudoers ✅
+## Task 1.05 — `hestia` System User + Sudoers ✅
 
 Create the minimal privilege setup for the admin backend process:
-- `hearth-admin` system user (no login shell, no home directory).
-- Sudoers file that allows `hearth-admin` to run only the required
+- `hestia` system user (no login shell, no home directory).
+- Sudoers file that allows `hestia` to run only the required
   `systemctl start/stop/restart` commands for Hearth services — nothing else.
 
 **Deliverables:**

@@ -25,7 +25,7 @@ warn(){ printf '  [WARN] %s\n' "$1"; }
 fail(){ printf '  [FAIL] %s\n' "$1"; }
 
 hdr "1. System users"
-for user in hearth hearth-admin; do
+for user in hearth hestia; do
     if id "$user" &>/dev/null; then
         ok "user '$user' exists: $(id "$user")"
     else

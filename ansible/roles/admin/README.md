@@ -1,7 +1,7 @@
 # Admin Role
 
 Deploys the Hearth admin backend (FastAPI/uvicorn) and frontend (static HTML),
-wires them together behind nginx, and sets up the `hearth-admin` system account
+wires them together behind nginx, and sets up the `hestia` system account
 with the minimal sudo permissions the service needs.
 
 ---
@@ -25,7 +25,7 @@ with the minimal sudo permissions the service needs.
                              │ HTTP (loopback only)
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  uvicorn / FastAPI  (user: hearth-admin, port 8000)            │
+│  uvicorn / FastAPI  (user: hestia, port 8000)            │
 │                                                                 │
 │  routers/public.py    GET  /api/public/services/status          │
 │  routers/auth.py      POST /api/admin/login                     │
@@ -67,8 +67,8 @@ On the very first boot, `hearth-first-boot.service` runs
 hearth-first-boot.service
   │
   ├─ generate 12-char random alphanumeric password
-  ├─ /usr/sbin/chpasswd  →  sets hearth-admin system account password
-  ├─ write /run/hearth/initial-password  (mode 0400, owner hearth-admin)
+  ├─ /usr/sbin/chpasswd  →  sets hestia system account password
+  ├─ write /run/hearth/initial-password  (mode 0400, owner hestia)
   └─ touch /var/lib/hearth/first-boot-done  (idempotency guard)
 ```
 
@@ -116,7 +116,7 @@ Browser                         Backend
    ├─ POST /api/admin/login ───────>│
    │   X-CSRF-Token: <token>       ├─ verify CSRF (double-submit)
    │   { username: "…",            ├─ ignore submitted username
-   │     password: "…" }           ├─ pam.authenticate("hearth-admin", pw)
+   │     password: "…" }           ├─ pam.authenticate("hestia", pw)
    │<── hearth_session cookie ────┤  (signed, 24 h, HttpOnly)
    │                               │
    └─ redirect → /admin/dashboard  │
@@ -147,10 +147,10 @@ Browser                         Backend                      systemd
 
 ## Security Design
 
-### Username is always `hearth-admin`
+### Username is always `hestia`
 
 The username submitted in the login form is **ignored**. Authentication
-is always performed against the `hearth-admin` system account regardless
+is always performed against the `hestia` system account regardless
 of what the browser sends. This prevents:
 
 - Username enumeration (an attacker cannot probe whether other system
@@ -188,7 +188,7 @@ is spawned for authentication.
 
 ### sudo scope
 
-`hearth-admin` is granted exactly two categories of sudo commands (see
+`hestia` is granted exactly two categories of sudo commands (see
 `templates/sudoers-hearth.j2`):
 
 | Command | Why sudo is needed |
@@ -228,7 +228,7 @@ allowlist unreachable. The sudoers file is the security boundary.
   upload.html
 
 /etc/hearth/admin.env     HEARTH_SECRET_KEY (mode 0640)
-/etc/sudoers.d/hearth     sudo allowlist for hearth-admin
+/etc/sudoers.d/hearth     sudo allowlist for hestia
 /run/hearth/
   initial-password         Temp password file (first-boot only, 0400)
   portal-status.json       Static fallback for portal (nginx)

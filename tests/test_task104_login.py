@@ -41,7 +41,7 @@ class TestTask104Login(unittest.TestCase):
     def test_correct_credentials_returns_200(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "hearth-admin", "password": "correct-password"},
+            json={"username": "hestia", "password": "correct-password"},
         )
         self.assertEqual(response.status_code, 200)
 
@@ -49,7 +49,7 @@ class TestTask104Login(unittest.TestCase):
     def test_correct_credentials_sets_session_cookie(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "hearth-admin", "password": "correct-password"},
+            json={"username": "hestia", "password": "correct-password"},
         )
         self.assertIn("hearth_session", response.cookies)
 
@@ -61,7 +61,7 @@ class TestTask104Login(unittest.TestCase):
     def test_wrong_credentials_returns_401(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "hearth-admin", "password": "wrong-password"},
+            json={"username": "hestia", "password": "wrong-password"},
         )
         self.assertEqual(response.status_code, 401)
 
@@ -69,17 +69,17 @@ class TestTask104Login(unittest.TestCase):
     def test_wrong_credentials_does_not_set_session_cookie(self, _mock):
         response = self.client.post(
             "/api/admin/login",
-            json={"username": "hearth-admin", "password": "wrong-password"},
+            json={"username": "hestia", "password": "wrong-password"},
         )
         self.assertNotIn("hearth_session", response.cookies)
 
     # ------------------------------------------------------------------
-    # Acceptance criterion: backend always authenticates as hearth-admin
+    # Acceptance criterion: backend always authenticates as hestia
     # ------------------------------------------------------------------
 
     @patch("routers.auth.verify_password", return_value=True)
     def test_login_always_authenticates_as_hearth_admin(self, mock_vp):
-        """Even if the form submits username='admin', auth uses hearth-admin."""
+        """Even if the form submits username='admin', auth uses hestia."""
         self.client.post(
             "/api/admin/login",
             json={"username": "admin", "password": "correct-password"},

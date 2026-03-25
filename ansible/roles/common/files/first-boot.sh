@@ -2,8 +2,8 @@
 # first-boot.sh — one-shot first-boot credential generator for Hearth
 #
 # Generates a random 12-character alphanumeric admin password, sets it for
-# the hearth-admin system user, and stores the plaintext temporarily at
-# /run/hearth/initial-password (0400, owned by hearth-admin) so the admin
+# the hestia system user, and stores the plaintext temporarily at
+# /run/hearth/initial-password (0400, owned by hestia) so the admin
 # API can expose it via /api/public/services/status on first boot.
 #
 # A flag file at /var/lib/hearth/first-boot-done prevents re-execution on
@@ -14,7 +14,7 @@ set -euo pipefail
 FLAG_FILE="/var/lib/hearth/first-boot-done"
 PASSWORD_FILE="/run/hearth/initial-password"
 STATUS_JSON="/run/hearth/portal-status.json"
-ADMIN_USER="hearth-admin"
+ADMIN_USER="hestia"
 
 # Idempotency guard — exit cleanly if already run
 if [ -f "${FLAG_FILE}" ]; then

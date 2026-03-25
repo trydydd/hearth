@@ -12,7 +12,7 @@ All endpoints require:
 Service IDs are the tile IDs from hearth.yaml / Service Identity Map.
 They are mapped to systemd unit names via ``services_map.SERVICE_MAP``.
 ``sudo systemctl`` is used because the backend runs as the unprivileged
-``hearth-admin`` user and the sudoers rule (Task 1.05) grants only the
+``hestia`` user and the sudoers rule (Task 1.05) grants only the
 exact ``systemctl start/stop/restart <unit>`` commands.
 """
 

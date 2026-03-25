@@ -2,12 +2,12 @@
 # roles/admin/tasks/main.yml — Hearth admin backend provisioning
 
 # -----------------------------------------------------------------------
-# Task 1.05 — hearth-admin system user + sudoers
+# Task 1.05 — hestia system user + sudoers
 # -----------------------------------------------------------------------
 
-- name: Create hearth-admin system user
+- name: Create hestia system user
   ansible.builtin.user:
-    name: hearth-admin
+    name: hestia
     system: true
     shell: /usr/sbin/nologin
     create_home: false
@@ -44,7 +44,7 @@
     path: /etc/hearth
     state: directory
     owner: root
-    group: hearth-admin
+    group: hestia
     mode: "0750"
 
 - name: Deploy hearth.yaml to /etc/hearth/hearth.yaml
@@ -52,7 +52,7 @@
     src: "{{ playbook_dir }}/../hearth.yaml"
     dest: /etc/hearth/hearth.yaml
     owner: root
-    group: hearth-admin
+    group: hestia
     mode: "0640"
 
 - name: Generate admin backend environment file (first run only)
@@ -67,7 +67,7 @@
   ansible.builtin.file:
     path: /etc/hearth/admin.env
     owner: root
-    group: hearth-admin
+    group: hestia
     mode: "0640"
 
 # -----------------------------------------------------------------------
@@ -79,7 +79,7 @@
     path: /opt/hearth/admin/backend
     state: directory
     owner: root
-    group: hearth-admin
+    group: hestia
     mode: "0755"
 
 - name: Deploy admin backend source files
@@ -87,7 +87,7 @@
     src: backend/
     dest: /opt/hearth/admin/backend/
     owner: root
-    group: hearth-admin
+    group: hestia
     mode: "0644"
   notify: Restart hearth-admin-backend
 

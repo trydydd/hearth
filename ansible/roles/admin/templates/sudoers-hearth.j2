@@ -3,7 +3,7 @@
 # Hearth admin backend — minimal systemctl permissions.
 # Rendered by: ansible roles/admin template sudoers-hearth.j2
 #
-# Grants the hearth-admin user exactly the systemctl start/stop/restart
+# Grants the hestia user exactly the systemctl start/stop/restart
 # commands required for Hearth service management — nothing else.
 # Only the specific service units listed below are permitted.
 #
@@ -29,4 +29,4 @@ Cmnd_Alias HEARTH_CMDS = \
     /bin/systemctl stop navidrome.service, \
     /bin/systemctl restart navidrome.service
 
-hearth-admin ALL=(root) NOPASSWD: HEARTH_CMDS
+hestia ALL=(root) NOPASSWD: HEARTH_CMDS

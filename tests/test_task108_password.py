@@ -35,7 +35,7 @@ _CSRF_TOKEN = "test-csrf-token-abcdef1234567890"
 
 
 def _make_session_cookie() -> str:
-    return URLSafeTimedSerializer(_SECRET).dumps({"username": "hearth-admin"})
+    return URLSafeTimedSerializer(_SECRET).dumps({"username": "hestia"})
 
 
 def _authed_client() -> TestClient:
@@ -155,7 +155,7 @@ class TestTask108ChangePassword(unittest.TestCase):
         self.assertTrue(len(captured) > 0)
         call = captured[0]
         self.assertTrue(any("chpasswd" in c for c in call["cmd"]))
-        self.assertIn("hearth-admin:mynewpassword1", call["input"])
+        self.assertIn("hestia:mynewpassword1", call["input"])
 
 
 if __name__ == "__main__":

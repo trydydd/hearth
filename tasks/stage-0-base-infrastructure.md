@@ -338,7 +338,7 @@ Build the portal landing page. It must:
 
 Implement the one-shot first-boot credential generator:
 - Generate a random 12-character alphanumeric admin password.
-- Hash it and set it for the `hearth-admin` system user.
+- Hash it and set it for the `hestia` system user.
 - Write a flag file (e.g., `/var/lib/hearth/first-boot-done`) so the script
   does not re-run.
 - Store the plaintext password temporarily in a readable location so the portal
@@ -351,7 +351,7 @@ Implement the one-shot first-boot credential generator:
 
 **Acceptance criteria:**
 - Script is idempotent: second run exits 0 and does nothing.
-- Password file has permissions `0400` owned by `hearth-admin` (the admin
+- Password file has permissions `0400` owned by `hestia` (the admin
   backend process user from Task 1.05), so the API endpoint in Task 1.06 can
   read it. The portal landing page reads the flag via the
   `/api/public/services/status` API — not by accessing the file directly —

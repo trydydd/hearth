@@ -26,7 +26,7 @@ _MIN_PASSWORD_LENGTH = 12
 # The only admin system account — used by every credential check so the
 # username submitted by the form cannot be used to authenticate as a
 # different system user.
-_ADMIN_USER = "hearth-admin"
+_ADMIN_USER = "hestia"
 
 
 class LoginRequest(BaseModel):
@@ -41,10 +41,10 @@ class ChangePasswordRequest(BaseModel):
 
 @router.post("/login")
 async def login(body: LoginRequest, response: Response):
-    """Authenticate with the ``hearth-admin`` system account.
+    """Authenticate with the ``hestia`` system account.
 
     The username submitted in the request body is ignored for security;
-    authentication is always performed against the ``hearth-admin`` system
+    authentication is always performed against the ``hestia`` system
     account so that a mis-typed username cannot be used to attempt access
     to other system accounts.
 
