@@ -1,6 +1,168 @@
 ---
-# roles/kiwix/tasks/main.yml
-# TODO (Task 1.x): Install and configure Kiwix offline Wikipedia / ZIM reader.
-- name: Placeholder — kiwix role tasks not yet implemented
-  debug:
-    msg: "kiwix role: Kiwix offline Wikipedia / ZIM reader"
+# roles/kiwix/tasks/main.yml — Kiwix offline content server
+#
+# All downloads happen on the Ansible controller (build machine), which has
+# internet access. Compiled binaries and ZIM files are then copied into the
+# image. The Pi has no outbound internet access at runtime.
+
+# ---- System user -----------------------------------------------------------
+
+- name: Create kiwix system group
+  ansible.builtin.group:
+    name: kiwix
+    system: true
+    state: present
+
+- name: Create kiwix system user
+  ansible.builtin.user:
+    name: kiwix
+    group: kiwix
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ kiwix_storage }}"
+    create_home: false
+
+# ---- Storage ---------------------------------------------------------------
+
+- name: Create kiwix ZIM storage directory
+  ansible.builtin.file:
+    path: "{{ kiwix_storage }}"
+    state: directory
+    owner: kiwix
+    group: kiwix
+    mode: "0755"
+
+# ---- kiwix-serve binary ----------------------------------------------------
+# Download the target-architecture binary on the build machine, then copy it
+# into the image. kiwix_arch is derived from the *target* ansible_architecture.
+
+- name: Check if kiwix binaries are already installed on target
+  ansible.builtin.stat:
+    path: /usr/local/bin/kiwix-manage
+    get_checksum: false
+  register: _kiwix_binary
+
+- name: Ensure local build cache directory exists
+  ansible.builtin.file:
+    path: "{{ kiwix_local_build_cache }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  when: not _kiwix_binary.stat.exists
+
+- name: Download kiwix-tools archive to build machine
+  ansible.builtin.get_url:
+    url: "{{ kiwix_download_url }}"
+    dest: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball }}"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+  when: not _kiwix_binary.stat.exists
+
+- name: Extract kiwix-serve from archive on build machine
+  ansible.builtin.unarchive:
+    src: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball }}"
+    dest: "{{ kiwix_local_build_cache }}"
+    creates: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball_stem }}/kiwix-serve"
+  delegate_to: localhost
+  become: false
+  when: not _kiwix_binary.stat.exists
+
+- name: Install kiwix-serve binary into image
+  ansible.builtin.copy:
+    src: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball_stem }}/kiwix-serve"
+    dest: /usr/local/bin/kiwix-serve
+    owner: root
+    group: root
+    mode: "0755"
+  when: not _kiwix_binary.stat.exists
+  notify: Restart kiwix
+
+- name: Install kiwix-manage binary into image
+  ansible.builtin.copy:
+    src: "{{ kiwix_local_build_cache }}/{{ kiwix_tarball_stem }}/kiwix-manage"
+    dest: /usr/local/bin/kiwix-manage
+    owner: root
+    group: root
+    mode: "0755"
+  when: not _kiwix_binary.stat.exists
+
+# ---- ZIM content -----------------------------------------------------------
+# Download ZIM files to a local staging directory on the build machine, then
+# copy them into the image. Set services.kiwix.download_zims: false in
+# cafe.yaml to skip both steps (for dev environments).
+
+- name: Stat ZIM files on target
+  ansible.builtin.stat:
+    path: "{{ kiwix_storage }}/{{ item.name }}"
+    get_checksum: false
+  # services.kiwix.content from cafe.yaml takes precedence; falls back to role defaults.
+  loop: "{{ (services.kiwix.content | default(kiwix_zims)) | selectattr('enabled', 'equalto', true) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _kiwix_zim_stat
+
+- name: Ensure local ZIM cache directory exists
+  ansible.builtin.file:
+    path: "{{ kiwix_local_zim_cache }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  when: (services.kiwix.download_zims | default(kiwix_download_zims)) | bool
+
+- name: Download missing ZIM files to build machine
+  ansible.builtin.get_url:
+    url: "{{ item.item.url }}"
+    dest: "{{ kiwix_local_zim_cache }}/{{ item.item.name }}"
+    mode: "0644"
+  loop: "{{ _kiwix_zim_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  delegate_to: localhost
+  become: false
+  when:
+    - (services.kiwix.download_zims | default(kiwix_download_zims)) | bool
+    - not item.stat.exists
+
+- name: Copy ZIM files into image
+  ansible.builtin.copy:
+    src: "{{ kiwix_local_zim_cache }}/{{ item.item.name }}"
+    dest: "{{ kiwix_storage }}/{{ item.item.name }}"
+    owner: kiwix
+    group: kiwix
+    mode: "0644"
+  loop: "{{ _kiwix_zim_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - (services.kiwix.download_zims | default(kiwix_download_zims)) | bool
+    - not item.stat.exists
+
+# ---- Systemd service -------------------------------------------------------
+
+- name: Deploy kiwix-rebuild-library script
+  ansible.builtin.copy:
+    src: kiwix-rebuild-library
+    dest: /usr/local/bin/kiwix-rebuild-library
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart kiwix
+
+- name: Deploy kiwix systemd service unit
+  ansible.builtin.copy:
+    src: kiwix.service
+    dest: /etc/systemd/system/kiwix.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart kiwix
+
+- name: Enable and start kiwix service
+  ansible.builtin.systemd:
+    name: kiwix.service
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -35,8 +35,8 @@ SERVICE_MAP: dict[str, dict[str, str]] = {
     },
     "kiwix": {
         "unit": "kiwix.service",
-        "name": "Kiwix",
-        "url_path": "/kiwix/",
+        "name": "Library",
+        "url_path": "/library/",
     },
     "navidrome": {
         "unit": "navidrome.service",

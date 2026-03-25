@@ -40,6 +40,9 @@ storage:
     navidrome:   "/srv/cafebox/navidrome"
 
 # ---------------------------------------------------------------------------
+# Kiwix offline content (mirrors cafe.yaml: kiwix.*)
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Services — per-service enable flags (mirrors cafe.yaml: services.*)
 # ---------------------------------------------------------------------------
 services:
@@ -49,6 +52,14 @@ services:
     enabled: true
   kiwix:
     enabled: true
+    download_zims: false
+    content:
+      - name: "wikipedia_en_ray-charles_mini_2025-11.zim"
+        url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_ray-charles_mini_2025-11.zim"
+        enabled: true
+      - name: "libretexts.org_en_k12_2026-01.zim"
+        url: "https://download.kiwix.org/zim/libretexts/libretexts.org_en_k12_2026-01.zim"
+        enabled: true
   navidrome:
     enabled: true
 

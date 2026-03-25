@@ -1,2 +1,6 @@
 ---
-# roles/kiwix/handlers/main.yml
+- name: Restart kiwix
+  ansible.builtin.systemd:
+    name: kiwix.service
+    state: restarted
+    daemon_reload: true

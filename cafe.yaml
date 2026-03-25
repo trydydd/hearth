@@ -114,15 +114,41 @@ services:
 
   # eBook library (Calibre-Web)
   calibre_web:
-    enabled: true
+    enabled: false
 
-  # Offline Wikipedia / ZIM reader (Kiwix)
+  # Offline Wikipedia / ZIM reader (Kiwix) — served at /wiki/
   kiwix:
     enabled: true
 
+    # ZIM files are injected onto the SD card after flashing via
+    # scripts/inject-zims.sh — the image build never downloads ZIMs.
+    # Set to true only when using a self-hosted build that has a local ZIM cache.
+    download_zims: false
+
+    # ZIM content packages to download and serve.
+    # Browse available files: https://library.kiwix.org/
+    #   Mini Wikipedia (text only, ≈ 1 GB):    wikipedia_en_all_mini_YYYY-MM.zim
+    #   Maxi Wikipedia (with images, ≈ 90 GB): wikipedia_en_all_maxi_YYYY-MM.zim
+    content:
+      # Dev/test ZIM (~4 MB) — swap for real content before production flash.
+      # The Ray Charles article is Kiwix's canonical small test file.
+      - name: "wikipedia_en_ray-charles_mini_2025-11.zim"
+        url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_ray-charles_mini_2025-11.zim"
+        enabled: true
+
+      # K-12 education content (LibreTexts)
+      - name: "libretexts.org_en_k12_2026-01.zim"
+        url: "https://download.kiwix.org/zim/libretexts/libretexts.org_en_k12_2026-01.zim"
+        enabled: true
+
+      # Production Wikipedia — enable when ready to flash; disable test ZIM above.
+      - name: "wikipedia_en_computer_maxi_2025-12.zim"
+        url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_computer_maxi_2025-12.zim"
+        enabled: false
+
   # Music streaming server (Navidrome)
   navidrome:
-    enabled: true
+    enabled: false
 
 # ---------------------------------------------------------------------------
 # Diagnostics
