@@ -1,6 +1,89 @@
 ---
-# roles/conduit/tasks/main.yml
-# TODO (Task 1.x): Install and configure Conduit Matrix homeserver.
-- name: Placeholder — conduit role tasks not yet implemented
-  debug:
-    msg: "conduit role: Conduit Matrix homeserver"
+# roles/conduit/tasks/main.yml — Install and configure Conduit Matrix homeserver
+
+- name: Create conduit system group
+  ansible.builtin.group:
+    name: conduit
+    system: true
+    state: present
+
+- name: Create conduit system user
+  ansible.builtin.user:
+    name: conduit
+    group: conduit
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ storage.locations.conduit }}"
+    create_home: false
+    state: present
+
+- name: Create Conduit data directory
+  ansible.builtin.file:
+    path: "{{ storage.locations.conduit }}"
+    state: directory
+    owner: conduit
+    group: conduit
+    mode: "0750"
+
+- name: Create Conduit config directory
+  ansible.builtin.file:
+    path: /etc/conduit
+    state: directory
+    owner: root
+    group: conduit
+    mode: "0750"
+
+- name: Fail if architecture is not supported
+  ansible.builtin.fail:
+    msg: >-
+      No Conduit binary is available for architecture '{{ ansible_architecture }}'.
+      Supported architectures: {{ conduit_arch_map.keys() | list | join(', ') }}.
+      Add an entry to conduit_arch_map in ansible/roles/conduit/defaults/main.yml.
+  when: ansible_architecture not in conduit_arch_map
+
+- name: Download Conduit binary ({{ conduit_channel }} channel, {{ ansible_architecture }})
+  ansible.builtin.get_url:
+    url: "https://gitlab.com/api/v4/projects/famedly%2Fconduit/jobs/artifacts/\
+          {{ conduit_channel }}/raw/\
+          {{ conduit_arch_map[ansible_architecture] }}?job=artifacts"
+    dest: /usr/local/bin/conduit
+    mode: "0755"
+    owner: root
+    group: root
+    force: false
+  # force: false — only downloads if the binary is absent.
+  # To update Conduit: delete /usr/local/bin/conduit and reprovision.
+  notify: Restart conduit
+
+- name: Deploy Conduit configuration
+  ansible.builtin.template:
+    src: conduit.toml.j2
+    dest: "{{ conduit_config_path }}"
+    owner: root
+    group: conduit
+    mode: "0640"
+  notify: Restart conduit
+
+- name: Deploy Conduit privacy policy
+  ansible.builtin.copy:
+    src: PRIVACY.md
+    dest: /etc/conduit/PRIVACY.md
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Conduit systemd service unit
+  ansible.builtin.copy:
+    src: conduit.service
+    dest: /etc/systemd/system/conduit.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart conduit
+
+- name: Enable and start Conduit service
+  ansible.builtin.systemd:
+    name: conduit.service
+    enabled: true
+    state: started
+    daemon_reload: true

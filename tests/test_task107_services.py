@@ -70,7 +70,7 @@ class TestTask107Services(unittest.TestCase):
         mock_result.stderr = "Failed to start conduit.service: unit not found"
 
         with patch("routers.services.subprocess.run", return_value=mock_result):
-            response = _post("/api/admin/services/conduit/start")
+            response = _post("/api/admin/services/chat/start")
 
         self.assertEqual(response.status_code, 500)
         self.assertIn("Failed to start", response.json()["detail"])
@@ -85,7 +85,7 @@ class TestTask107Services(unittest.TestCase):
         mock_result.stderr = ""
 
         with patch("routers.services.subprocess.run", return_value=mock_result):
-            response = _post("/api/admin/services/conduit/start")
+            response = _post("/api/admin/services/chat/start")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "started")
@@ -128,13 +128,14 @@ class TestTask107Services(unittest.TestCase):
             return r
 
         with patch("routers.services.subprocess.run", side_effect=fake_run):
-            _post("/api/admin/services/conduit/start")
+            _post("/api/admin/services/chat/start")
 
         self.assertTrue(len(captured_calls) > 0)
         cmd = captured_calls[0]
         self.assertIsInstance(cmd, list, "subprocess.run must receive a list, not a string")
         self.assertIn("systemctl", cmd)
         self.assertIn("start", cmd)
+        # chat tile_id maps to conduit.service in services_map.py
         self.assertIn("conduit.service", cmd)
 
     # ------------------------------------------------------------------
@@ -146,7 +147,7 @@ class TestTask107Services(unittest.TestCase):
         client = TestClient(app, raise_server_exceptions=False)
         client.cookies.set("csrf_token", _CSRF_TOKEN)
         response = client.post(
-            "/api/admin/services/conduit/start",
+            "/api/admin/services/chat/start",
             headers={"X-CSRF-Token": _CSRF_TOKEN},
         )
         self.assertEqual(response.status_code, 401)

@@ -64,9 +64,9 @@ class TestTask111Upload(unittest.TestCase):
         response = _upload("doesnotexist", "test.zim")
         self.assertEqual(response.status_code, 404)
 
-    def test_conduit_has_no_upload_support_returns_404(self):
-        """conduit is not in UPLOAD_EXTENSIONS → 404."""
-        response = _upload("conduit", "test.bin")
+    def test_chat_has_no_upload_support_returns_404(self):
+        """chat is not in UPLOAD_EXTENSIONS → 404."""
+        response = _upload("chat", "test.bin")
         self.assertEqual(response.status_code, 404)
 
     # ------------------------------------------------------------------

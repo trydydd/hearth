@@ -1,2 +1,6 @@
 ---
-# roles/conduit/handlers/main.yml
+- name: Restart conduit
+  ansible.builtin.systemd:
+    name: conduit.service
+    state: restarted
+    daemon_reload: true

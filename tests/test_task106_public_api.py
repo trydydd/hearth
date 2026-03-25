@@ -30,8 +30,7 @@ from main import app  # noqa: E402
 _SAMPLE_CONFIG = {
     "box": {"domain": "cafe.box"},
     "services": {
-        "conduit": {"enabled": True},
-        "element_web": {"enabled": False},
+        "chat": {"enabled": True, "registration_token": "", "max_request_size": 20000000},
         "calibre_web": {"enabled": True},
         "kiwix": {"enabled": False},
         "navidrome": {"enabled": True},
@@ -85,25 +84,24 @@ class TestTask106PublicAPI(unittest.TestCase):
     def test_disabled_service_has_enabled_false(self):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
-        self.assertFalse(services["element_web"]["enabled"])
         self.assertFalse(services["kiwix"]["enabled"])
 
     def test_enabled_service_has_enabled_true(self):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
-        self.assertTrue(services["conduit"]["enabled"])
+        self.assertTrue(services["chat"]["enabled"])
         self.assertTrue(services["navidrome"]["enabled"])
 
     def test_enabled_service_has_url(self):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
-        self.assertIsNotNone(services["conduit"]["url"])
-        self.assertIn("cafe.box", services["conduit"]["url"])
+        self.assertIsNotNone(services["chat"]["url"])
+        self.assertIn("cafe.box", services["chat"]["url"])
 
     def test_disabled_service_has_no_url(self):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
-        self.assertIsNone(services["element_web"]["url"])
+        self.assertIsNone(services["kiwix"]["url"])
 
     # ------------------------------------------------------------------
     # Acceptance criterion: endpoint accessible without authentication

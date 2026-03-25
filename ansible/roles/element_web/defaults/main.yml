@@ -1,2 +1,5 @@
 ---
 # roles/element_web/defaults/main.yml
+
+# Destination directory where Element Web static files are installed.
+element_web_install_dir: "/srv/cafebox/element-web"

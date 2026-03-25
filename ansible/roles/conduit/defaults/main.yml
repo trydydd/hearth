@@ -1,2 +1,18 @@
 ---
 # roles/conduit/defaults/main.yml
+
+# Release channel: "master" (stable) or "next" (development/bleeding-edge).
+# See: https://famedly.gitlab.io/conduit/deploying/generic.html
+conduit_channel: "master"
+
+# Rust target triple for each architecture, as named in the GitLab CI artifact.
+# Add entries here if new architectures are needed.
+conduit_arch_map:
+  aarch64: "aarch64-unknown-linux-musl"
+  x86_64: "x86_64-unknown-linux-musl"
+
+# Conduit listens on localhost only — nginx proxies /_matrix/ to this port.
+conduit_port: 6167
+
+# Path where Conduit reads its configuration file.
+conduit_config_path: "/etc/conduit/conduit.toml"

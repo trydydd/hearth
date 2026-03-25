@@ -493,6 +493,7 @@
     <!-- ----------------------------------------------------------------- -->
     <footer class="footer" role="contentinfo">
       <p>CafeBox — offline community hub</p>
+      <p class="chat-privacy-notice">Chat messages are stored on this box and are not automatically deleted — enable encryption in Element to protect your messages from the box operator.</p>
     </footer>
 
   </main>
@@ -564,6 +565,11 @@
       tileGrid.removeAttribute("hidden");
     }
 
+    /* Inline SVG icons keyed by service ID — no CDN, no external requests. */
+    var SERVICE_ICONS = {
+      "chat": '<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#1d2433" stroke-width="2" stroke-linejoin="round" fill="#ece3c5"/></svg>'
+    };
+
     function buildTile(svc) {
       var enabled = Boolean(svc.enabled);
       var article = document.createElement("article");
@@ -571,7 +577,11 @@
 
       var nameEl = document.createElement("h3");
       nameEl.className = "tile-name";
-      nameEl.textContent = svc.name || "Service";
+      if (SERVICE_ICONS[svc.id]) {
+        nameEl.innerHTML = SERVICE_ICONS[svc.id] + " " + (svc.name || "Service");
+      } else {
+        nameEl.textContent = svc.name || "Service";
+      }
 
       var statusEl = document.createElement("p");
       statusEl.className = "tile-status";

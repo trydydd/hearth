@@ -1,2 +1,5 @@
 ---
-# roles/element_web/handlers/main.yml
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx.service
+    state: reloaded
