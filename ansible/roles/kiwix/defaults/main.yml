@@ -13,10 +13,10 @@ kiwix_storage: "/srv/cafebox/kiwix"
 kiwix_local_build_cache: "{{ playbook_dir }}/../.build-cache/kiwix"
 kiwix_local_zim_cache:   "{{ playbook_dir }}/../zims"
 
-# Set to false to skip ZIM downloads during image build (e.g. dev Vagrant).
-# ZIMs can be placed in kiwix_local_zim_cache manually and will be copied in
-# on the next provision if this is set to true.
-kiwix_download_zims: true
+# ZIM files are injected onto the SD card after flashing via scripts/inject-zims.sh.
+# The image build never downloads ZIMs. Set to true only if you want Ansible to
+# also copy ZIMs during provisioning (e.g. a self-hosted build with local cache).
+kiwix_download_zims: false
 
 # ---- ZIM content library ----------------------------------------------------
 #
@@ -34,6 +34,6 @@ kiwix_download_zims: true
 # Browse available ZIM files: https://library.kiwix.org/
 #
 kiwix_zims:
-  - name: "wikipedia_en_all_mini_2024-05.zim"
-    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2024-05.zim"
+  - name: "wikipedia_en_ray-charles_mini_2025-11.zim"
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_ray-charles_mini_2025-11.zim"
     enabled: true

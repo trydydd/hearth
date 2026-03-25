@@ -120,19 +120,26 @@ services:
   kiwix:
     enabled: true
 
-    # Set to false to skip ZIM downloads during provisioning (useful on a dev
-    # machine where a ~1 GB download is impractical). The service still
-    # installs and starts; add ZIM files manually or via the admin upload page.
-    download_zims: true
+    # ZIM files are injected onto the SD card after flashing via
+    # scripts/inject-zims.sh — the image build never downloads ZIMs.
+    # Set to true only when using a self-hosted build that has a local ZIM cache.
+    download_zims: false
 
     # ZIM content packages to download and serve.
     # Browse available files: https://library.kiwix.org/
     #   Mini Wikipedia (text only, ≈ 1 GB):    wikipedia_en_all_mini_YYYY-MM.zim
     #   Maxi Wikipedia (with images, ≈ 90 GB): wikipedia_en_all_maxi_YYYY-MM.zim
     content:
+      # Dev/test ZIM (~4 MB) — swap for real content before production flash.
+      # The Ray Charles article is Kiwix's canonical small test file.
+      - name: "wikipedia_en_ray-charles_mini_2025-11.zim"
+        url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_ray-charles_mini_2025-11.zim"
+        enabled: true
+
+      # Production content — enable and disable the test ZIM above when ready.
       - name: "wikipedia_en_computer_maxi_2025-12.zim"
         url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_computer_maxi_2025-12.zim"
-        enabled: true
+        enabled: false
 
   # Music streaming server (Navidrome)
   navidrome:
