@@ -59,7 +59,7 @@ class TestTask105Sudoers(unittest.TestCase):
             "hearth-volume.service",
             "calibre-web.service",
             "kiwix.service",
-            "navidrome.service",
+            "hearth-jukebox.service",
         ]
         for unit in expected_units:
             with self.subTest(unit=unit):

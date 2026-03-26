@@ -41,7 +41,7 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
             "ansible/roles/chat",
             "ansible/roles/calibre_web",
             "ansible/roles/kiwix",
-            "ansible/roles/navidrome",
+
             "ansible/roles/admin",
             "ansible/roles/diagnostics",
         ]
@@ -182,7 +182,7 @@ class TestAnsibleRoleStructure(unittest.TestCase):
         "chat",
         "calibre_web",
         "kiwix",
-        "navidrome",
+
         "admin",
         "diagnostics",
     ]

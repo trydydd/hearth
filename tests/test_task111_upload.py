@@ -78,8 +78,8 @@ class TestTask111Upload(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertIn("exe", response.json()["detail"].lower())
 
-    def test_disallowed_extension_for_navidrome_returns_422(self):
-        response = _upload("navidrome", "video.avi")
+    def test_disallowed_extension_for_music_returns_422(self):
+        response = _upload("music", "video.avi")
         self.assertEqual(response.status_code, 422)
 
     # ------------------------------------------------------------------
@@ -100,13 +100,13 @@ class TestTask111Upload(unittest.TestCase):
         self.assertEqual(data["filename"], "wikipedia.zim")
         self.assertGreater(data["bytes_written"], 0)
 
-    def test_valid_navidrome_upload_returns_200(self):
+    def test_valid_music_upload_returns_200(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = {
-                "storage": {"locations": {"navidrome": tmpdir}},
+                "storage": {"locations": {"music": tmpdir}},
             }
             with patch("config.load_config", return_value=cfg):
-                response = _upload("navidrome", "song.mp3", b"ID3 fake data")
+                response = _upload("music", "song.mp3", b"ID3 fake data")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")

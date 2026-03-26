@@ -1,7 +1,6 @@
 {%- set service_ports = {
     'calibre_web': 8083,
-    'kiwix':       8888,
-    'navidrome':   4533
+    'kiwix':       8888
 } -%}
 # nginx.conf.j2 — Hearth nginx configuration template
 #
@@ -117,9 +116,10 @@ server {
     }
 {% endif %}
 
+
     # Service reverse-proxy stubs — uncomment the location block and remove the
     # leading '#' when the corresponding service is enabled in hearth.yaml.
-{% for name, svc in services.items() if name not in ['chat', 'kiwix'] %}
+{% for name, svc in services.items() if name not in ['chat', 'kiwix', 'music'] %}
 {%- set port = service_ports.get(name, 'PORT') -%}
 {%- if svc.enabled %}
     # {{ name }} — enabled; uncomment to activate reverse-proxy:

@@ -96,7 +96,7 @@ class TestTask107Services(unittest.TestCase):
         mock_result.stderr = ""
 
         with patch("routers.services.subprocess.run", return_value=mock_result):
-            response = _post("/api/admin/services/navidrome/stop")
+            response = _post("/api/admin/services/music/stop")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "stopped")

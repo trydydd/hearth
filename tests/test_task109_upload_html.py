@@ -50,8 +50,8 @@ class TestTask109UploadHTML(unittest.TestCase):
     def test_has_calibre_upload(self):
         self.assertIn("calibre", self.content.lower())
 
-    def test_has_navidrome_upload(self):
-        self.assertIn("navidrome", self.content.lower())
+    def test_has_music_upload(self):
+        self.assertIn("music", self.content.lower())
 
     def test_file_inputs_have_labels(self):
         # Each file input must have a corresponding label
