@@ -8,8 +8,11 @@ same position — like a real jukebox.
 Complete tasks in the order they are numbered. Each task is scoped to
 approximately one hour of work for an intermediate software engineer.
 
-**Prerequisites:** All Stage 4 tasks must be complete before starting Stage 5.
-The music library must be populated with at least a few tracks before testing.
+**Prerequisites:** Stage 4 (Navidrome) was dropped — see that file for details.
+The actual prerequisites are Stage 0 and Stage 1 (admin backend + upload
+endpoint). Music files are uploaded via `POST /api/admin/upload/music` and
+stored at `/srv/hearth/music/`. Populate the library with a few tracks before
+testing the playback engine.
 
 ---
 
@@ -45,8 +48,8 @@ The music library must be populated with at least a few tracks before testing.
 └────────────────────┬────────────────────────────┘
                      │ reads files
 ┌────────────────────▼────────────────────────────┐
-│ /srv/hearth/navidrome/music/                   │
-│  (shared read-only access — navidrome owns it)  │
+│ /srv/hearth/music/                              │
+│  (operator uploads via admin UI or scp)         │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -61,9 +64,9 @@ The music library must be populated with at least a few tracks before testing.
 - **Separate service, port 8766.** Keeps the jukebox process isolated from
   hearth-chat. The same service handles both the WebSocket control channel and
   the audio stream endpoint.
-- **Read-only access to the music library.** The jukebox process reads files
-  from `/srv/hearth/navidrome/music/` but does not write to the Navidrome
-  data directory. Navidrome continues to manage its own database.
+- **Read-only access to the music library.** The jukebox reads files from
+  `/srv/hearth/music/` but never writes there. The operator uploads audio
+  via the admin UI; the jukebox is a consumer of that directory only.
 - **Queue is ephemeral.** The queue is stored in SQLite in `/tmp` or on the
   ephemeral chat volume. It is intentionally lost on reboot — a clean slate
   each session.
@@ -100,7 +103,7 @@ Create the `hearth-jukebox` service: Python / FastAPI, port 8766.
   ```ini
   [Unit]
   Description=Hearth Jukebox Service
-  After=network.target navidrome.service
+  After=network.target
 
   [Service]
   Type=simple
@@ -114,7 +117,7 @@ Create the `hearth-jukebox` service: Python / FastAPI, port 8766.
   NoNewPrivileges=true
   ProtectSystem=strict
   ProtectHome=true
-  ReadOnlyPaths=/srv/hearth/navidrome/music
+  ReadOnlyPaths=/srv/hearth/music
   ReadWritePaths=/tmp
 
   [Install]
@@ -129,7 +132,7 @@ Create the `hearth-jukebox` service: Python / FastAPI, port 8766.
 - `hearth-jukebox.service` reaches `active (running)`.
 - `GET /jukebox/health` returns `{"status": "ok"}`.
 - `GET /jukebox/queue` returns an empty list `[]` on a fresh start.
-- Tests pass: service unit exists; contains `ReadOnlyPaths=/srv/hearth/navidrome/music`;
+- Tests pass: service unit exists; contains `ReadOnlyPaths=/srv/hearth/music`;
   tasks enable `hearth-jukebox.service`.
 
 ---
@@ -182,12 +185,11 @@ tracks elapsed time.
 ## Task 5.03 — Library Browse API
 
 Expose a read-only endpoint for browsing the music library so the frontend
-can present tracks for queuing without embedding Navidrome's admin UI.
+can present tracks for queuing.
 
 **Deliverables:**
 - `GET /jukebox/library` — returns a flat list of tracks found in
-  `/srv/hearth/navidrome/music/` (recursive), with metadata extracted by
-  `mutagen`:
+  `/srv/hearth/music/` (recursive), with metadata extracted by `mutagen`:
   ```jsonc
   [
     {
@@ -200,15 +202,14 @@ can present tracks for queuing without embedding Navidrome's admin UI.
   ]
   ```
 - Results are cached in memory at startup and refreshed when the service
-  restarts (no polling). The rescan endpoint from Task 4.05 restarts both
-  `navidrome.service` and `hearth-jukebox.service`.
-- Update `POST /api/admin/services/navidrome/rescan` to also restart
-  `hearth-jukebox.service` so the library cache is refreshed after uploads.
+  restarts (no polling). To refresh the library after an upload, restart
+  `hearth-jukebox.service` via `POST /api/admin/services/music/restart`.
+  No separate rescan endpoint is needed — service restart is the rescan.
 
 **Acceptance criteria:**
 - `GET /jukebox/library` returns all audio files in the music directory.
-- After uploading a new file and calling the rescan endpoint, the file
-  appears in the library list.
+- After uploading a new file and restarting the service, the file appears
+  in the library list.
 - Files outside the music root are not accessible via this endpoint.
 - Tests pass: library endpoint returns only files within the music root;
   metadata fields are present for each track.
@@ -295,36 +296,33 @@ Implement the single-page jukebox UI at `/jukebox/`.
 
 Wire the jukebox service into nginx and the admin panel.
 
-**Location blocks (conditional on `services.jukebox.enabled`):**
+**Location blocks (conditional on `services.music.enabled`):**
 - `location = /jukebox` → `return 301 /jukebox/`
 - `location /jukebox/ws` → WebSocket proxy to `127.0.0.1:8766`
 - `location /jukebox/stream` → proxy to `127.0.0.1:8766`;
   add `proxy_buffering off` to prevent nginx from buffering the audio stream.
 - `location /jukebox/` → static frontend files at `/var/www/hearth/jukebox/`
 
+**Already completed (dropped with Navidrome):**
+- `services_map.py` — `music` entry already maps to `hearth-jukebox.service`
+  at `/jukebox/`. No separate `jukebox` entry is needed.
+- `sudoers-hearth.j2` — `hearth-jukebox.service` start/stop/restart already
+  present.
+- `hearth.yaml` — `services.music.enabled: true` already set.
+
 **Deliverables:**
-- Updated `ansible/roles/nginx/templates/nginx.conf.j2`.
-- `ansible/roles/admin/files/backend/services_map.py` — add jukebox entry:
-  ```python
-  "jukebox": {
-      "unit": "hearth-jukebox.service",
-      "name": "Jukebox",
-      "url_path": "/jukebox/",
-  }
-  ```
-- `ansible/roles/admin/templates/sudoers-hearth.j2` — add
-  `hearth-jukebox.service` start/stop/restart.
-- `hearth.yaml` — add `services.jukebox.enabled: true`.
+- Updated `ansible/roles/nginx/templates/nginx.conf.j2` — add jukebox
+  location blocks conditional on `services.music.enabled`.
 - `ansible/site.yml` — add `jukebox` role.
 
 **Acceptance criteria:**
 - `curl -I http://hearth.local/jukebox` returns 301.
 - `curl http://hearth.local/jukebox/` returns the frontend HTML.
 - WebSocket handshake succeeds at `ws://hearth.local/jukebox/ws`.
-- Admin can start/stop/restart `hearth-jukebox.service` via admin API.
+- Admin can start/stop/restart `hearth-jukebox.service` via
+  `POST /api/admin/services/music/{start,stop,restart}`.
 - Tests pass: rendered nginx config contains all four location blocks when
-  enabled; sudoers contains `hearth-jukebox.service`; services_map contains
-  jukebox entry.
+  `services.music.enabled: true`; blocks absent when disabled.
 
 ---
 

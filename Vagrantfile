@@ -33,6 +33,7 @@ Vagrant.configure("2") do |config|
     # ansible.verbose = "vvv"
     # Allow the host to reach the portal via VirtualBox NAT (eth0).
     # In production (real Pi) this variable is left blank and has no effect.
+    ansible.host_key_checking = false
     ansible.extra_vars = {
       "firewall_management_interface" => "eth0",
       # Deploy diagnostic scripts inside the VM (dev only; false by default in production).

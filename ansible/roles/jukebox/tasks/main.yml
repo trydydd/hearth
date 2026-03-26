@@ -1,0 +1,112 @@
+---
+# roles/jukebox/tasks/main.yml — Hearth Jukebox service provisioning
+#
+# Sets up:
+#   - hearth-jukebox system user/group
+#   - Python virtualenv + hearth-jukebox.service
+#   - Static frontend files served by nginx at /jukebox/
+
+# ---- Packages --------------------------------------------------------------
+
+- name: Install jukebox system dependencies
+  ansible.builtin.apt:
+    name:
+      - python3-venv
+      - python3-pip
+    state: present
+    update_cache: false
+
+# ---- System user -----------------------------------------------------------
+
+- name: Create hearth-jukebox system group
+  ansible.builtin.group:
+    name: hearth-jukebox
+    system: true
+    state: present
+
+- name: Create hearth-jukebox system user
+  ansible.builtin.user:
+    name: hearth-jukebox
+    group: hearth-jukebox
+    system: true
+    shell: /usr/sbin/nologin
+    home: /opt/hearth
+    create_home: false
+
+# ---- Directories -----------------------------------------------------------
+
+- name: Create jukebox server directory
+  ansible.builtin.file:
+    path: "{{ jukebox_server_dir }}"
+    state: directory
+    owner: hearth-jukebox
+    group: hearth-jukebox
+    mode: "0755"
+
+- name: Create jukebox frontend directory
+  ansible.builtin.file:
+    path: "{{ jukebox_frontend_dir }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Ensure music library directory exists
+  ansible.builtin.file:
+    path: /srv/hearth/music
+    state: directory
+    owner: root
+    group: hearth-jukebox
+    mode: "0775"
+
+# ---- Python jukebox server -------------------------------------------------
+
+- name: Deploy jukebox server source files
+  ansible.builtin.copy:
+    src: server/
+    dest: "{{ jukebox_server_dir }}/"
+    owner: hearth-jukebox
+    group: hearth-jukebox
+    mode: "0644"
+  notify: Restart hearth-jukebox
+  tags: [jukebox, deploy]
+
+- name: Create Python virtualenv for jukebox server
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ jukebox_venv_dir }}
+    creates: "{{ jukebox_venv_dir }}/pyvenv.cfg"
+
+- name: Install jukebox Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ jukebox_server_dir }}/requirements.txt"
+    virtualenv: "{{ jukebox_venv_dir }}"
+  notify: Restart hearth-jukebox
+
+# ---- Systemd service -------------------------------------------------------
+
+- name: Deploy hearth-jukebox systemd service unit
+  ansible.builtin.copy:
+    src: hearth-jukebox.service
+    dest: /etc/systemd/system/hearth-jukebox.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hearth-jukebox
+
+- name: Enable and start hearth-jukebox service
+  ansible.builtin.systemd:
+    name: hearth-jukebox.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---- Frontend static files -------------------------------------------------
+
+- name: Deploy jukebox frontend files
+  ansible.builtin.copy:
+    src: frontend/
+    dest: "{{ jukebox_frontend_dir }}/"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  tags: [jukebox, deploy]

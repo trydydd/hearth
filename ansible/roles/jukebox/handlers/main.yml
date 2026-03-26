@@ -1,0 +1,8 @@
+---
+# roles/jukebox/handlers/main.yml
+
+- name: Restart hearth-jukebox
+  ansible.builtin.systemd:
+    name: hearth-jukebox.service
+    state: restarted
+    daemon_reload: true

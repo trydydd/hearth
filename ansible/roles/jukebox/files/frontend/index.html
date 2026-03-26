@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hearth Jukebox</title>
+  <link rel="stylesheet" href="/hearth.css" />
+  <style>
+    .jukebox { max-width: 900px; margin: 0 auto; padding: 1rem; }
+    .jukebox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 600px) {
+      .jukebox-grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      border: 2px solid var(--color-border, #4a3828);
+      border-radius: 4px;
+      padding: 1rem;
+      background: var(--color-surface, #1c1008);
+    }
+    .panel h2 { margin-top: 0; font-size: 1rem; }
+    .now-playing-title { font-size: 1.1rem; font-weight: bold; }
+    .now-playing-artist { opacity: 0.75; }
+    .progress-bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--color-border, #4a3828);
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--color-accent, #c43808);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 1s linear;
+    }
+    .progress-time { font-size: 0.8rem; opacity: 0.65; }
+    .idle-message {
+      text-align: center;
+      padding: 1.5rem 0;
+      opacity: 0.7;
+    }
+    .tap-to-listen {
+      display: block;
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.5rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: 1px solid var(--color-accent, #c43808);
+      background: var(--color-accent, #c43808);
+      color: #fff;
+      border-radius: 2px;
+    }
+    .tap-to-listen:focus { outline: 2px solid var(--color-accent, #c43808); outline-offset: 2px; }
+    .queue-list, .library-list { list-style: none; padding: 0; margin: 0; }
+    .queue-item, .library-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--color-border, #4a3828);
+      gap: 0.5rem;
+    }
+    .queue-item:last-child, .library-item:last-child { border-bottom: none; }
+    .track-info { flex: 1; min-width: 0; }
+    .track-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-meta  { display: block; font-size: 0.8rem; opacity: 0.65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-nick  { font-size: 0.75rem; opacity: 0.55; }
+    .btn-add {
+      flex-shrink: 0;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid var(--color-accent, #c43808);
+      background: transparent;
+      color: inherit;
+      border-radius: 2px;
+    }
+    .btn-add:hover { background: var(--color-accent, #c43808); color: #fff; }
+    .btn-add:focus { outline: 2px solid var(--color-accent, #c43808); outline-offset: 2px; }
+    .search-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.35rem 0.5rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--color-border, #4a3828);
+      background: var(--color-bg, #0c0604);
+      color: inherit;
+      font-family: inherit;
+      font-size: 0.9rem;
+      border-radius: 2px;
+    }
+    .search-input:focus { outline: 2px solid var(--color-accent, #c43808); outline-offset: 1px; }
+    .library-panel { grid-column: 1 / -1; }
+    .empty-library { opacity: 0.6; text-align: center; padding: 1rem 0; }
+    .nick-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem; font-size: 0.85rem; }
+    .nick-input {
+      flex: 1;
+      padding: 0.25rem 0.4rem;
+      border: 1px solid var(--color-border, #4a3828);
+      background: var(--color-bg, #0c0604);
+      color: inherit;
+      font-family: inherit;
+      font-size: 0.85rem;
+      border-radius: 2px;
+    }
+    .nick-input:focus { outline: 2px solid var(--color-accent, #c43808); outline-offset: 1px; }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #888;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+    .status-dot--connected { background: #4caf50; }
+    .status-dot--error     { background: #c43808; }
+    .connection-status { font-size: 0.75rem; opacity: 0.7; }
+    .mute-controls { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+    .btn-mute {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid var(--color-border, #4a3828);
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      border-radius: 2px;
+    }
+    .btn-mute:hover { background: var(--color-border, #4a3828); }
+    .btn-mute:focus { outline: 2px solid var(--color-accent, #c43808); outline-offset: 2px; }
+    .btn-mute--active { border-color: var(--color-accent, #c43808); color: var(--color-accent, #c43808); }
+  </style>
+</head>
+<body>
+  <main class="jukebox">
+    <header style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+      <h1 style="margin:0; font-size:1.4rem;">&#9835; Hearth Jukebox</h1>
+      <span class="connection-status" id="conn-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting…</span>
+      </span>
+    </header>
+
+    <!-- Nickname row (shared across all queue submissions) -->
+    <div class="nick-row">
+      <label for="nick-input">Your name:</label>
+      <input
+        id="nick-input"
+        class="nick-input"
+        type="text"
+        placeholder="anonymous"
+        maxlength="32"
+        aria-label="Your nickname for queue submissions"
+      />
+    </div>
+
+    <div class="jukebox-grid" style="margin-top:1rem;">
+
+      <!-- Now Playing panel -->
+      <section class="panel" aria-labelledby="now-playing-heading">
+        <h2 id="now-playing-heading">Now Playing</h2>
+        <div id="now-playing-content">
+          <p class="idle-message" id="idle-msg">Jukebox is idle — add a song to get started</p>
+          <div id="track-info" hidden>
+            <div class="now-playing-title" id="np-title"></div>
+            <div class="now-playing-artist" id="np-artist"></div>
+            <div class="now-playing-artist" id="np-album" style="font-size:0.85rem;"></div>
+            <div class="progress-bar-track" role="progressbar" aria-label="Track progress"
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-el">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-time">
+              <span id="elapsed-time">0:00</span> / <span id="total-time">0:00</span>
+            </div>
+            <div class="mute-controls">
+              <button class="btn-mute" id="btn-mute" type="button">Mute</button>
+              <button class="btn-mute" id="btn-mute-next" type="button">Mute until next song</button>
+            </div>
+          </div>
+        </div>
+        <!-- Hidden audio element — seeks to server-reported position on load -->
+        <audio id="player" hidden preload="none" aria-label="Jukebox audio stream"></audio>
+        <button class="tap-to-listen" id="tap-to-listen" hidden type="button">
+          &#9654; Tap to listen
+        </button>
+      </section>
+
+      <!-- Queue panel -->
+      <section class="panel" aria-labelledby="queue-heading">
+        <h2 id="queue-heading">Up Next</h2>
+        <div id="queue-container">
+          <p class="idle-message" id="queue-empty-msg">Queue is empty</p>
+          <ol class="queue-list" id="queue-list" hidden aria-label="Track queue" aria-live="polite"></ol>
+        </div>
+      </section>
+
+      <!-- Library panel -->
+      <section class="panel library-panel" aria-labelledby="library-heading">
+        <h2 id="library-heading">Library</h2>
+        <input
+          id="search-input"
+          class="search-input"
+          type="search"
+          placeholder="Search tracks…"
+          aria-label="Search music library"
+          autocomplete="off"
+        />
+        <div id="library-container">
+          <p class="empty-library" id="library-loading">Loading library…</p>
+          <ul class="library-list" id="library-list" hidden aria-label="Music library"></ul>
+          <p class="empty-library" id="library-empty" hidden>No tracks found.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    /* -----------------------------------------------------------------------
+     * State
+     * -------------------------------------------------------------------- */
+    var ws              = null;
+    var wsRetryDelay    = 1000;
+    var library         = [];
+    var nowPlaying      = null;
+    var elapsed         = 0;
+    var duration        = 0;
+    var audioReady      = false;
+    var muteUntilNextPath = null;  // path of song playing when "mute until next" was pressed
+
+    /* -----------------------------------------------------------------------
+     * DOM refs
+     * -------------------------------------------------------------------- */
+    var statusDot     = document.getElementById("status-dot");
+    var statusText    = document.getElementById("status-text");
+    var idleMsg       = document.getElementById("idle-msg");
+    var trackInfo     = document.getElementById("track-info");
+    var npTitle       = document.getElementById("np-title");
+    var npArtist      = document.getElementById("np-artist");
+    var npAlbum       = document.getElementById("np-album");
+    var progressFill  = document.getElementById("progress-fill");
+    var progressBarEl = document.getElementById("progress-bar-el");
+    var elapsedTime   = document.getElementById("elapsed-time");
+    var totalTime     = document.getElementById("total-time");
+    var queueList     = document.getElementById("queue-list");
+    var queueEmptyMsg = document.getElementById("queue-empty-msg");
+    var libraryList   = document.getElementById("library-list");
+    var libraryLoading= document.getElementById("library-loading");
+    var libraryEmpty  = document.getElementById("library-empty");
+    var searchInput   = document.getElementById("search-input");
+    var nickInput     = document.getElementById("nick-input");
+    var player        = document.getElementById("player");
+    var btnMute       = document.getElementById("btn-mute");
+    var btnMuteNext   = document.getElementById("btn-mute-next");
+    var tapToListen   = document.getElementById("tap-to-listen");
+
+    /* -----------------------------------------------------------------------
+     * Utilities
+     * -------------------------------------------------------------------- */
+    function fmtTime(secs) {
+      var s = Math.floor(secs);
+      var m = Math.floor(s / 60);
+      s = s % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    function nick() { return nickInput.value.trim() || ""; }
+
+    /* -----------------------------------------------------------------------
+     * Now Playing UI
+     * -------------------------------------------------------------------- */
+    function updateNowPlaying() {
+      if (!nowPlaying) {
+        idleMsg.removeAttribute("hidden");
+        trackInfo.setAttribute("hidden", "");
+        tapToListen.setAttribute("hidden", "");
+        setProgress(0, 0);
+        return;
+      }
+      idleMsg.setAttribute("hidden", "");
+      trackInfo.removeAttribute("hidden");
+      npTitle.textContent  = nowPlaying.title  || nowPlaying.path || "Unknown";
+      npArtist.textContent = nowPlaying.artist || "";
+      npAlbum.textContent  = nowPlaying.album  || "";
+      setProgress(elapsed, duration);
+    }
+
+    function setProgress(el, dur) {
+      var pct = (dur > 0) ? Math.min(100, (el / dur) * 100) : 0;
+      progressFill.style.width = pct + "%";
+      progressBarEl.setAttribute("aria-valuenow", Math.round(pct));
+      elapsedTime.textContent = fmtTime(el);
+      totalTime.textContent   = fmtTime(dur);
+    }
+
+    /* -----------------------------------------------------------------------
+     * Queue UI
+     * -------------------------------------------------------------------- */
+    function renderQueue(queue) {
+      if (!queue || queue.length === 0) {
+        queueList.setAttribute("hidden", "");
+        queueEmptyMsg.removeAttribute("hidden");
+        return;
+      }
+      queueEmptyMsg.setAttribute("hidden", "");
+      queueList.removeAttribute("hidden");
+      queueList.innerHTML = "";
+      queue.forEach(function (item, idx) {
+        var li = document.createElement("li");
+        li.className = "queue-item";
+        li.innerHTML =
+          '<span class="track-info">' +
+          '  <span class="track-title">' + esc(item.title || item.path) + '</span>' +
+          (item.nick ? '  <span class="track-nick">queued by ' + esc(item.nick) + '</span>' : '') +
+          '</span>';
+        queueList.appendChild(li);
+      });
+    }
+
+    /* -----------------------------------------------------------------------
+     * Library UI
+     * -------------------------------------------------------------------- */
+    function renderLibrary(tracks, filter) {
+      filter = (filter || "").toLowerCase().trim();
+      var visible = filter
+        ? tracks.filter(function (t) {
+            return (t.title  || "").toLowerCase().indexOf(filter) >= 0 ||
+                   (t.artist || "").toLowerCase().indexOf(filter) >= 0 ||
+                   (t.album  || "").toLowerCase().indexOf(filter) >= 0 ||
+                   (t.path   || "").toLowerCase().indexOf(filter) >= 0;
+          })
+        : tracks;
+
+      libraryList.innerHTML = "";
+
+      if (visible.length === 0) {
+        libraryList.setAttribute("hidden", "");
+        libraryEmpty.removeAttribute("hidden");
+        return;
+      }
+
+      libraryEmpty.setAttribute("hidden", "");
+      libraryList.removeAttribute("hidden");
+
+      visible.forEach(function (track) {
+        var li = document.createElement("li");
+        li.className = "library-item";
+        var meta = [track.artist, track.album].filter(Boolean).join(" — ");
+        li.innerHTML =
+          '<span class="track-info">' +
+          '  <span class="track-title">' + esc(track.title || track.path) + '</span>' +
+          (meta ? '  <span class="track-meta">' + esc(meta) + '</span>' : '') +
+          '</span>' +
+          '<button class="btn-add" type="button" aria-label="Add ' + esc(track.title || track.path) + ' to queue">+ Queue</button>';
+        li.querySelector(".btn-add").addEventListener("click", function () {
+          enqueueTrack(track.path);
+        });
+        libraryList.appendChild(li);
+      });
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function loadLibrary() {
+      fetch("/jukebox/library")
+        .then(function (res) { return res.json(); })
+        .then(function (tracks) {
+          library = tracks || [];
+          libraryLoading.setAttribute("hidden", "");
+          renderLibrary(library, "");
+        })
+        .catch(function () {
+          libraryLoading.textContent = "Could not load library.";
+        });
+    }
+
+    searchInput.addEventListener("input", function () {
+      renderLibrary(library, this.value);
+    });
+
+    /* -----------------------------------------------------------------------
+     * Audio player — seeks to server-reported position on attach
+     * -------------------------------------------------------------------- */
+    function attachAudio() {
+      if (!nowPlaying) {
+        player.pause();
+        player.removeAttribute("src");
+        player.load();
+        tapToListen.setAttribute("hidden", "");
+        audioReady = false;
+        return;
+      }
+
+      // Show the button immediately — don't wait for loadedmetadata.
+      // Autoplay is unpredictable; the button is the reliable fallback.
+      // It is hidden only if autoplay actually succeeds.
+      tapToListen.removeAttribute("hidden");
+      player.removeAttribute("hidden");
+      player.src = "/jukebox/stream";
+
+      fetch("/jukebox/now-playing")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var serverElapsed = data.elapsed || 0;
+
+          function onMeta() {
+            player.removeEventListener("loadedmetadata", onMeta);
+            if (serverElapsed > 0 && player.seekable.length > 0) {
+              player.currentTime = serverElapsed;
+            }
+            player.play().then(function () {
+              tapToListen.setAttribute("hidden", "");
+              audioReady = true;
+            }).catch(function () {
+              audioReady = true;
+              // Button stays visible for user to click
+            });
+          }
+          player.addEventListener("loadedmetadata", onMeta);
+          player.load();
+        })
+        .catch(function () {
+          player.play().catch(function () {});
+          audioReady = true;
+        });
+    }
+
+    /* -----------------------------------------------------------------------
+     * Mute controls
+     * -------------------------------------------------------------------- */
+    function updateMuteButton() {
+      var muted = player.muted;
+      btnMute.textContent = muted ? "Unmute" : "Mute";
+      btnMute.classList.toggle("btn-mute--active", muted);
+      btnMuteNext.classList.toggle("btn-mute--active", muteUntilNextPath !== null);
+      btnMuteNext.textContent = muteUntilNextPath !== null
+        ? "Waiting for next song…"
+        : "Mute until next song";
+    }
+
+    tapToListen.addEventListener("click", function () {
+      // Call play() synchronously to use the gesture token before any async work.
+      player.play().then(function () {
+        tapToListen.setAttribute("hidden", "");
+        audioReady = true;
+        // Update sync position now that audio has started
+        fetch("/jukebox/now-playing")
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var elapsed = data.elapsed || 0;
+            if (elapsed > 0 && player.seekable.length > 0) {
+              player.currentTime = elapsed;
+            }
+          })
+          .catch(function () {});
+      }).catch(function () {
+        // play() still failed — full reset and try once more via canplay
+        player.src = "/jukebox/stream";
+        player.load();
+        player.addEventListener("canplay", function onCanPlay() {
+          player.removeEventListener("canplay", onCanPlay);
+          player.play().then(function () {
+            tapToListen.setAttribute("hidden", "");
+          }).catch(function () {});
+        });
+      });
+    });
+
+    btnMute.addEventListener("click", function () {
+      player.muted = !player.muted;
+      // Manually unmuting cancels "mute until next" mode
+      if (!player.muted) { muteUntilNextPath = null; }
+      updateMuteButton();
+    });
+
+    btnMuteNext.addEventListener("click", function () {
+      if (muteUntilNextPath !== null) {
+        // Cancel mute-until-next if pressed again
+        muteUntilNextPath = null;
+        player.muted = false;
+      } else {
+        player.muted = true;
+        // Record the current song path (or a sentinel if idle)
+        muteUntilNextPath = (nowPlaying && nowPlaying.path) || "__idle__";
+      }
+      updateMuteButton();
+    });
+
+    /* -----------------------------------------------------------------------
+     * Queue submission
+     * -------------------------------------------------------------------- */
+    function enqueueTrack(path) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        // Fall back to HTTP
+        fetch("/jukebox/queue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: path, nick: nick() }),
+        }).catch(function () {});
+        return;
+      }
+      ws.send(JSON.stringify({ type: "enqueue", path: path, nick: nick() }));
+    }
+
+    /* -----------------------------------------------------------------------
+     * WebSocket — connects to /jukebox/ws
+     * -------------------------------------------------------------------- */
+    function connectWs() {
+      var proto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(proto + "//" + location.host + "/jukebox/ws");
+
+      ws.onopen = function () {
+        wsRetryDelay = 1000;
+        statusDot.className  = "status-dot status-dot--connected";
+        statusText.textContent = "Connected";
+        ws.send(JSON.stringify({ type: "sync" }));
+        loadLibrary();
+      };
+
+      ws.onmessage = function (evt) {
+        var msg;
+        try { msg = JSON.parse(evt.data); } catch (e) { return; }
+
+        if (msg.type === "state") {
+          var wasPlaying = !!nowPlaying;
+          var prevPath   = nowPlaying && nowPlaying.path;
+          nowPlaying = msg.now_playing || null;
+          elapsed    = (msg.now_playing && msg.now_playing.elapsed) || 0;
+          duration   = (msg.now_playing && msg.now_playing.duration) || 0;
+
+          // Auto-unmute when the song changes (mute-until-next mode)
+          if (muteUntilNextPath !== null) {
+            var newPath = nowPlaying && nowPlaying.path;
+            if (newPath !== muteUntilNextPath) {
+              player.muted = false;
+              muteUntilNextPath = null;
+            }
+          }
+
+          updateNowPlaying();
+          renderQueue(msg.queue || []);
+          updateMuteButton();
+          // Attach audio if we just started playing
+          if (nowPlaying && !wasPlaying) { attachAudio(); }
+          if (!nowPlaying && wasPlaying) { attachAudio(); }
+        }
+
+        if (msg.type === "tick") {
+          elapsed  = msg.elapsed  || 0;
+          duration = msg.duration || 0;
+          setProgress(elapsed, duration);
+        }
+
+        if (msg.type === "library_updated") {
+          loadLibrary();
+        }
+      };
+
+      ws.onerror = function () {
+        statusDot.className   = "status-dot status-dot--error";
+        statusText.textContent = "Connection error";
+      };
+
+      ws.onclose = function () {
+        statusDot.className   = "status-dot";
+        statusText.textContent = "Reconnecting…";
+        setTimeout(connectWs, wsRetryDelay);
+        wsRetryDelay = Math.min(wsRetryDelay * 2, 30000);
+      };
+    }
+
+    /* -----------------------------------------------------------------------
+     * Init
+     * -------------------------------------------------------------------- */
+    loadLibrary();
+    connectWs();
+  </script>
+</body>
+</html>

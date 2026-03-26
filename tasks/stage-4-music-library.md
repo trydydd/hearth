@@ -1,5 +1,22 @@
 # Stage 4 — Music Library Tasks
 
+> **SUPERSEDED.** Stage 4 was designed around Navidrome as a self-hosted
+> music streaming server. Navidrome was dropped from the architecture because
+> the Stage 5 Jukebox reads audio files directly from disk and streams its
+> own audio — Navidrome provided no value in that model.
+>
+> **What was implemented instead:**
+> - `services_map.py` has a `music` entry (unit: `hearth-jukebox.service`,
+>   url: `/jukebox/`) replacing the old `navidrome` entry.
+> - `storage.locations.music` is `/srv/hearth/music/` in `hearth.yaml`.
+> - The admin upload endpoint (`POST /api/admin/upload/music`) accepts MP3,
+>   FLAC, OGG, M4A, WAV, AAC and writes to `/srv/hearth/music/`.
+> - `hearth.yaml` has `services.music.enabled: true`.
+> - `sudoers-hearth.j2` grants `hearth-jukebox.service` start/stop/restart.
+>
+> **Start directly at Stage 5.** The prerequisites for Stage 5 are Stage 0
+> and Stage 1 (admin backend + upload endpoint), not Stage 4.
+
 These tasks implement the music library: a self-hosted music streaming server
 at `/music/` backed by Navidrome. The operator uploads audio files via the
 admin UI or `scp`; patrons can browse albums and stream tracks directly from

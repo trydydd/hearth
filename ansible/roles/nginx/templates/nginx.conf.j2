@@ -53,10 +53,12 @@ server {
     # Admin API (proxied to the local admin backend)
     # Note: no trailing slash on proxy_pass — the full /api/... URI is
     # forwarded to the backend unchanged.
+    # client_max_body_size raised to accommodate music/ebook file uploads.
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        client_max_body_size 50m;
     }
 
     # Backend liveness check — also seeds the CSRF cookie for the login page.
@@ -113,6 +115,42 @@ server {
         proxy_pass         http://127.0.0.1:8888;
         proxy_set_header   Host       $host;
         proxy_set_header   X-Real-IP  $remote_addr;
+    }
+{% endif %}
+
+{% if services.music is defined and services.music.enabled %}
+    # -------------------------------------------------------------------------
+    # Hearth Jukebox
+    # -------------------------------------------------------------------------
+
+    # No-trailing-slash redirect
+    location = /jukebox { return 301 /jukebox/; }
+
+    # WebSocket proxy — must come before the API block
+    location /jukebox/ws {
+        proxy_pass         http://127.0.0.1:8766;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host       $host;
+        proxy_read_timeout 3600s;
+    }
+
+    # API proxy — all non-static paths forwarded to the jukebox backend.
+    # Audio stream buffering is disabled to avoid holding the full file in
+    # nginx memory before forwarding to the client.
+    location ~* ^/jukebox/(health|queue|now-playing|stream|library) {
+        proxy_pass         http://127.0.0.1:8766;
+        proxy_set_header   Host       $host;
+        proxy_set_header   X-Real-IP  $remote_addr;
+        proxy_buffering    off;
+    }
+
+    # Static frontend — SPA fallback so deep-links work
+    location /jukebox/ {
+        alias /var/www/hearth/jukebox/;
+        index index.html;
+        try_files $uri $uri/ /jukebox/index.html;
     }
 {% endif %}
 

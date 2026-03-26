@@ -20,12 +20,23 @@
         mode: "0644"
 
   roles:
-    - common
-    - wifi
-    - firewall
-    - nginx
-    - chat
-    - calibre_web
-    - kiwix
-    - admin
-    - diagnostics
+    - role: common
+      tags: [common]
+    - role: wifi
+      tags: [wifi]
+    - role: firewall
+      tags: [firewall]
+    - role: nginx
+      tags: [nginx]
+    - role: chat
+      tags: [chat]
+    - role: calibre_web
+      tags: [calibre_web]
+    - role: kiwix
+      tags: [kiwix]
+    - role: jukebox
+      tags: [jukebox]
+    - role: admin
+      tags: [admin]
+    - role: diagnostics
+      tags: [diagnostics]
