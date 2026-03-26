@@ -171,9 +171,14 @@
     mode: "0644"
   notify: Restart kiwix
 
-- name: Enable and start kiwix service
+- name: Enable kiwix service
   ansible.builtin.systemd:
     name: kiwix.service
     enabled: true
+
+- name: Start kiwix service (live system only)
+  ansible.builtin.systemd:
+    name: kiwix.service
     state: started
     daemon_reload: true
+  when: _systemd_active.stat.exists

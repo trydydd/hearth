@@ -93,12 +93,17 @@
     mode: "0644"
   notify: Restart hearth-jukebox
 
-- name: Enable and start hearth-jukebox service
+- name: Enable hearth-jukebox service
   ansible.builtin.systemd:
     name: hearth-jukebox.service
     enabled: true
+
+- name: Start hearth-jukebox service (live system only)
+  ansible.builtin.systemd:
+    name: hearth-jukebox.service
     state: started
     daemon_reload: true
+  when: _systemd_active.stat.exists
 
 # ---- Frontend static files -------------------------------------------------
 
