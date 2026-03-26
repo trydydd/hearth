@@ -439,7 +439,7 @@ fi
 # Storage directories
 echo
 STORAGE_BASE="/srv/hearth"
-for dir in "$STORAGE_BASE" "$STORAGE_BASE/conduit" "$STORAGE_BASE/calibre" "$STORAGE_BASE/kiwix" "$STORAGE_BASE/navidrome"; do
+for dir in "$STORAGE_BASE" "$STORAGE_BASE/conduit" "$STORAGE_BASE/calibre" "$STORAGE_BASE/kiwix" "$STORAGE_BASE/music"; do
     if [ -d "$dir" ]; then
         ok "directory exists: $dir (owner: $(stat -c '%U:%G' "$dir" 2>/dev/null || echo unknown))"
     else

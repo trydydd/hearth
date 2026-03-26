@@ -23,3 +23,4 @@ Thumbs.db
 # Kiwix build cache — ZIM files and downloaded binaries (can be large)
 zims/
 .build-cache/
+test-song.mp3

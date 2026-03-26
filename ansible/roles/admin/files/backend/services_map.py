@@ -13,7 +13,7 @@ from typing import Literal
 UPLOAD_EXTENSIONS: dict[str, list[str]] = {
     "kiwix": [".zim"],
     "calibre_web": [".epub", ".pdf", ".mobi", ".azw", ".azw3", ".cbz", ".cbr", ".txt"],
-    "navidrome": [".mp3", ".flac", ".ogg", ".m4a", ".wav", ".aac"],
+    "music": [".mp3", ".flac", ".ogg", ".m4a", ".wav", ".aac"],
 }
 
 # Service Identity Map
@@ -38,10 +38,10 @@ SERVICE_MAP: dict[str, dict[str, str]] = {
         "name": "Library",
         "url_path": "/library/",
     },
-    "navidrome": {
-        "unit": "navidrome.service",
+    "music": {
+        "unit": "hearth-jukebox.service",
         "name": "Music",
-        "url_path": "/navidrome/",
+        "url_path": "/jukebox/",
     },
 }
 

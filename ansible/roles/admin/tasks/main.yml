@@ -12,6 +12,8 @@
     shell: /usr/sbin/nologin
     create_home: false
     comment: "Hearth admin backend service account"
+    groups: hearth-jukebox
+    append: true
 
 - name: Install hearth sudoers file
   ansible.builtin.template:

@@ -1,0 +1,10 @@
+---
+# roles/jukebox/defaults/main.yml
+
+# Port the jukebox service listens on (localhost only; nginx proxies /jukebox/)
+jukebox_port: 8766
+
+# Installation paths
+jukebox_server_dir:   "/opt/hearth/jukebox/server"
+jukebox_venv_dir:     "/opt/hearth/jukebox-venv"
+jukebox_frontend_dir: "/var/www/hearth/jukebox"

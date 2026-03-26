@@ -37,7 +37,7 @@ storage:
   locations:
     calibre_web: "/srv/hearth/calibre"
     kiwix:       "/srv/hearth/kiwix"
-    navidrome:   "/srv/hearth/navidrome"
+    music:       "/srv/hearth/music"
 
 # ---------------------------------------------------------------------------
 # Kiwix offline content (mirrors hearth.yaml: kiwix.*)
@@ -60,7 +60,7 @@ services:
       - name: "libretexts.org_en_k12_2026-01.zim"
         url: "https://download.kiwix.org/zim/libretexts/libretexts.org_en_k12_2026-01.zim"
         enabled: true
-  navidrome:
+  music:
     enabled: true
 
 # ---------------------------------------------------------------------------

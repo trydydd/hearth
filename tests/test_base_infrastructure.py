@@ -41,7 +41,7 @@ class TestTask001RepositoryScaffolding(unittest.TestCase):
             "ansible/roles/chat",
             "ansible/roles/calibre_web",
             "ansible/roles/kiwix",
-            "ansible/roles/navidrome",
+
             "ansible/roles/admin",
             "ansible/roles/diagnostics",
         ]
@@ -182,7 +182,7 @@ class TestAnsibleRoleStructure(unittest.TestCase):
         "chat",
         "calibre_web",
         "kiwix",
-        "navidrome",
+
         "admin",
         "diagnostics",
     ]
@@ -223,7 +223,9 @@ class TestAnsibleRoleStructure(unittest.TestCase):
         plays = data
         all_roles = []
         for play in plays:
-            all_roles.extend(play.get("roles", []))
+            for entry in play.get("roles", []):
+                # Roles may be plain strings or {role: name, tags: [...]} dicts
+                all_roles.append(entry["role"] if isinstance(entry, dict) else entry)
         for role in self.EXPECTED_ROLES:
             with self.subTest(role=role):
                 self.assertIn(role, all_roles, f"site.yml is missing role: {role}")

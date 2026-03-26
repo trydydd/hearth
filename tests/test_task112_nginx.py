@@ -56,6 +56,22 @@ class TestTask112NginxRouting(unittest.TestCase):
     def test_api_proxies_to_backend(self):
         self.assertIn("proxy_pass http://127.0.0.1:8000", self.rendered)
 
+    def test_api_location_has_large_body_size_limit(self):
+        """Upload endpoint must accept files larger than nginx's 1 MB default."""
+        import re
+        # Match the real location block: line must not start with # (i.e. not a comment)
+        match = re.search(
+            r"^[ \t]+location\s+/api/\s*\{([^}]*)\}",
+            self.rendered,
+            re.DOTALL | re.MULTILINE,
+        )
+        self.assertIsNotNone(match, "No non-comment location /api/ block found")
+        self.assertIn(
+            "client_max_body_size",
+            match.group(1),
+            "client_max_body_size must be set inside location /api/ to allow music uploads",
+        )
+
     # ------------------------------------------------------------------
     # Acceptance criterion: /healthz is proxied to the admin backend
     # ------------------------------------------------------------------

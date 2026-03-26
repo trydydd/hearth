@@ -1,0 +1,5 @@
+fastapi>=0.111,<1.0
+uvicorn[standard]>=0.29,<1.0
+mutagen>=1.47,<2.0
+aiofiles>=23.0,<25.0
+watchfiles>=0.21,<1.0

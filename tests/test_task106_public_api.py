@@ -33,7 +33,7 @@ _SAMPLE_CONFIG = {
         "chat": {"enabled": True, "registration_token": "", "max_request_size": 20000000},
         "calibre_web": {"enabled": True},
         "kiwix": {"enabled": False},
-        "navidrome": {"enabled": True},
+        "music": {"enabled": True},
     },
     "storage": {"locations": {}},
 }
@@ -90,7 +90,7 @@ class TestTask106PublicAPI(unittest.TestCase):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
         self.assertTrue(services["chat"]["enabled"])
-        self.assertTrue(services["navidrome"]["enabled"])
+        self.assertTrue(services["music"]["enabled"])
 
     def test_enabled_service_has_url(self):
         response = self._get_status()
