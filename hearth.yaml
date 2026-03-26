@@ -167,4 +167,4 @@ diagnostics:
   # When true, passwords and passphrases are replaced with <REDACTED> in the
   # boot-partition diagnostic log.  Set to true before distributing images to
   # others; leave false during development so you can see actual config values.
-  redact_secrets: false
+  redact_secrets: true
