@@ -109,7 +109,8 @@ class TestTask506SiteYml(unittest.TestCase):
     def test_jukebox_in_roles_list(self):
         with SITE_YML.open() as fh:
             parsed = yaml.safe_load(fh)
-        roles = parsed[0].get("roles", [])
+        raw_roles = parsed[0].get("roles", [])
+        roles = [r["role"] if isinstance(r, dict) else r for r in raw_roles]
         self.assertIn("jukebox", roles, f"'jukebox' not found in roles list: {roles}")
 
 
