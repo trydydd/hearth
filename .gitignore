@@ -20,7 +20,8 @@ Thumbs.db
 # Vagrant
 .vagrant/
 
-# Kiwix build cache — ZIM files and downloaded binaries (can be large)
+# Content caches — downloaded ZIMs and music files (can be large)
 zims/
+music/
 .build-cache/
 test-song.mp3

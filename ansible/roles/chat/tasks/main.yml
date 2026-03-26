@@ -109,12 +109,17 @@
     group: root
     mode: "0644"
 
-- name: Enable and start hearth-volume service
+- name: Enable hearth-volume service
   ansible.builtin.systemd:
     name: hearth-volume.service
     enabled: true
+
+- name: Start hearth-volume service (live system only)
+  ansible.builtin.systemd:
+    name: hearth-volume.service
     state: started
     daemon_reload: true
+  when: _systemd_active.stat.exists
 
 # ---- Python chat server ----------------------------------------------------
 
@@ -147,12 +152,17 @@
     mode: "0644"
   notify: Restart hearth-chat
 
-- name: Enable and start hearth-chat service
+- name: Enable hearth-chat service
   ansible.builtin.systemd:
     name: hearth-chat.service
     enabled: true
+
+- name: Start hearth-chat service (live system only)
+  ansible.builtin.systemd:
+    name: hearth-chat.service
     state: started
     daemon_reload: true
+  when: _systemd_active.stat.exists
 
 # ---- Frontend static files -------------------------------------------------
 

@@ -13,7 +13,7 @@ kiwix_storage: "/srv/hearth/kiwix"
 kiwix_local_build_cache: "{{ playbook_dir }}/../.build-cache/kiwix"
 kiwix_local_zim_cache:   "{{ playbook_dir }}/../zims"
 
-# ZIM files are injected onto the SD card after flashing via scripts/inject-zims.sh.
+# ZIM files are injected onto the SD card after flashing via scripts/inject-content.sh.
 # The image build never downloads ZIMs. Set to true only if you want Ansible to
 # also copy ZIMs during provisioning (e.g. a self-hosted build with local cache).
 kiwix_download_zims: false

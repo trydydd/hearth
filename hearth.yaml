@@ -90,12 +90,12 @@ usb_ssh:
   enabled: false
 
   # OS user created for USB SSH access
-  username: "cafe"
+  username: "hestia"
 
   # Default password — change before deploying to a shared or public environment.
   # Anyone on the same USB network segment can attempt to log in with these
   # credentials, so using the default in production is a security risk.
-  password: "cafe"
+  password: "hestia"
 
   # Static IP assigned to the usb0 gadget interface
   ip: "192.168.7.2"
@@ -121,7 +121,7 @@ services:
     enabled: true
 
     # ZIM files are injected onto the SD card after flashing via
-    # scripts/inject-zims.sh — the image build never downloads ZIMs.
+    # scripts/inject-content.sh — the image build never downloads ZIMs.
     # Set to true only when using a self-hosted build that has a local ZIM cache.
     download_zims: true
 
@@ -138,11 +138,21 @@ services:
 
   # Music library + Jukebox — served at /jukebox/
   #
-  # Upload audio in a browser-playable format:
-  #   MP3 (.mp3), OGG (.ogg), FLAC (.flac), AAC/M4A (.aac, .m4a)
+  # Files listed under content are downloaded to a local music/ cache and
+  # injected onto the SD card after flashing via scripts/inject-content.sh.
+  # Supported formats: MP3 (.mp3), OGG (.ogg), FLAC (.flac), AAC/M4A (.aac, .m4a)
   # Recommended max upload size per file: 50 MB.
   music:
     enabled: true
+
+    # Music files to pre-load onto the card at flash time.
+    # Each entry requires a filename (name) and a direct download URL (url).
+    # Set enabled: false on an entry to skip it without removing it.
+    content: []
+    # Example:
+    #   - name: "artist-title.mp3"
+    #     url: "https://example.com/artist-title.mp3"
+    #     enabled: true
 
 # ---------------------------------------------------------------------------
 # Diagnostics
@@ -157,4 +167,4 @@ diagnostics:
   # When true, passwords and passphrases are replaced with <REDACTED> in the
   # boot-partition diagnostic log.  Set to true before distributing images to
   # others; leave false during development so you can see actual config values.
-  redact_secrets: false
+  redact_secrets: true

@@ -269,8 +269,21 @@ log "Step 5: Validating image configuration..."
 # NOTE: /tmp must NOT be used here — systemd-nspawn mounts a fresh tmpfs
 # over /tmp inside the container, wiping anything written there from the host.
 VALIDATE_SCRIPT="${MOUNT_DIR}/root/hearth-validate.sh"
-cat > "${VALIDATE_SCRIPT}" << 'DIAG_EOF'
-#!/bin/sh
+
+# Extract usb_ssh.enabled so the validation script can skip USB OTG checks
+# when the feature is disabled. The repo is removed from the image before
+# validation runs, so we pass the value in as a hardcoded variable.
+USB_SSH_ENABLED="$(python3 - "${HEARTH_CONFIG}" <<'PYEOF'
+import sys, yaml
+with open(sys.argv[1]) as f:
+    cfg = yaml.safe_load(f)
+print("true" if cfg.get("usb_ssh", {}).get("enabled", False) else "false")
+PYEOF
+)"
+
+{
+printf '#!/bin/sh\nUSB_SSH_ENABLED=%s\n' "${USB_SSH_ENABLED}"
+cat << 'DIAG_EOF'
 set +e  # accumulate all failures; exit 1 at the end if any failed
 FAIL=0
 
@@ -337,35 +350,39 @@ fi
 echo ""
 echo "--- USB OTG SSH ---"
 
-# dtoverlay=dwc2 in boot config.txt enables the USB gadget controller
-FOUND_BOOT_CFG=0
-for f in /boot/firmware/config.txt /boot/config.txt; do
-    if [ -f "$f" ]; then
-        FOUND_BOOT_CFG=1
-        if grep -qE "^dtoverlay=dwc2" "$f"; then
-            ok "dtoverlay=dwc2 found in $f"
-        else
-            fail "dtoverlay=dwc2 NOT found in $f (USB OTG SSH will not work)"
+if [ "${USB_SSH_ENABLED}" = "true" ]; then
+    # dtoverlay=dwc2 in boot config.txt enables the USB gadget controller
+    FOUND_BOOT_CFG=0
+    for f in /boot/firmware/config.txt /boot/config.txt; do
+        if [ -f "$f" ]; then
+            FOUND_BOOT_CFG=1
+            if grep -qE "^dtoverlay=dwc2" "$f"; then
+                ok "dtoverlay=dwc2 found in $f"
+            else
+                fail "dtoverlay=dwc2 NOT found in $f (USB OTG SSH will not work)"
+            fi
+            break
         fi
-        break
-    fi
-done
-[ "$FOUND_BOOT_CFG" -eq 1 ] || fail "No boot config.txt found at /boot/firmware/config.txt or /boot/config.txt"
+    done
+    [ "$FOUND_BOOT_CFG" -eq 1 ] || fail "No boot config.txt found at /boot/firmware/config.txt or /boot/config.txt"
 
-# modules-load=dwc2,g_ether in cmdline.txt loads the gadget at boot
-FOUND_CMDLINE=0
-for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
-    if [ -f "$f" ]; then
-        FOUND_CMDLINE=1
-        if grep -q "modules-load=dwc2,g_ether" "$f"; then
-            ok "modules-load=dwc2,g_ether found in $f"
-        else
-            fail "modules-load=dwc2,g_ether NOT found in $f (USB gadget module will not load)"
+    # modules-load=dwc2,g_ether in cmdline.txt loads the gadget at boot
+    FOUND_CMDLINE=0
+    for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+        if [ -f "$f" ]; then
+            FOUND_CMDLINE=1
+            if grep -q "modules-load=dwc2,g_ether" "$f"; then
+                ok "modules-load=dwc2,g_ether found in $f"
+            else
+                fail "modules-load=dwc2,g_ether NOT found in $f (USB gadget module will not load)"
+            fi
+            break
         fi
-        break
-    fi
-done
-[ "$FOUND_CMDLINE" -eq 1 ] || fail "No boot cmdline.txt found at /boot/firmware/cmdline.txt or /boot/cmdline.txt"
+    done
+    [ "$FOUND_CMDLINE" -eq 1 ] || fail "No boot cmdline.txt found at /boot/firmware/cmdline.txt or /boot/cmdline.txt"
+else
+    ok "USB OTG SSH disabled — skipping checks"
+fi
 
 echo ""
 if [ "$FAIL" -ne 0 ]; then
@@ -374,6 +391,7 @@ if [ "$FAIL" -ne 0 ]; then
 fi
 echo "[OK] All pre-capture checks passed."
 DIAG_EOF
+} > "${VALIDATE_SCRIPT}"
 chmod +x "${VALIDATE_SCRIPT}"
 systemd-nspawn -D "${MOUNT_DIR}" /root/hearth-validate.sh
 rm -f "${VALIDATE_SCRIPT}"
