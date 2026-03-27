@@ -121,13 +121,12 @@
   ansible.builtin.systemd:
     name: hearth-admin-backend.service
     enabled: true
-    daemon_reload: true
-  when: _systemd_active.stat.exists
 
 - name: Start hearth-admin-backend service (live system only)
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: hearth-admin-backend.service
     state: started
+    daemon_reload: true
   when: _systemd_active.stat.exists
 
 # -----------------------------------------------------------------------
