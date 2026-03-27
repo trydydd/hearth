@@ -121,8 +121,9 @@ services:
     enabled: true
 
     # ZIM files are injected onto the SD card after flashing via
-    # scripts/inject-content.sh — the image build never downloads ZIMs.
-    # Set to true only when using a self-hosted build that has a local ZIM cache.
+    # scripts/inject-content.sh — place .zim files in zims/ then run the
+    # script with the card's mount point. Set to true only when using a
+    # self-hosted build that has a local ZIM cache.
     download_zims: true
 
     # ZIM content packages to download and serve.
@@ -138,21 +139,11 @@ services:
 
   # Music library + Jukebox — served at /jukebox/
   #
-  # Files listed under content are downloaded to a local music/ cache and
-  # injected onto the SD card after flashing via scripts/inject-content.sh.
+  # To pre-load music: place audio files in music/ then run
+  # scripts/inject-content.sh with the card's mount point after flashing.
   # Supported formats: MP3 (.mp3), OGG (.ogg), FLAC (.flac), AAC/M4A (.aac, .m4a)
-  # Recommended max upload size per file: 50 MB.
   music:
     enabled: true
-
-    # Music files to pre-load onto the card at flash time.
-    # Each entry requires a filename (name) and a direct download URL (url).
-    # Set enabled: false on an entry to skip it without removing it.
-    content: []
-    # Example:
-    #   - name: "artist-title.mp3"
-    #     url: "https://example.com/artist-title.mp3"
-    #     enabled: true
 
 # ---------------------------------------------------------------------------
 # Diagnostics
