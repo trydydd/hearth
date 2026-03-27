@@ -1,0 +1,16 @@
+[Unit]
+Description=Hearth e-ink boot screen
+Documentation=https://github.com/trydydd/hearth
+After=hearth-first-boot.service
+Wants=hearth-first-boot.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/hearth/display.env
+ExecStart=/opt/hearth/eink/venv/bin/python3 /opt/hearth/eink/hearth-display.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

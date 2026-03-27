@@ -1,8 +1,7 @@
 # Hearth
 
 A self-contained offline community server running on a **Raspberry Pi Zero 2 W**.
-Hearth broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
-content through a clean landing page. Each service is an independent systemd unit
+Hearth broadcasts a WiFi hotspot and serves content through a clean landing page. Each service is an independent systemd unit
 routed through a single nginx reverse proxy.
 
 Hearth is a spiritual descendant of **PirateBox**:

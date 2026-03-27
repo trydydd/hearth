@@ -291,11 +291,10 @@ hotspot and captive-portal DNS are driven by `hearth.yaml`.
 
 ---
 
-## Task 0.11 — nginx Configuration Template + Captive Portal Redirect ✅
+## Task 0.11 — nginx Configuration Template ✅
 
 Create a Jinja2 template for the main `nginx.conf` that:
 - Serves the landing portal on port 80.
-- Includes the captive-portal redirect: `location /generate_204 { return 302 http://{{ box.domain }}/; }`.
 - Includes stub `location` blocks for each service (commented-out until the
   service is installed).
 
@@ -305,7 +304,6 @@ Create a Jinja2 template for the main `nginx.conf` that:
 **Acceptance criteria:**
 - Template renders to valid nginx configuration (`nginx -t` passes against the
   rendered file).
-- `/generate_204` block is present and points to `box.domain`.
 
 **Status: Complete**
 

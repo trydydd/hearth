@@ -1,8 +1,7 @@
 # Hearth — Agent Build Plan
 
 A self-contained offline community server running on a Raspberry Pi Zero 2 W.
-Broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
-content through a clean landing page. Extensible by design: each service is
+Broadcasts a WiFi hotspot and serves content through a clean landing page. Extensible by design: each service is
 an independent systemd unit routed through a single nginx reverse proxy.
 
 This project is a spiritual descendant of **PirateBox**:
@@ -102,14 +101,6 @@ APIs use **tile ids**. Internals map tile ids → unit/storage keys.
 - Admin reachable from hotspot; portal must not link to admin.
 - Default-deny firewall; allow only DHCP/DNS/HTTP on hotspot interface.
 - Enable AP client isolation if feasible.
-
-### 0.4 — nginx Captive Portal
-
-Change Android `/generate_204` handler to redirect to the portal:
-
-```nginx
-location /generate_204 { return 302 http://{{ box.domain }}/; }
-```
 
 ### 0.5 — Development VM (Vagrant + Ansible)
 

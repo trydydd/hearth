@@ -79,6 +79,12 @@ diagnostics:
   redact_secrets: false
 
 # ---------------------------------------------------------------------------
+# E-ink display (mirrors hearth.yaml: display.*)
+# ---------------------------------------------------------------------------
+display:
+  enabled: false
+
+# ---------------------------------------------------------------------------
 # Flat hearth_* aliases (kept for backward compatibility with tasks that
 # reference individual variables directly)
 # ---------------------------------------------------------------------------

@@ -1,0 +1,135 @@
+---
+# roles/eink/tasks/main.yml — Pimoroni Inky e-ink display boot screen
+#
+# Installs the Pimoroni Inky Python library in a virtualenv, deploys the
+# hearth-display render script, and registers a oneshot systemd service that
+# draws the box name and domain on the display at boot.
+#
+# Requires: display.enabled: true in hearth.yaml
+# Hardware: Pimoroni Inky pHAT connected to the Pi GPIO header (HAT footprint).
+#           SPI and I2C are both enabled in config.txt by this role.
+#           I2C is used by the Inky library to auto-detect the display.
+
+# ---------------------------------------------------------------------------
+# System packages (build-time prerequisites for the pip wheel)
+# ---------------------------------------------------------------------------
+
+- name: Install e-ink system dependencies
+  ansible.builtin.apt:
+    name:
+      - python3-venv
+      - python3-dev
+      - fonts-dejavu-core
+      - libopenjp2-7       # Pillow JPEG2000 support (pulled by inky)
+      - libtiff6           # Pillow TIFF support
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# ---------------------------------------------------------------------------
+# SPI + I2C — enable in /boot/firmware/config.txt (Pi hardware only)
+# The Inky library uses SPI for the display and I2C to read the HAT EEPROM
+# for auto-detection.
+# ---------------------------------------------------------------------------
+
+- name: Detect modern boot config (/boot/firmware/config.txt)
+  ansible.builtin.stat:
+    path: /boot/firmware/config.txt
+  register: _eink_boot_firmware
+
+- name: Detect legacy boot config (/boot/config.txt)
+  ansible.builtin.stat:
+    path: /boot/config.txt
+  register: _eink_boot_legacy
+
+- name: Set boot directory fact
+  ansible.builtin.set_fact:
+    _eink_boot_dir: "{{ '/boot/firmware' if _eink_boot_firmware.stat.exists else '/boot' }}"
+
+- name: Enable SPI in config.txt (Pi hardware only)
+  ansible.builtin.lineinfile:
+    path: "{{ _eink_boot_dir }}/config.txt"
+    regexp: "^#?dtparam=spi="
+    line: "dtparam=spi=on"
+    state: present
+  when: _eink_boot_firmware.stat.exists or _eink_boot_legacy.stat.exists
+
+- name: Enable I2C in config.txt (Pi hardware only)
+  ansible.builtin.lineinfile:
+    path: "{{ _eink_boot_dir }}/config.txt"
+    regexp: "^#?dtparam=i2c_arm="
+    line: "dtparam=i2c_arm=on"
+    state: present
+  when: _eink_boot_firmware.stat.exists or _eink_boot_legacy.stat.exists
+
+# ---------------------------------------------------------------------------
+# Python virtualenv + Inky library
+# ---------------------------------------------------------------------------
+
+- name: Create e-ink install directory
+  ansible.builtin.file:
+    path: "{{ eink_lib_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create Python virtualenv for Inky
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ eink_lib_dir }}/venv
+    creates: "{{ eink_lib_dir }}/venv/pyvenv.cfg"
+
+- name: Install Inky library and dependencies into virtualenv
+  ansible.builtin.pip:
+    name:
+      - "inky[rpi]"
+      - "pillow"
+    virtualenv: "{{ eink_lib_dir }}/venv"
+  notify: Restart hearth-display
+
+# ---------------------------------------------------------------------------
+# Render script and environment file
+# ---------------------------------------------------------------------------
+
+- name: Deploy hearth-display render script
+  ansible.builtin.copy:
+    src: hearth-display.py
+    dest: "{{ eink_lib_dir }}/hearth-display.py"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart hearth-display
+
+- name: Deploy display environment file
+  ansible.builtin.template:
+    src: display.env.j2
+    dest: /etc/hearth/display.env
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hearth-display
+
+# ---------------------------------------------------------------------------
+# Systemd service
+# ---------------------------------------------------------------------------
+
+- name: Deploy hearth-display systemd service
+  ansible.builtin.copy:
+    src: hearth-display.service
+    dest: /etc/systemd/system/hearth-display.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hearth-display
+
+- name: Enable hearth-display service
+  ansible.builtin.systemd:
+    name: hearth-display.service
+    enabled: true
+
+- name: Start hearth-display service (live system only)
+  ansible.builtin.systemd:
+    name: hearth-display.service
+    state: started
+    daemon_reload: true
+  when: _systemd_active.stat.exists

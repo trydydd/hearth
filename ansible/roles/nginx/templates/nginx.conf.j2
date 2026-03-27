@@ -15,12 +15,6 @@
 #       root /var/www/hearth/portal;
 #       index index.html;
 #
-#       # Captive-portal detection — redirect to portal on all OSes
-#       location /generate_204        { return 302 http://hearth.local/; }
-#       location /hotspot-detect.html { return 302 http://hearth.local/; }
-#       location /connecttest.txt     { return 302 http://hearth.local/; }
-#       location /ncsi.txt            { return 302 http://hearth.local/; }
-#
 #       location / { index index.html; try_files $uri $uri/ =404; }
 #
 #       # Admin API (proxied to the local admin backend)
@@ -37,12 +31,6 @@ server {
 
     root /var/www/hearth/portal;
     index index.html;
-
-    # Captive-portal detection — redirect all OS probes to the portal
-    location /generate_204        { return 302 http://{{ box.domain }}/; }
-    location /hotspot-detect.html { return 302 http://{{ box.domain }}/; }
-    location /connecttest.txt     { return 302 http://{{ box.domain }}/; }
-    location /ncsi.txt            { return 302 http://{{ box.domain }}/; }
 
     location / {
         index index.html;
