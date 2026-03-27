@@ -1,6 +1,0 @@
-galaxy_info:
-  role_name: eink
-  description: Waveshare e-ink display boot screen (optional hardware)
-  min_ansible_version: "2.12"
-dependencies:
-  - role: common

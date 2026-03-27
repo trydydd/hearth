@@ -1,9 +1,0 @@
----
-# roles/eink/handlers/main.yml
-
-- name: Restart hearth-display
-  ansible.builtin.systemd:
-    name: hearth-display.service
-    state: restarted
-    daemon_reload: true
-  when: _systemd_active.stat.exists

@@ -1,4 +1,0 @@
----
-# roles/eink/defaults/main.yml
-
-eink_lib_dir: "/opt/hearth/eink"
