@@ -116,7 +116,7 @@ services:
   calibre_web:
     enabled: false
 
-  # Offline Wikipedia / ZIM reader (Kiwix) — served at /wiki/
+  # Offline Wikipedia / ZIM reader (Kiwix) — served at /library/
   kiwix:
     enabled: true
 

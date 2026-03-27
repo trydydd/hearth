@@ -221,7 +221,7 @@ mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${BOOT_MOUNT_DIR}"
 log "Step 4: Provisioning image with Ansible (native ARM64 chroot)..."
 
 # Copy the repo into the image so the playbook has access to all templates
-CHROOT_REPO="/opt/cafe-box"
+CHROOT_REPO="/opt/hearth"
 mkdir -p "${MOUNT_DIR}${CHROOT_REPO}"
 rsync -a --exclude='.git' --exclude='image/' \
     "${REPO_ROOT}/" "${MOUNT_DIR}${CHROOT_REPO}/"
