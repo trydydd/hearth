@@ -95,9 +95,7 @@
 
 - name: Create Python virtualenv for admin backend
   ansible.builtin.command:
-    # --system-site-packages exposes Debian's python3-pam to the venv so we
-    # don't need to download it via pip (and the chroot build stays offline-safe).
-    cmd: python3 -m venv --system-site-packages /opt/hearth/admin/venv
+    cmd: python3 -m venv /opt/hearth/admin/venv
     creates: /opt/hearth/admin/venv/pyvenv.cfg
 
 - name: Install admin backend Python dependencies

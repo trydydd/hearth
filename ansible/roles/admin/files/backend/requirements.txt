@@ -4,5 +4,5 @@ PyYAML>=6.0,<7.0
 itsdangerous>=2.2,<3.0
 httpx>=0.27,<1.0
 python-multipart>=0.0.9,<1.0
-# python-pam is provided by Debian's python3-pam system package, exposed to
-# the venv via --system-site-packages in the venv creation task.
+python-pam>=2.0,<3.0
+six>=1.16

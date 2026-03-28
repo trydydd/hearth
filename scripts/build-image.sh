@@ -220,8 +220,10 @@ mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${BOOT_MOUNT_DIR}"
 # ---------------------------------------------------------------------------
 log "Step 4: Provisioning image with Ansible (native ARM64 chroot)..."
 
-# Copy the repo into the image so the playbook has access to all templates
-CHROOT_REPO="/opt/hearth"
+# Copy the repo into the image so the playbook has access to all templates.
+# Must NOT overlap with /opt/hearth — the admin role deploys the backend there
+# and the cleanup rm -rf below would otherwise wipe it from the final image.
+CHROOT_REPO="/root/hearth-provisioner"
 mkdir -p "${MOUNT_DIR}${CHROOT_REPO}"
 rsync -a --exclude='.git' --exclude='image/' \
     "${REPO_ROOT}/" "${MOUNT_DIR}${CHROOT_REPO}/"
