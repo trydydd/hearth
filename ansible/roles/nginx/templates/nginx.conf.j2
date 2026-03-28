@@ -63,6 +63,57 @@ server {
         try_files $uri $uri/ /admin/login.html;
     }
 
+{% if captive_portal is defined and captive_portal.enabled %}
+    # -------------------------------------------------------------------------
+    # Captive portal detection
+    #
+    # Devices probe well-known URLs to decide whether they are behind a captive
+    # portal.  We intercept those probes and redirect to the Hearth captive
+    # portal landing page, which prompts the user to open the real browser.
+    #
+    # This works because the main server block is already default_server —
+    # requests for external hostnames (captive.apple.com, etc.) fall here.
+    # -------------------------------------------------------------------------
+
+    # Landing page — self-contained HTML, no external dependencies
+    location = /captive-portal {
+        root /var/www/hearth/portal;
+        try_files /captive-portal.html =404;
+    }
+
+    # Apple CNA — iOS / macOS
+    location = /hotspot-detect.html {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+    location = /library/test/success.html {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+
+    # Android / Chrome OS connectivity check
+    location = /generate_204 {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+
+    # Windows NCSI
+    location = /ncsi.txt {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+    location = /connecttest.txt {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+    location = /redirect {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+
+    # Firefox
+    location = /success.txt {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+    location = /canonical.html {
+        return 302 http://{{ box.domain }}/captive-portal;
+    }
+{% endif %}
+
 {% if services.chat is defined and services.chat.enabled %}
     # -------------------------------------------------------------------------
     # Hearth Chat

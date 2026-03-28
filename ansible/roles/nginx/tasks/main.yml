@@ -50,6 +50,14 @@
         group: www-data
         mode: "0644"
 
+    - name: Deploy captive portal landing page
+      ansible.builtin.copy:
+        src: captive-portal.html
+        dest: "{{ nginx_portal_root }}/captive-portal.html"
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
     - name: Deploy rendered nginx configuration to sites-available
       ansible.builtin.template:
         src: nginx.conf.j2
