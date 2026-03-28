@@ -117,10 +117,11 @@
     mode: "0644"
   notify: Restart hearth-admin-backend
 
-- name: Enable hearth-admin-backend service
-  ansible.builtin.systemd:
-    name: hearth-admin-backend.service
-    enabled: true
+- name: Enable hearth-admin-backend service (symlink — works in chroot and on live systems)
+  ansible.builtin.file:
+    src: /etc/systemd/system/hearth-admin-backend.service
+    dest: /etc/systemd/system/multi-user.target.wants/hearth-admin-backend.service
+    state: link
 
 - name: Start hearth-admin-backend service (live system only)
   ansible.builtin.systemd:
