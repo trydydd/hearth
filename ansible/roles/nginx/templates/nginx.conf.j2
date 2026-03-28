@@ -56,6 +56,7 @@ server {
     }
 
     # Admin frontend static files — not linked from the portal
+    location = /admin { return 301 $scheme://$http_host/admin/; }
     location /admin/ {
         alias /var/www/hearth/admin/;
         index login.html;
@@ -68,7 +69,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /chat { return 301 /chat/; }
+    location = /chat { return 301 $scheme://$http_host/chat/; }
 
     # WebSocket proxy — must come before /chat/ to avoid alias match
     location /chat/ws {
@@ -94,7 +95,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /library { return 301 /library/; }
+    location = /library { return 301 $scheme://$http_host/library/; }
 
     # Reverse proxy — kiwix-serve is configured with --urlRootLocation /library
     # so it expects to receive the full /library/... path unchanged.
@@ -111,7 +112,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /jukebox { return 301 /jukebox/; }
+    location = /jukebox { return 301 $scheme://$http_host/jukebox/; }
 
     # WebSocket proxy — must come before the API block
     location /jukebox/ws {
