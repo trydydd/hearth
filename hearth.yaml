@@ -101,6 +101,18 @@ usb_ssh:
   ip: "192.168.7.2"
 
 # ---------------------------------------------------------------------------
+# Captive portal
+#
+# When enabled, nginx intercepts connectivity-check probes from all major
+# operating systems (Ubuntu/GNOME, iOS, Android, Windows, Firefox) and
+# redirects them to a local landing page that prompts the user to open the
+# real browser — preventing the OS mini-browser from loading Hearth inside
+# a restricted WebView.
+# ---------------------------------------------------------------------------
+captive_portal:
+  enabled: true
+
+# ---------------------------------------------------------------------------
 # Services — per-service enable flags
 # Set a service to false to prevent it from being installed/started.
 # ---------------------------------------------------------------------------

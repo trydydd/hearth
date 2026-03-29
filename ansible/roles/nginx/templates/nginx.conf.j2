@@ -73,44 +73,55 @@ server {
     #
     # This works because the main server block is already default_server —
     # requests for external hostnames (captive.apple.com, etc.) fall here.
+    #
+    # Two interception strategies are used:
+    #   Host-based  — Any request whose Host header is not the box domain is an
+    #                 external probe (connectivity check, CNA, etc.) and is
+    #                 redirected to the captive portal before location matching.
+    #                 This catches all OS/browser probes without enumerating them.
+    #                 The trailing dot (FQDN form used by some clients) is allowed.
+    #   Path-based  — Belt-and-suspenders for probes that reach this server with
+    #                 the box domain in the Host header (unlikely but possible).
     # -------------------------------------------------------------------------
 
-    # Landing page — self-contained HTML, no external dependencies
-    location = /captive-portal {
-        root /var/www/hearth/portal;
-        try_files /captive-portal.html =404;
+    # Hostname catch-all: redirect any request that is not addressed to the box
+    # domain to the captive portal landing page.  Covers Ubuntu/GNOME/Debian NM
+    # connectivity checks (which probe / on an external hostname), Apple CNA,
+    # Android, Windows, Firefox, and any future check we haven't enumerated.
+    if ($http_host !~* "^{{ box.domain }}\.?$") {
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
 
     # Apple CNA — iOS / macOS
     location = /hotspot-detect.html {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
     location = /library/test/success.html {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
 
     # Android / Chrome OS connectivity check
     location = /generate_204 {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
 
     # Windows NCSI
     location = /ncsi.txt {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
     location = /connecttest.txt {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
     location = /redirect {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
 
     # Firefox
     location = /success.txt {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
     location = /canonical.html {
-        return 302 http://{{ box.domain }}/captive-portal;
+        return 302 http://{{ box.domain }}/captive-portal.html;
     }
 {% endif %}
 
