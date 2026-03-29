@@ -335,11 +335,27 @@ fi
     && ok "dnsmasq drop-in present" \
     || fail "dnsmasq drop-in MISSING at dnsmasq.service.d/hearth-wlan-wait.conf"
 
-# country code in wpa_supplicant.conf — required to lift rfkill soft-block
+# cfg80211.ieee80211_regdom in cmdline.txt — primary regulatory domain mechanism
+# on RPi OS Trixie (raspberrypi-sys-mods firstboot no longer reads wpa_supplicant.conf)
+FOUND_CMDLINE_REGDOM=0
+for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+    if [ -f "$f" ]; then
+        if grep -q "cfg80211.ieee80211_regdom=" "$f"; then
+            ok "cfg80211.ieee80211_regdom= found in $f"
+        else
+            fail "cfg80211.ieee80211_regdom= NOT found in $f (WiFi regulatory domain not set — BCM43430 AP will not broadcast)"
+        fi
+        FOUND_CMDLINE_REGDOM=1
+        break
+    fi
+done
+[ "$FOUND_CMDLINE_REGDOM" -eq 1 ] || fail "No cmdline.txt found — cannot verify regulatory domain kernel parameter"
+
+# country code in wpa_supplicant.conf — legacy fallback for older RPi OS images
 if grep -qE "^country=" /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null; then
-    ok "country= set in wpa_supplicant.conf (rfkill soft-block will be lifted)"
+    ok "country= set in wpa_supplicant.conf (legacy fallback present)"
 else
-    fail "country= NOT set in wpa_supplicant.conf (BCM43430 will remain rfkill soft-blocked)"
+    warn "country= NOT set in wpa_supplicant.conf — OK on Trixie (cmdline.txt is the primary mechanism)"
 fi
 
 # NetworkManager must not manage the AP interface

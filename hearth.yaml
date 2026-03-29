@@ -36,7 +36,7 @@ wifi:
   # Without this the radio defaults to the world domain (00) which may
   # restrict available channels and prevent hostapd from starting.
   # Examples: GB, US, DE, FR, AU. Leave empty only if deliberately unset.
-  country_code: "GB"
+  country_code: "US"
 
   # DHCP range handed to connected clients (start, end, lease time)
   dhcp_range_start: "10.0.0.10"
