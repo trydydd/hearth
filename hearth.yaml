@@ -155,6 +155,16 @@ services:
     #     enabled: true
 
 # ---------------------------------------------------------------------------
+# E-ink display (Pimoroni Inky pHAT — black/white)
+#
+# When enabled, the display shows the box name and local URL on every boot.
+# Requires a Pimoroni Inky pHAT connected to the Pi's GPIO header.
+# SPI is enabled automatically in /boot/firmware/config.txt.
+# ---------------------------------------------------------------------------
+eink:
+  enabled: true
+
+# ---------------------------------------------------------------------------
 # Diagnostics
 #
 # Controls the boot-partition diagnostic report that runs on every boot.
