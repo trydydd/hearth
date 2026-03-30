@@ -171,19 +171,3 @@ diagnostics:
   # boot-partition diagnostic log.  Set to true before distributing images to
   # others; leave false during development so you can see actual config values.
   redact_secrets: false
-
-# ---------------------------------------------------------------------------
-# E-ink display (optional hardware)
-#
-# Renders the box name and domain on a Pimoroni Inky pHAT connected to the
-# Pi GPIO header. The image is written once at boot and held with no power
-# draw until the next boot.
-#
-# The Inky library auto-detects the attached display model via I2C — no
-# model configuration is required here.
-#
-# Both SPI and I2C are enabled automatically in /boot/firmware/config.txt
-# when this is set to true.
-# ---------------------------------------------------------------------------
-display:
-  enabled: true
