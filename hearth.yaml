@@ -87,7 +87,7 @@ storage:
 # ---------------------------------------------------------------------------
 usb_ssh:
   # Set to false to skip all USB gadget and SSH user provisioning
-  enabled: false
+  enabled: true
 
   # OS user created for USB SSH access
   username: "hestia"
