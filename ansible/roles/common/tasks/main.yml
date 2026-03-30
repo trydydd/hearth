@@ -420,3 +420,50 @@
           Common role phase 5 (USB OTG SSH) failed.
           Check the task output above for details.
 
+# ---------------------------------------------------------------------------
+# Phase 6 — Network identity: hostname + mDNS (avahi-daemon)
+# ---------------------------------------------------------------------------
+# Sets the system hostname to the first label of box.domain (e.g. "hearth"
+# from "hearth.local") and enables avahi-daemon so that label is announced
+# via mDNS as <name>.local on all interfaces.
+#
+# Why this is necessary:
+#   Ubuntu 24.04+ (and modern Debian) resolve .local names through mDNS via
+#   nsswitch.conf rule: mdns4_minimal [NOTFOUND=return].  This means .local
+#   queries NEVER reach the DHCP-assigned DNS server (dnsmasq) — if nothing
+#   responds to the mDNS multicast, the name is unresolvable.  Running
+#   avahi-daemon on the box fixes this at the root: avahi announces the
+#   hostname on the AP interface and Ubuntu clients find it via mDNS.
+#
+#   This also eliminates the need for any IP-address-based workarounds in
+#   nginx redirects or other config.
+- name: "Phase 6 — Set hostname and enable mDNS announcement"
+  block:
+    - name: Set system hostname from box.domain
+      # Derive the hostname from the first label of box.domain so that
+      # avahi announces exactly <first-label>.local on the network.
+      # e.g. box.domain "hearth.local" → hostname "hearth" → avahi announces
+      # "hearth.local" via mDNS, matching what dnsmasq serves for unicast DNS.
+      ansible.builtin.hostname:
+        name: "{{ box.domain.split('.')[0] }}"
+
+    - name: Enable avahi-daemon service
+      ansible.builtin.systemd:
+        name: avahi-daemon.service
+        enabled: true
+        masked: false
+
+    - name: Start avahi-daemon (live system only)
+      ansible.builtin.systemd:
+        name: avahi-daemon.service
+        state: started
+        daemon_reload: true
+      when: _systemd_active.stat.exists
+
+  rescue:
+    - name: "Phase 6 FAILED — hostname/mDNS setup error"
+      ansible.builtin.fail:
+        msg: >-
+          Common role phase 6 (hostname and mDNS) failed.
+          Check the task output above for details.
+

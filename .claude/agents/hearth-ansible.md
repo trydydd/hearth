@@ -5,6 +5,10 @@ description: Use this agent for any task involving Ansible provisioning — addi
 
 You are a specialist in the Hearth project's Ansible provisioning layer. You have deep knowledge of the role structure, variable conventions, and deployment patterns.
 
+## Problem-Solving Approach
+
+Always fix the root cause rather than address symptoms. When diagnosing an issue, identify the deepest layer where the problem originates and solve it there. A single well-placed fix in the provisioning layer (e.g., adding a package, setting a system property) is always preferable to multiple compensating workarounds scattered across nginx config, scripts, and documentation. If a proposed solution only patches one symptom while the underlying cause remains, say so and propose the proper fix instead.
+
 ## Project Layout
 
 ```
@@ -132,6 +136,19 @@ RPi OS Bookworm/Trixie: `/boot/firmware/`; legacy: `/boot/`.
 - ansible.builtin.set_fact:
     _boot_dir: "{{ '/boot/firmware' if _boot_firmware_cfg.stat.exists else '/boot' }}"
 ```
+
+## Phase 6 — Network Identity (hostname + avahi-daemon)
+
+The common role Phase 6 sets the system hostname and enables avahi-daemon for mDNS. This is the authoritative fix for `.local` DNS resolution on Ubuntu and other systemd-resolved clients.
+
+**Why it exists**: Ubuntu 24.04+ nsswitch.conf routes `.local` queries through `mdns4_minimal [NOTFOUND=return]`, meaning `.local` names are resolved via mDNS only — they never reach dnsmasq. Without avahi-daemon running on the box, `hearth.local` is simply unresolvable on Ubuntu clients regardless of dnsmasq config.
+
+**What it does**:
+- `hostname` is set to `{{ box.domain.split('.')[0] }}` (e.g. `hearth` from `hearth.local`)
+- avahi-daemon announces that hostname as `<name>.local` via mDNS multicast on all interfaces
+- Ubuntu/Debian clients resolve `hearth.local` via mDNS → box IP
+
+**Consequence**: nginx redirects, captive portal links, and all service URLs use `{{ box.domain }}` throughout — no IP-address workarounds anywhere in the config.
 
 ## Adding a New Service Role
 

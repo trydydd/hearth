@@ -157,6 +157,7 @@ with open('$HEARTH_YAML') as f: cfg = yaml.safe_load(f)
 print(cfg.get('box', {}).get('domain', 'hearth.local'))
 " 2>/dev/null || echo "hearth.local")
 
+
 # ---------------------------------------------------------------------------
 # HTTP — Portal
 # ---------------------------------------------------------------------------
@@ -259,6 +260,31 @@ if [ "$KIWIX_ON" = "true" ]; then
         "$BASE_URL/library/" 200 -H "Host: $BOX_DOMAIN"
 else
     warn "kiwix disabled — skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# VM — Network identity
+# ---------------------------------------------------------------------------
+hdr "VM — NETWORK IDENTITY"
+
+# Expected hostname is the first label of box.domain (e.g. "hearth" from "hearth.local")
+EXPECTED_HOSTNAME="${BOX_DOMAIN%%.*}"
+ACTUAL_HOSTNAME=$(vm "hostname" | tr -d '[:space:]')
+if [ "$ACTUAL_HOSTNAME" = "$EXPECTED_HOSTNAME" ]; then
+    ok "hostname is $ACTUAL_HOSTNAME"
+else
+    fail "hostname expected $EXPECTED_HOSTNAME, got ${ACTUAL_HOSTNAME:-unknown}"
+fi
+
+svc_check "avahi-daemon" avahi-daemon.service "running"
+
+# Verify avahi is actually announcing the domain — this is the functional test
+# that proves .local resolution will work on Ubuntu/systemd-resolved clients.
+AVAHI_ADDR=$(vm "avahi-resolve-host-name $BOX_DOMAIN 2>/dev/null" | awk '{print $2}')
+if [ -n "$AVAHI_ADDR" ]; then
+    ok "mDNS resolves $BOX_DOMAIN → $AVAHI_ADDR"
+else
+    fail "mDNS cannot resolve $BOX_DOMAIN — avahi not announcing (re-provision?)"
 fi
 
 # ---------------------------------------------------------------------------

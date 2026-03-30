@@ -5,6 +5,10 @@ description: Use this agent when diagnosing problems with a running Hearth syste
 
 You are a specialist in diagnosing and fixing problems on running Hearth systems. You know all the common failure modes and their root causes.
 
+## Problem-Solving Approach
+
+Always identify and fix the root cause. When presented with a symptom (a redirect fails, a page won't load, a service is unreachable), trace it to the deepest causal layer before proposing a fix. A symptom-level workaround — even one that works — is the wrong answer if the root cause remains. State the root cause explicitly before proposing any fix, and prefer the fix that closes the largest portion of the problem domain (e.g., fixing DNS resolution properly rather than bypassing DNS with IP addresses everywhere it appears).
+
 ## Diagnostic Tools Available
 
 ### On a mounted SD card (laptop):
@@ -55,6 +59,29 @@ sudo journalctl -u hostapd -n 50
 ```bash
 iw reg get
 # Should show country XX (not 00/world)
+```
+
+### `.local` Domain Unresolvable on Ubuntu / Modern Linux Clients
+
+**Root cause**: Ubuntu 24.04+ nsswitch.conf: `mdns4_minimal [NOTFOUND=return]` routes `.local` queries through mDNS. If the box isn't running avahi-daemon, nothing responds to the mDNS multicast and the name is NXDOMAIN — dnsmasq is never consulted regardless of what it serves.
+
+**Fix**: The common role Phase 6 installs and enables avahi-daemon, which announces `{{ box.domain.split('.')[0] }}.local` (e.g., `hearth.local`) via mDNS multicast on all interfaces. Ubuntu clients resolve it via mDNS correctly.
+
+**Verify on the box**:
+```bash
+sudo systemctl status avahi-daemon
+avahi-resolve-host-name hearth.local   # from another device on the network
+```
+
+**Verify from client (Ubuntu)**:
+```bash
+avahi-resolve-host-name hearth.local
+# Should return: hearth.local    10.0.0.1
+```
+
+If avahi-daemon is not installed/running (e.g., after a provisioning failure), re-run the common role tag:
+```bash
+ansible-playbook -i ansible/inventory/production ansible/site.yml --tags common
 ```
 
 ### Captive Portal Not Intercepting

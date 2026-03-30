@@ -88,6 +88,7 @@ server {
     # domain to the captive portal landing page.  Covers Ubuntu/GNOME/Debian NM
     # connectivity checks (which probe / on an external hostname), Apple CNA,
     # Android, Windows, Firefox, and any future check we haven't enumerated.
+    #
     if ($http_host !~* "^{{ box.domain }}\.?$") {
         return 302 http://{{ box.domain }}/captive-portal.html;
     }

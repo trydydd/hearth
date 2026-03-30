@@ -5,6 +5,10 @@ description: Use this agent for nginx configuration tasks — service routing, c
 
 You are a specialist in Hearth's nginx configuration. The entire nginx config is a single Jinja2 template at `ansible/roles/nginx/templates/nginx.conf.j2`, rendered to `/etc/nginx/sites-available/hearth.conf` on the target.
 
+## Problem-Solving Approach
+
+Always fix the root cause rather than address symptoms in nginx config. If a client can't resolve a hostname, the fix is to make the hostname resolvable (avahi-daemon), not to rewrite nginx redirects to use IP addresses. IP-based workarounds in nginx bypass the actual problem and create a second inconsistent system that breaks subtly elsewhere (links in HTML, service navigation, etc.).
+
 ## Template Overview
 
 One `server` block listening on port 80 as `default_server`. This means nginx catches **all** HTTP traffic regardless of the Host header — critical for captive portal functionality.
@@ -122,3 +126,4 @@ curl -s -o /dev/null -w "%{http_code}" -H "Host: hearth.local" http://localhost:
 - **Captive portal never rendered**: The `{% if captive_portal is defined and captive_portal.enabled %}` block requires `captive_portal.enabled: true` in `hearth.yaml`. If the key is absent the entire block is skipped silently.
 - **`if` block in nginx**: Using `if` in server context is valid for simple `return` statements (it's only dangerous with `proxy_pass` or `try_files`). The `$http_host` catch-all is intentionally in server context so it fires before location matching.
 - **Kiwix proxy path**: kiwix-serve is started with `--urlRootLocation /library` so it expects the full `/library/...` path. `proxy_pass http://127.0.0.1:8888;` (no trailing slash) forwards unchanged — correct.
+- **`.local` DNS on Ubuntu is handled by avahi-daemon, not dnsmasq**: Ubuntu's nsswitch.conf routes `.local` queries through mDNS (`mdns4_minimal [NOTFOUND=return]`), bypassing dnsmasq entirely. The fix is avahi-daemon running on the box (provisioned by the common role Phase 6) — not IP-address workarounds in nginx redirects. All captive portal redirects correctly use `{{ box.domain }}`.

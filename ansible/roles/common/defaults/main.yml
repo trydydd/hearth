@@ -29,6 +29,13 @@ hearth_base_packages:
   # python3-pam enables PAM-based password verification in the admin backend;
   # without it the backend falls back to spwd/crypt (requires shadow group).
   - python3-pam
+  # avahi-daemon announces the box hostname as <name>.local via mDNS so that
+  # clients using systemd-resolved (Ubuntu, modern Debian) can resolve the
+  # domain without relying on the DHCP-provided dnsmasq DNS server.  Ubuntu's
+  # nsswitch.conf routes .local queries through mDNS (mdns4_minimal
+  # [NOTFOUND=return]) — without avahi the domain is simply unresolvable on
+  # those clients regardless of what dnsmasq serves.
+  - avahi-daemon
 
 # ---------------------------------------------------------------------------
 # USB OTG SSH — cable-based admin access for debugging without WiFi
