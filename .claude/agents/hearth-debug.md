@@ -65,7 +65,9 @@ iw reg get
 
 **Root cause**: Ubuntu 24.04+ nsswitch.conf: `mdns4_minimal [NOTFOUND=return]` routes `.local` queries through mDNS. If the box isn't running avahi-daemon, nothing responds to the mDNS multicast and the name is NXDOMAIN — dnsmasq is never consulted regardless of what it serves.
 
-**Fix**: The common role Phase 6 installs and enables avahi-daemon, which announces `{{ box.domain.split('.')[0] }}.local` (e.g., `hearth.local`) via mDNS multicast on all interfaces. Ubuntu clients resolve it via mDNS correctly.
+**Fix**: Two things are required together:
+1. The common role Phase 6 installs avahi-daemon and sets the hostname (so avahi announces `hearth.local` via mDNS)
+2. The firewall allows UDP port 5353 from the AP interface (so mDNS queries from WiFi clients actually reach avahi-daemon — without this rule, avahi runs but client queries are dropped by nftables before they arrive)
 
 **Verify on the box**:
 ```bash
@@ -83,6 +85,16 @@ If avahi-daemon is not installed/running (e.g., after a provisioning failure), r
 ```bash
 ansible-playbook -i ansible/inventory/production ansible/site.yml --tags common
 ```
+
+### Firefox HTTPS-First Blocking Access
+
+**Symptom**: Browser shows blank page or connection error for `http://hearth.local/...` even after DNS resolves correctly.
+
+**Root cause**: Firefox 91+ HTTPS-First mode upgrades all HTTP navigations to HTTPS before sending the request. The original HTTP request is held (shows `blocked: -1` in HAR) until the HTTPS attempt resolves. If port 443 is silently DROPped by nftables, Firefox waits ~3 seconds for TCP timeout before falling back to HTTP.
+
+**Fix**: The firewall sends an immediate TCP RST for port 443 on the AP interface (`reject with tcp reset`). Firefox interprets RST as "port is closed, fall back immediately" — no perceptible delay.
+
+**Diagnostic**: Check HAR. HTTPS-First pattern shows `blocked: -1` on the HTTP entry and `connect: 0` on the HTTPS entry. If `dns: 0` AND `connect: 0` on HTTPS → DNS is failing (mDNS not reaching avahi). If `dns: >0` AND `connect: 0` → DNS worked but connection to port 443 failed.
 
 ### Captive Portal Not Intercepting
 

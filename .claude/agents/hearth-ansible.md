@@ -150,6 +150,8 @@ The common role Phase 6 sets the system hostname and enables avahi-daemon for mD
 
 **Consequence**: nginx redirects, captive portal links, and all service URLs use `{{ box.domain }}` throughout — no IP-address workarounds anywhere in the config.
 
+**`/etc/hosts` must be updated alongside hostname**: The Debian/Ubuntu convention maps `127.0.1.1` to the system hostname. Without this, every `sudo` invocation tries to resolve the hostname via DNS/mDNS, hanging on timeout. Ansible uses sudo for almost every task — a missing `/etc/hosts` entry after a hostname change makes provisioning many times slower. Phase 6 always updates both `/etc/hostname` (via `ansible.builtin.hostname`) and the `127.0.1.1` line in `/etc/hosts`.
+
 ## Adding a New Service Role
 
 1. Create `ansible/roles/<name>/tasks/main.yml`, `defaults/main.yml`, `handlers/main.yml`, `meta/main.yml`

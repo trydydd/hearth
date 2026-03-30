@@ -447,6 +447,16 @@
       ansible.builtin.hostname:
         name: "{{ box.domain.split('.')[0] }}"
 
+    - name: Update /etc/hosts with new hostname
+      # Debian/Ubuntu convention: 127.0.1.1 maps to the system hostname.
+      # Without this, every sudo call (and Ansible uses sudo extensively)
+      # tries to resolve the hostname via DNS/mDNS and hangs on timeout —
+      # causing provisioning to be many times slower after a hostname change.
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s'
+        line: "127.0.1.1\t{{ box.domain.split('.')[0] }}"
+
     - name: Enable avahi-daemon service
       ansible.builtin.systemd:
         name: avahi-daemon.service
