@@ -112,7 +112,7 @@ class TestTask108ChangePassword(unittest.TestCase):
             with (
                 patch("routers.auth.verify_password", return_value=True),
                 patch("routers.auth.subprocess.run", return_value=mock_result),
-                patch("config.load_config", return_value={"box": {"domain": "hearth.local"}, "services": {}}),
+                patch("config.load_config", return_value={"box": {"domain": "hearth.home"}, "services": {}}),
             ):
                 # First: confirm first_boot is true before change
                 client = _authed_client()

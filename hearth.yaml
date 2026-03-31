@@ -9,8 +9,21 @@ box:
   # Human-readable name shown on the landing portal and in admin UI
   name: "Hearth"
 
-  # Domain used for all local services (resolved inside the hotspot only)
-  domain: "hearth.local"
+  # Domain used for all local services (resolved inside the hotspot only).
+  #
+  # IMPORTANT: Do NOT use a .local TLD here.
+  # .local is reserved by RFC 6762 for mDNS (Multicast DNS). Linux clients
+  # (Ubuntu, Debian, Fedora) route .local queries through the mdns4_minimal
+  # NSS module, which uses the *client's* avahi-daemon — not unicast DNS.
+  # If avahi is not installed on the client (common on headless Ubuntu), the
+  # module returns NOTFOUND immediately and [NOTFOUND=return] in nsswitch.conf
+  # prevents any fallback to the DHCP-assigned DNS server (dnsmasq at box.ip).
+  # Result: hearth.local never resolves on Linux clients without avahi.
+  #
+  # Any non-.local domain works correctly on all platforms because those
+  # queries go through normal unicast DNS — straight to dnsmasq at box.ip,
+  # which returns box.ip for every query via address=/#/box.ip.
+  domain: "hearth.home"
 
   # IP address assigned to the box's AP interface
   ip: "10.0.0.1"
@@ -87,7 +100,7 @@ storage:
 # ---------------------------------------------------------------------------
 usb_ssh:
   # Set to false to skip all USB gadget and SSH user provisioning
-  enabled: true
+  enabled: false
 
   # OS user created for USB SSH access
   username: "hestia"

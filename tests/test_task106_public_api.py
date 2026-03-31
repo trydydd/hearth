@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 
 _SAMPLE_CONFIG = {
-    "box": {"domain": "hearth.local"},
+    "box": {"domain": "hearth.home"},
     "services": {
         "chat": {"enabled": True, "registration_token": "", "max_request_size": 20000000},
         "calibre_web": {"enabled": True},
@@ -96,7 +96,7 @@ class TestTask106PublicAPI(unittest.TestCase):
         response = self._get_status()
         services = {s["id"]: s for s in response.json()["services"]}
         self.assertIsNotNone(services["chat"]["url"])
-        self.assertIn("hearth.local", services["chat"]["url"])
+        self.assertIn("hearth.home", services["chat"]["url"])
 
     def test_disabled_service_has_no_url(self):
         response = self._get_status()

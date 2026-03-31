@@ -48,16 +48,9 @@ table inet filter {
         iifname "{{ wifi.interface }}" udp dport 67 accept comment "DHCP: clients request address on AP interface"
 
         # Threat-model: Allow DNS queries from clients (port 53) so dnsmasq
-        # can serve *.hearth.local resolution and captive-portal intercept.
+        # can serve *.{{ box.domain }} resolution and captive-portal intercept.
         iifname "{{ wifi.interface }}" tcp dport 53 accept comment "DNS/TCP: client name resolution on AP interface"
         iifname "{{ wifi.interface }}" udp dport 53 accept comment "DNS/UDP: client name resolution on AP interface"
-
-        # Allow mDNS (UDP 5353) from AP clients so avahi-daemon can answer
-        # .local name queries.  Ubuntu and other systemd-resolved clients route
-        # .local lookups through mDNS (mdns4_minimal [NOTFOUND=return]) and
-        # never fall back to unicast DNS — without this rule the box's avahi
-        # announcements are irrelevant because client queries never arrive.
-        iifname "{{ wifi.interface }}" udp dport 5353 accept comment "mDNS: client .local resolution via avahi"
 
         # Threat-model: Allow HTTP (port 80) from clients so the portal and
         # captive-portal redirect are reachable.

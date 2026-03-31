@@ -7,7 +7,7 @@ You are a specialist in Hearth's nginx configuration. The entire nginx config is
 
 ## Problem-Solving Approach
 
-Always fix the root cause rather than address symptoms in nginx config. If a client can't resolve a hostname, the fix is to make the hostname resolvable (avahi-daemon), not to rewrite nginx redirects to use IP addresses. IP-based workarounds in nginx bypass the actual problem and create a second inconsistent system that breaks subtly elsewhere (links in HTML, service navigation, etc.).
+Always fix the root cause rather than address symptoms in nginx config. If a client can't resolve a hostname, the fix is to ensure `box.domain` is a non-`.local` name (resolved via dnsmasq unicast DNS), not to rewrite nginx redirects to use IP addresses. IP-based workarounds in nginx bypass the actual problem and create a second inconsistent system that breaks subtly elsewhere (links in HTML, service navigation, etc.).
 
 ## Template Overview
 
@@ -16,7 +16,7 @@ One `server` block listening on port 80 as `default_server`. This means nginx ca
 ```
 server {
     listen 80 default_server;
-    server_name {{ box.domain }};   # e.g. hearth.local
+    server_name {{ box.domain }};   # e.g. hearth.home
     root /var/www/hearth/portal;
     index index.html;
 
@@ -55,9 +55,9 @@ if ($http_host !~* "^{{ box.domain }}\.?$") {
     return 302 http://{{ box.domain }}/captive-portal.html;
 }
 ```
-This fires **before** location matching. Any request whose `Host:` is not the box domain (including the trailing-dot FQDN form `hearth.local.`) gets redirected. This catches Ubuntu/GNOME connectivity checks (`http://connectivity-check.ubuntu.com./`), Android, Apple CNA, Windows NCSI, Firefox — without enumerating them.
+This fires **before** location matching. Any request whose `Host:` is not the box domain (including the trailing-dot FQDN form `hearth.home.`) gets redirected. This catches Ubuntu/GNOME connectivity checks (`http://connectivity-check.ubuntu.com./`), Android, Apple CNA, Windows NCSI, Firefox — without enumerating them.
 
-The `\.?$` at the end allows both `hearth.local` and `hearth.local.` (FQDN with trailing dot).
+The `\.?$` at the end allows both `hearth.home` and `hearth.home.` (FQDN with trailing dot).
 
 ### 2. Path-based (belt-and-suspenders)
 Explicit `location =` blocks for well-known probe paths:
@@ -99,7 +99,7 @@ WebSocket location must come **before** the corresponding static file `alias` lo
 
 ## CSRF Cookie
 
-`GET /healthz` is the endpoint that seeds the CSRF cookie. The admin login page fetches it on load. To test: `curl -s -D - -o /dev/null http://localhost:8080/healthz -H "Host: hearth.local"` — look for `set-cookie: csrf_token=` in response headers. Use `-D -` (dump headers to stdout), NOT `-I` (HEAD request); the backend only sets the cookie on GET.
+`GET /healthz` is the endpoint that seeds the CSRF cookie. The admin login page fetches it on load. To test: `curl -s -D - -o /dev/null http://localhost:8080/healthz -H "Host: hearth.home"` — look for `set-cookie: csrf_token=` in response headers. Use `-D -` (dump headers to stdout), NOT `-I` (HEAD request); the backend only sets the cookie on GET.
 
 ## Debugging nginx on the VM
 
@@ -117,7 +117,7 @@ cat /etc/nginx/sites-available/hearth.conf
 curl -s -I -H "Host: connectivity-check.ubuntu.com." http://localhost:8080/
 
 # Test box domain not redirected
-curl -s -o /dev/null -w "%{http_code}" -H "Host: hearth.local" http://localhost:8080/
+curl -s -o /dev/null -w "%{http_code}" -H "Host: hearth.home" http://localhost:8080/
 ```
 
 ## Common Mistakes
@@ -126,5 +126,5 @@ curl -s -o /dev/null -w "%{http_code}" -H "Host: hearth.local" http://localhost:
 - **Captive portal never rendered**: The `{% if captive_portal is defined and captive_portal.enabled %}` block requires `captive_portal.enabled: true` in `hearth.yaml`. If the key is absent the entire block is skipped silently.
 - **`if` block in nginx**: Using `if` in server context is valid for simple `return` statements (it's only dangerous with `proxy_pass` or `try_files`). The `$http_host` catch-all is intentionally in server context so it fires before location matching.
 - **Kiwix proxy path**: kiwix-serve is started with `--urlRootLocation /library` so it expects the full `/library/...` path. `proxy_pass http://127.0.0.1:8888;` (no trailing slash) forwards unchanged — correct.
-- **`.local` DNS on Ubuntu is handled by avahi-daemon, not dnsmasq**: Ubuntu's nsswitch.conf routes `.local` queries through mDNS (`mdns4_minimal [NOTFOUND=return]`), bypassing dnsmasq entirely. The fix is avahi-daemon (common role Phase 6) + UDP 5353 allowed in nftables. All captive portal redirects use `{{ box.domain }}`.
+- **Never use a `.local` TLD for `box.domain`**: Ubuntu/Debian nsswitch.conf has `mdns4_minimal [NOTFOUND=return]` — `.local` names go through the *client's* avahi-daemon (mDNS), never reaching dnsmasq. If the client doesn't have avahi installed the name is unresolvable. Use a non-`.local` domain (default: `hearth.home`); those queries go through normal unicast DNS → dnsmasq → box.ip on every platform.
 - **Firefox HTTPS-First requires explicit port 443 handling**: Firefox 91+ upgrades all `http://` navigations to `https://` before sending the request. If port 443 is silently DROPped, Firefox waits ~3 seconds before falling back to HTTP. The firewall sends an immediate TCP RST for port 443 (`reject with tcp reset`) so the fallback to HTTP is instant.

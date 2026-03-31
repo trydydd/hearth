@@ -137,20 +137,17 @@ RPi OS Bookworm/Trixie: `/boot/firmware/`; legacy: `/boot/`.
     _boot_dir: "{{ '/boot/firmware' if _boot_firmware_cfg.stat.exists else '/boot' }}"
 ```
 
-## Phase 6 — Network Identity (hostname + avahi-daemon)
+## Phase 6 — Network Identity (hostname)
 
-The common role Phase 6 sets the system hostname and enables avahi-daemon for mDNS. This is the authoritative fix for `.local` DNS resolution on Ubuntu and other systemd-resolved clients.
+The common role Phase 6 sets the system hostname from `box.domain`.
 
-**Why it exists**: Ubuntu 24.04+ nsswitch.conf routes `.local` queries through `mdns4_minimal [NOTFOUND=return]`, meaning `.local` names are resolved via mDNS only — they never reach dnsmasq. Without avahi-daemon running on the box, `hearth.local` is simply unresolvable on Ubuntu clients regardless of dnsmasq config.
+**Critical domain rule**: `box.domain` must NOT use a `.local` TLD. Ubuntu/Debian nsswitch.conf has `mdns4_minimal [NOTFOUND=return]` which routes ALL `.local` queries through the *client's* avahi-daemon (mDNS), bypassing the DHCP-assigned DNS server (dnsmasq) entirely. Without avahi on the client — common on headless Ubuntu — the name is immediately NOTFOUND. The default domain is `hearth.home`; any non-`.local` TLD works because those queries go through normal unicast DNS → dnsmasq → box.ip on every platform.
 
 **What it does**:
-- `hostname` is set to `{{ box.domain.split('.')[0] }}` (e.g. `hearth` from `hearth.local`)
-- avahi-daemon announces that hostname as `<name>.local` via mDNS multicast on all interfaces
-- Ubuntu/Debian clients resolve `hearth.local` via mDNS → box IP
+- `hostname` is set to `{{ box.domain.split('.')[0] }}` (e.g. `hearth` from `hearth.home`)
+- `/etc/hosts` `127.0.1.1` entry is updated to match — without this, every `sudo` call hangs trying to resolve the hostname, making provisioning many times slower
 
 **Consequence**: nginx redirects, captive portal links, and all service URLs use `{{ box.domain }}` throughout — no IP-address workarounds anywhere in the config.
-
-**`/etc/hosts` must be updated alongside hostname**: The Debian/Ubuntu convention maps `127.0.1.1` to the system hostname. Without this, every `sudo` invocation tries to resolve the hostname via DNS/mDNS, hanging on timeout. Ansible uses sudo for almost every task — a missing `/etc/hosts` entry after a hostname change makes provisioning many times slower. Phase 6 always updates both `/etc/hostname` (via `ansible.builtin.hostname`) and the `127.0.1.1` line in `/etc/hosts`.
 
 ## Adding a New Service Role
 

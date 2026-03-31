@@ -421,59 +421,34 @@
           Check the task output above for details.
 
 # ---------------------------------------------------------------------------
-# Phase 6 — Network identity: hostname + mDNS (avahi-daemon)
+# Phase 6 — Network identity: hostname
 # ---------------------------------------------------------------------------
-# Sets the system hostname to the first label of box.domain (e.g. "hearth"
-# from "hearth.local") and enables avahi-daemon so that label is announced
-# via mDNS as <name>.local on all interfaces.
+# Sets the system hostname to the first label of box.domain.
+# e.g. box.domain "hearth.home" → hostname "hearth"
 #
-# Why this is necessary:
-#   Ubuntu 24.04+ (and modern Debian) resolve .local names through mDNS via
-#   nsswitch.conf rule: mdns4_minimal [NOTFOUND=return].  This means .local
-#   queries NEVER reach the DHCP-assigned DNS server (dnsmasq) — if nothing
-#   responds to the mDNS multicast, the name is unresolvable.  Running
-#   avahi-daemon on the box fixes this at the root: avahi announces the
-#   hostname on the AP interface and Ubuntu clients find it via mDNS.
+# /etc/hosts must be updated alongside the hostname.  Debian/Ubuntu maps
+# 127.0.1.1 to the system hostname; without this every sudo call tries to
+# resolve the new hostname via DNS and hangs, making provisioning very slow.
 #
-#   This also eliminates the need for any IP-address-based workarounds in
-#   nginx redirects or other config.
-- name: "Phase 6 — Set hostname and enable mDNS announcement"
+# DNS resolution (hearth.home → 10.0.0.1) is handled entirely by dnsmasq via
+# unicast DNS on the AP interface — no mDNS / avahi required.  box.domain
+# must never be a .local name; see hearth.yaml for the full explanation.
+- name: "Phase 6 — Set system hostname"
   block:
     - name: Set system hostname from box.domain
-      # Derive the hostname from the first label of box.domain so that
-      # avahi announces exactly <first-label>.local on the network.
-      # e.g. box.domain "hearth.local" → hostname "hearth" → avahi announces
-      # "hearth.local" via mDNS, matching what dnsmasq serves for unicast DNS.
       ansible.builtin.hostname:
         name: "{{ box.domain.split('.')[0] }}"
 
     - name: Update /etc/hosts with new hostname
-      # Debian/Ubuntu convention: 127.0.1.1 maps to the system hostname.
-      # Without this, every sudo call (and Ansible uses sudo extensively)
-      # tries to resolve the hostname via DNS/mDNS and hangs on timeout —
-      # causing provisioning to be many times slower after a hostname change.
       ansible.builtin.lineinfile:
         path: /etc/hosts
         regexp: '^127\.0\.1\.1\s'
         line: "127.0.1.1\t{{ box.domain.split('.')[0] }}"
 
-    - name: Enable avahi-daemon service
-      ansible.builtin.systemd:
-        name: avahi-daemon.service
-        enabled: true
-        masked: false
-
-    - name: Start avahi-daemon (live system only)
-      ansible.builtin.systemd:
-        name: avahi-daemon.service
-        state: started
-        daemon_reload: true
-      when: _systemd_active.stat.exists
-
   rescue:
-    - name: "Phase 6 FAILED — hostname/mDNS setup error"
+    - name: "Phase 6 FAILED — hostname setup error"
       ansible.builtin.fail:
         msg: >-
-          Common role phase 6 (hostname and mDNS) failed.
+          Common role phase 6 (hostname) failed.
           Check the task output above for details.
 

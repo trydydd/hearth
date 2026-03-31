@@ -426,7 +426,7 @@ LOOP_DEV=""
 
 log "Step 7: Compressing to ${OUTPUT_IMAGE}..."
 mkdir -p "$(dirname "${OUTPUT_IMAGE}")"
-xz -T0 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
+xz -T1 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
 
 COMPRESSED_SIZE="$(du -sh "${OUTPUT_IMAGE}" | cut -f1)"
 log "Done. Output: ${OUTPUT_IMAGE} (${COMPRESSED_SIZE})"

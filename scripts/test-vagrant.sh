@@ -136,26 +136,45 @@ if ! vagrant status 2>/dev/null | grep -q "running"; then
 fi
 ok "Vagrant VM is running"
 
-if ! curl -s --max-time 3 "$BASE_URL/" -H "Host: hearth.local" -o /dev/null; then
+# Read the box domain from the VM's rendered nginx server_name — this is the
+# live ground truth for what Host header to send and what Location to expect.
+# grep runs on the VM; awk+tr run locally to avoid remote-shell quoting issues.
+BOX_DOMAIN=$(vm "grep -m1 '^ *server_name ' /etc/nginx/sites-available/hearth.conf 2>/dev/null" \
+    | awk '{print $2}' | tr -d ';')
+if [ -z "$BOX_DOMAIN" ]; then
+    BOX_DOMAIN=$(python3 -c "
+import yaml
+with open('$HEARTH_YAML') as f: cfg = yaml.safe_load(f)
+print(cfg.get('box', {}).get('domain', 'hearth.home'))
+" 2>/dev/null || echo "hearth.home")
+    warn "BOX_DOMAIN read from hearth.yaml (nginx not yet provisioned)"
+fi
+ok "Box domain: $BOX_DOMAIN"
+
+if ! curl -s --max-time 3 "$BASE_URL/" -H "Host: $BOX_DOMAIN" -o /dev/null; then
     fail "localhost:8080 unreachable — is port forwarding active?"
     exit 1
 fi
 ok "localhost:8080 reachable"
 
 # Determine which services are enabled from hearth.yaml
-CHAT_ON=false;    yaml_bool "services.chat.enabled"         && CHAT_ON=true
-JUKEBOX_ON=false; yaml_bool "services.music.enabled"        && JUKEBOX_ON=true
-KIWIX_ON=false;   yaml_bool "services.kiwix.enabled"        && KIWIX_ON=true
-CAPTIVE_ON=false; yaml_bool "captive_portal.enabled"        && CAPTIVE_ON=true
+CHAT_ON=false;    yaml_bool "services.chat.enabled"  && CHAT_ON=true
+JUKEBOX_ON=false; yaml_bool "services.music.enabled" && JUKEBOX_ON=true
+KIWIX_ON=false;   yaml_bool "services.kiwix.enabled" && KIWIX_ON=true
+
+# Detect captive portal state from the rendered nginx config, not hearth.yaml.
+# The Vagrantfile disables captive_portal for dev (localhost:8080 access would
+# be redirected to an unresolvable address), so hearth.yaml and the live VM can
+# legitimately differ.  The nginx config is the ground truth.
+CAPTIVE_ON=false
+# grep for the captive portal if-block specifically — not just $http_host, which
+# also appears in every service no-trailing-slash redirect line.
+if vm "grep -q 'captive-portal' /etc/nginx/sites-available/hearth.conf 2>/dev/null"; then
+    CAPTIVE_ON=true
+fi
 
 printf "  Services: chat=%s  jukebox=%s  kiwix=%s  captive_portal=%s\n" \
     "$CHAT_ON" "$JUKEBOX_ON" "$KIWIX_ON" "$CAPTIVE_ON"
-
-BOX_DOMAIN=$(python3 -c "
-import yaml
-with open('$HEARTH_YAML') as f: cfg = yaml.safe_load(f)
-print(cfg.get('box', {}).get('domain', 'hearth.local'))
-" 2>/dev/null || echo "hearth.local")
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +286,7 @@ fi
 # ---------------------------------------------------------------------------
 hdr "VM — NETWORK IDENTITY"
 
-# Expected hostname is the first label of box.domain (e.g. "hearth" from "hearth.local")
+# Expected hostname is the first label of box.domain (e.g. "hearth" from "hearth.home")
 EXPECTED_HOSTNAME="${BOX_DOMAIN%%.*}"
 ACTUAL_HOSTNAME=$(vm "hostname" | tr -d '[:space:]')
 if [ "$ACTUAL_HOSTNAME" = "$EXPECTED_HOSTNAME" ]; then
@@ -276,16 +295,9 @@ else
     fail "hostname expected $EXPECTED_HOSTNAME, got ${ACTUAL_HOSTNAME:-unknown}"
 fi
 
-svc_check "avahi-daemon" avahi-daemon.service "running"
-
-# Verify avahi is actually announcing the domain — this is the functional test
-# that proves .local resolution will work on Ubuntu/systemd-resolved clients.
-AVAHI_ADDR=$(vm "avahi-resolve-host-name $BOX_DOMAIN 2>/dev/null" | awk '{print $2}')
-if [ -n "$AVAHI_ADDR" ]; then
-    ok "mDNS resolves $BOX_DOMAIN → $AVAHI_ADDR"
-else
-    fail "mDNS cannot resolve $BOX_DOMAIN — avahi not announcing (re-provision?)"
-fi
+# DNS resolution of $BOX_DOMAIN is not tested here: dnsmasq binds exclusively
+# to the AP interface (wlan0), which does not exist in the Vagrant VM.
+# To verify: connect a device to the Hearth AP and run: nslookup $BOX_DOMAIN
 
 # ---------------------------------------------------------------------------
 # VM — Systemd services
@@ -342,7 +354,7 @@ fi
 
 # Check captive portal if block is present in rendered config
 if [ "$CAPTIVE_ON" = "true" ]; then
-    CAPTIVE_IN_CONF=$(vm "grep -c 'http_host' /etc/nginx/sites-available/hearth.conf 2>/dev/null || echo 0")
+    CAPTIVE_IN_CONF=$(vm "grep -c 'captive-portal' /etc/nginx/sites-available/hearth.conf 2>/dev/null || echo 0")
     if [ "${CAPTIVE_IN_CONF:-0}" -gt 0 ]; then
         ok "Captive portal if-block present in rendered nginx config"
     else

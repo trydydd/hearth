@@ -63,38 +63,29 @@ iw reg get
 
 ### `.local` Domain Unresolvable on Ubuntu / Modern Linux Clients
 
-**Root cause**: Ubuntu 24.04+ nsswitch.conf: `mdns4_minimal [NOTFOUND=return]` routes `.local` queries through mDNS. If the box isn't running avahi-daemon, nothing responds to the mDNS multicast and the name is NXDOMAIN — dnsmasq is never consulted regardless of what it serves.
+**Root cause**: Ubuntu 24.04+ nsswitch.conf: `mdns4_minimal [NOTFOUND=return]` routes `.local` queries through the *client's* avahi-daemon (mDNS). Without avahi on the client, it returns NOTFOUND immediately and `[NOTFOUND=return]` prevents fallback to unicast DNS — dnsmasq is never consulted. Other platforms (iOS/macOS Bonjour, Android/Windows unicast DNS) are not affected.
 
-**Fix**: Two things are required together:
-1. The common role Phase 6 installs avahi-daemon and sets the hostname (so avahi announces `hearth.local` via mDNS)
-2. The firewall allows UDP port 5353 from the AP interface (so mDNS queries from WiFi clients actually reach avahi-daemon — without this rule, avahi runs but client queries are dropped by nftables before they arrive)
-
-**Verify on the box**:
-```bash
-sudo systemctl status avahi-daemon
-avahi-resolve-host-name hearth.local   # from another device on the network
-```
+**Fix**: Use a non-`.local` domain for `box.domain` (default: `hearth.home`). Non-`.local` names bypass `mdns4_minimal` entirely and go through normal unicast DNS → dnsmasq → box.ip on every platform. This is the root-cause fix; installing avahi on every client is not required.
 
 **Verify from client (Ubuntu)**:
 ```bash
-avahi-resolve-host-name hearth.local
-# Should return: hearth.local    10.0.0.1
+nslookup hearth.home   # should return 10.0.0.1 via dnsmasq
 ```
 
-If avahi-daemon is not installed/running (e.g., after a provisioning failure), re-run the common role tag:
+If DNS is not resolving (e.g., DHCP didn't assign the correct nameserver):
 ```bash
-ansible-playbook -i ansible/inventory/production ansible/site.yml --tags common
+cat /etc/resolv.conf   # should show nameserver 10.0.0.1
 ```
 
 ### Firefox HTTPS-First Blocking Access
 
-**Symptom**: Browser shows blank page or connection error for `http://hearth.local/...` even after DNS resolves correctly.
+**Symptom**: Browser shows blank page or connection error for `http://hearth.home/...` even after DNS resolves correctly.
 
 **Root cause**: Firefox 91+ HTTPS-First mode upgrades all HTTP navigations to HTTPS before sending the request. The original HTTP request is held (shows `blocked: -1` in HAR) until the HTTPS attempt resolves. If port 443 is silently DROPped by nftables, Firefox waits ~3 seconds for TCP timeout before falling back to HTTP.
 
 **Fix**: The firewall sends an immediate TCP RST for port 443 on the AP interface (`reject with tcp reset`). Firefox interprets RST as "port is closed, fall back immediately" — no perceptible delay.
 
-**Diagnostic**: Check HAR. HTTPS-First pattern shows `blocked: -1` on the HTTP entry and `connect: 0` on the HTTPS entry. If `dns: 0` AND `connect: 0` on HTTPS → DNS is failing (mDNS not reaching avahi). If `dns: >0` AND `connect: 0` → DNS worked but connection to port 443 failed.
+**Diagnostic**: Check HAR. HTTPS-First pattern shows `blocked: -1` on the HTTP entry and `connect: 0` on the HTTPS entry. If `dns: 0` AND `connect: 0` on HTTPS → DNS is failing (DHCP didn't assign dnsmasq as nameserver). If `dns: >0` AND `connect: 0` → DNS worked but connection to port 443 failed.
 
 ### Captive Portal Not Intercepting
 
@@ -120,8 +111,8 @@ The nginx `if` block handles this: `!~* "^{{ box.domain }}\.?$"` — the `\.?` a
 **Check 4 — Test manually**:
 ```bash
 curl -sI -H "Host: connectivity-check.ubuntu.com." http://localhost:8080/
-# Should see: Location: http://hearth.local/captive-portal.html
-curl -sI -H "Host: hearth.local" http://localhost:8080/
+# Should see: Location: http://hearth.home/captive-portal.html
+curl -sI -H "Host: hearth.home" http://localhost:8080/
 # Should see: 200 OK (not redirected)
 ```
 
@@ -213,7 +204,7 @@ Check if first boot ran: `sudo test -e /var/lib/hearth/.first-boot-done && echo 
 vagrant status        # Should show: running
 vagrant ssh           # Direct shell access
 # Port 8080 on localhost forwards to port 80 on VM
-curl -H "Host: hearth.local" http://localhost:8080/
+curl -H "Host: hearth.home" http://localhost:8080/
 ```
 
 If port 8080 is unreachable: check `vagrant ssh-config`, check `netstat -tlnp | grep 8080` on host.
