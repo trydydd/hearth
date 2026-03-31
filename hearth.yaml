@@ -9,8 +9,21 @@ box:
   # Human-readable name shown on the landing portal and in admin UI
   name: "Hearth"
 
-  # Domain used for all local services (resolved inside the hotspot only)
-  domain: "hearth.local"
+  # Domain used for all local services (resolved inside the hotspot only).
+  #
+  # IMPORTANT: Do NOT use a .local TLD here.
+  # .local is reserved by RFC 6762 for mDNS (Multicast DNS). Linux clients
+  # (Ubuntu, Debian, Fedora) route .local queries through the mdns4_minimal
+  # NSS module, which uses the *client's* avahi-daemon — not unicast DNS.
+  # If avahi is not installed on the client (common on headless Ubuntu), the
+  # module returns NOTFOUND immediately and [NOTFOUND=return] in nsswitch.conf
+  # prevents any fallback to the DHCP-assigned DNS server (dnsmasq at box.ip).
+  # Result: hearth.local never resolves on Linux clients without avahi.
+  #
+  # Any non-.local domain works correctly on all platforms because those
+  # queries go through normal unicast DNS — straight to dnsmasq at box.ip,
+  # which returns box.ip for every query via address=/#/box.ip.
+  domain: "hearth.home"
 
   # IP address assigned to the box's AP interface
   ip: "10.0.0.1"
@@ -36,7 +49,7 @@ wifi:
   # Without this the radio defaults to the world domain (00) which may
   # restrict available channels and prevent hostapd from starting.
   # Examples: GB, US, DE, FR, AU. Leave empty only if deliberately unset.
-  country_code: "GB"
+  country_code: "US"
 
   # DHCP range handed to connected clients (start, end, lease time)
   dhcp_range_start: "10.0.0.10"
@@ -101,6 +114,18 @@ usb_ssh:
   ip: "192.168.7.2"
 
 # ---------------------------------------------------------------------------
+# Captive portal
+#
+# When enabled, nginx intercepts connectivity-check probes from all major
+# operating systems (Ubuntu/GNOME, iOS, Android, Windows, Firefox) and
+# redirects them to a local landing page that prompts the user to open the
+# real browser — preventing the OS mini-browser from loading Hearth inside
+# a restricted WebView.
+# ---------------------------------------------------------------------------
+captive_portal:
+  enabled: true
+
+# ---------------------------------------------------------------------------
 # Services — per-service enable flags
 # Set a service to false to prevent it from being installed/started.
 # ---------------------------------------------------------------------------
@@ -116,13 +141,14 @@ services:
   calibre_web:
     enabled: false
 
-  # Offline Wikipedia / ZIM reader (Kiwix) — served at /wiki/
+  # Offline Wikipedia / ZIM reader (Kiwix) — served at /library/
   kiwix:
     enabled: true
 
     # ZIM files are injected onto the SD card after flashing via
-    # scripts/inject-content.sh — the image build never downloads ZIMs.
-    # Set to true only when using a self-hosted build that has a local ZIM cache.
+    # scripts/inject-content.sh — place .zim files in zims/ then run the
+    # script with the card's mount point. Set to true only when using a
+    # self-hosted build that has a local ZIM cache.
     download_zims: true
 
     # ZIM content packages to download and serve.
@@ -138,21 +164,11 @@ services:
 
   # Music library + Jukebox — served at /jukebox/
   #
-  # Files listed under content are downloaded to a local music/ cache and
-  # injected onto the SD card after flashing via scripts/inject-content.sh.
+  # To pre-load music: place audio files in music/ then run
+  # scripts/inject-content.sh with the card's mount point after flashing.
   # Supported formats: MP3 (.mp3), OGG (.ogg), FLAC (.flac), AAC/M4A (.aac, .m4a)
-  # Recommended max upload size per file: 50 MB.
   music:
     enabled: true
-
-    # Music files to pre-load onto the card at flash time.
-    # Each entry requires a filename (name) and a direct download URL (url).
-    # Set enabled: false on an entry to skip it without removing it.
-    content: []
-    # Example:
-    #   - name: "artist-title.mp3"
-    #     url: "https://example.com/artist-title.mp3"
-    #     enabled: true
 
 # ---------------------------------------------------------------------------
 # Diagnostics
@@ -167,4 +183,4 @@ diagnostics:
   # When true, passwords and passphrases are replaced with <REDACTED> in the
   # boot-partition diagnostic log.  Set to true before distributing images to
   # others; leave false during development so you can see actual config values.
-  redact_secrets: true
+  redact_secrets: false

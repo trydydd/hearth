@@ -2,10 +2,10 @@
 # scripts/dev-hosts.sh — Add or remove local /etc/hosts entries for Hearth dev
 #
 # Usage:
-#   sudo scripts/dev-hosts.sh add     # Append *.hearth.local entries (idempotent)
+#   sudo scripts/dev-hosts.sh add     # Append *.hearth.home entries (idempotent)
 #   sudo scripts/dev-hosts.sh remove  # Remove the entries
 #
-# The entries map the services that Hearth exposes under the hearth.local domain
+# The entries map the services that Hearth exposes under the hearth.home domain
 # to 127.0.0.1 so a developer's browser resolves them without a real hotspot.
 
 set -euo pipefail
@@ -14,7 +14,7 @@ HOSTS_FILE="/etc/hosts"
 MARKER_START="# BEGIN hearth-dev"
 MARKER_END="# END hearth-dev"
 
-ENTRIES="127.0.0.1 hearth.local"
+ENTRIES="127.0.0.1 hearth.home"
 
 _require_root() {
     if [ "$(id -u)" -ne 0 ]; then

@@ -1,6 +1,6 @@
 [Unit]
 Description=Hearth first-boot credential generator
-Documentation=https://github.com/trydydd/cafe-box
+Documentation=https://github.com/trydydd/hearth
 # Must complete before nginx serves the portal (which may expose the
 # first-boot password banner via the admin API)
 Before=nginx.service

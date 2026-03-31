@@ -57,7 +57,7 @@ class TestTask506NginxJukeboxBlocks(unittest.TestCase):
 
     def test_redirect_block_present_when_enabled(self):
         self.assertIn("location = /jukebox", self.rendered_on)
-        self.assertIn("return 301 /jukebox/", self.rendered_on)
+        self.assertIn("return 301 $scheme://$http_host/jukebox/", self.rendered_on)
 
     def test_ws_proxy_block_present_when_enabled(self):
         self.assertIn("location /jukebox/ws", self.rendered_on)
@@ -81,7 +81,7 @@ class TestTask506NginxJukeboxBlocks(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_redirect_block_absent_when_disabled(self):
-        self.assertNotIn("return 301 /jukebox/", self.rendered_off)
+        self.assertNotIn("return 301 $scheme://$http_host/jukebox/", self.rendered_off)
 
     def test_ws_proxy_absent_when_disabled(self):
         self.assertNotIn("location /jukebox/ws", self.rendered_off)

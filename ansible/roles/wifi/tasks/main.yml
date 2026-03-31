@@ -103,11 +103,16 @@
 # before first boot, otherwise the radio stays blocked and hostapd can never
 # put wlan0 into AP mode.
 #
-# Two mechanisms cover all network-manager combinations:
-#   1. wpa_supplicant.conf  — read by raspberrypi-sys-mods on first boot and
-#      by wpa_supplicant itself; sets country=XX in the kernel regulatory db.
-#   2. /etc/default/crda    — sets REGDOMAIN for the crda daemon on older
-#      kernel/distro combos that use crda instead of the internal CRDA.
+# Primary mechanism (RPi OS Trixie and later):
+#   cmdline.txt cfg80211.ieee80211_regdom=XX — kernel parameter set below.
+#   The raspberrypi-sys-mods firstboot service that previously read country=
+#   from wpa_supplicant.conf no longer exists on Trixie, making this the
+#   only reliable method on current images.
+#
+# Legacy fallbacks (older RPi OS / Bookworm):
+#   wpa_supplicant.conf country=XX — read by raspberrypi-sys-mods firstboot
+#   /etc/default/crda REGDOMAIN=XX — used by the crda daemon
+#
 # The drop-in (hostapd-wlan-wait.conf.j2) also runs `rfkill unblock wifi`
 # just before hostapd opens the interface, as a belt-and-suspenders unblock.
 # ---------------------------------------------------------------------------
@@ -163,6 +168,52 @@
     group: root
     mode: "0644"
   when: wifi.country_code | default('') | length > 0
+
+# ---------------------------------------------------------------------------
+# Set WiFi regulatory domain as a kernel boot parameter in cmdline.txt.
+#
+# On RPi OS Trixie, the raspberrypi-sys-mods firstboot service no longer
+# exists, so writing country= to wpa_supplicant.conf has no effect on the
+# kernel regulatory domain.  cfg80211.ieee80211_regdom=<CC> on the kernel
+# command line sets the domain during kernel init — before any WiFi driver
+# loads — and is the primary reliable mechanism on current RPi OS images.
+# These tasks are skipped automatically on Vagrant VMs where neither
+# cmdline.txt path exists.
+# ---------------------------------------------------------------------------
+- name: Detect modern boot cmdline.txt (/boot/firmware/cmdline.txt)
+  ansible.builtin.stat:
+    path: /boot/firmware/cmdline.txt
+  register: _wifi_cmdline_firmware
+
+- name: Detect legacy boot cmdline.txt (/boot/cmdline.txt)
+  ansible.builtin.stat:
+    path: /boot/cmdline.txt
+  register: _wifi_cmdline_legacy
+
+- name: Set WiFi regulatory domain kernel parameter in cmdline.txt
+  when: >-
+    wifi.country_code | default('') | length > 0 and
+    (_wifi_cmdline_firmware.stat.exists or _wifi_cmdline_legacy.stat.exists)
+  vars:
+    _wifi_cmdline_path: >-
+      {{ '/boot/firmware/cmdline.txt' if _wifi_cmdline_firmware.stat.exists
+         else '/boot/cmdline.txt' }}
+  block:
+    - name: Read kernel cmdline
+      ansible.builtin.slurp:
+        src: "{{ _wifi_cmdline_path }}"
+      register: _wifi_cmdline_raw
+
+    - name: Append cfg80211.ieee80211_regdom to kernel cmdline
+      # cmdline.txt is a single space-separated line; append the parameter
+      # only when it is not already present so re-runs are idempotent.
+      ansible.builtin.copy:
+        content: "{{ (_wifi_cmdline_raw.content | b64decode | trim) ~ ' cfg80211.ieee80211_regdom=' ~ wifi.country_code }}\n"
+        dest: "{{ _wifi_cmdline_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      when: "'cfg80211.ieee80211_regdom=' not in (_wifi_cmdline_raw.content | b64decode)"
 
 # ---------------------------------------------------------------------------
 # Set DAEMON_CONF so hostapd reads our rendered configuration file.

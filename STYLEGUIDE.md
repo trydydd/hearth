@@ -5,7 +5,7 @@ This guide defines the visual and interaction language for the Hearth portal lan
 ## 1. Purpose And Scope
 
 - Apply to the public portal landing page served by the nginx role.
-- Support first-time hotspot users arriving through captive-portal redirects.
+- Support first-time hotspot users navigating to the portal.
 - Keep implementation lightweight: plain HTML, CSS, and vanilla JavaScript.
 - Align with the public API contract from `GET /api/public/services/status`.
 

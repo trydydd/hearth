@@ -11,15 +11,9 @@
 #
 #   server {
 #       listen 80 default_server;
-#       server_name hearth.local;
+#       server_name hearth.home;
 #       root /var/www/hearth/portal;
 #       index index.html;
-#
-#       # Captive-portal detection — redirect to portal on all OSes
-#       location /generate_204        { return 302 http://hearth.local/; }
-#       location /hotspot-detect.html { return 302 http://hearth.local/; }
-#       location /connecttest.txt     { return 302 http://hearth.local/; }
-#       location /ncsi.txt            { return 302 http://hearth.local/; }
 #
 #       location / { index index.html; try_files $uri $uri/ =404; }
 #
@@ -29,7 +23,6 @@
 #       # Service reverse-proxy stubs (uncomment when service is installed)
 #       # location /calibre_web/ { proxy_pass http://127.0.0.1:8083/; }
 #       # location /kiwix/       { proxy_pass http://127.0.0.1:8888/; }
-#       # location /navidrome/   { proxy_pass http://127.0.0.1:4533/; }
 #   }
 
 server {
@@ -38,12 +31,6 @@ server {
 
     root /var/www/hearth/portal;
     index index.html;
-
-    # Captive-portal detection — redirect all OS probes to the portal
-    location /generate_204        { return 302 http://{{ box.domain }}/; }
-    location /hotspot-detect.html { return 302 http://{{ box.domain }}/; }
-    location /connecttest.txt     { return 302 http://{{ box.domain }}/; }
-    location /ncsi.txt            { return 302 http://{{ box.domain }}/; }
 
     location / {
         index index.html;
@@ -69,11 +56,75 @@ server {
     }
 
     # Admin frontend static files — not linked from the portal
+    location = /admin { return 301 $scheme://$http_host/admin/; }
     location /admin/ {
         alias /var/www/hearth/admin/;
         index login.html;
         try_files $uri $uri/ /admin/login.html;
     }
+
+{% if captive_portal is defined and captive_portal.enabled %}
+    # -------------------------------------------------------------------------
+    # Captive portal detection
+    #
+    # Devices probe well-known URLs to decide whether they are behind a captive
+    # portal.  We intercept those probes and redirect to the Hearth captive
+    # portal landing page, which prompts the user to open the real browser.
+    #
+    # This works because the main server block is already default_server —
+    # requests for external hostnames (captive.apple.com, etc.) fall here.
+    #
+    # Two interception strategies are used:
+    #   Host-based  — Any request whose Host header is not the box domain is an
+    #                 external probe (connectivity check, CNA, etc.) and is
+    #                 redirected to the captive portal before location matching.
+    #                 This catches all OS/browser probes without enumerating them.
+    #                 The trailing dot (FQDN form used by some clients) is allowed.
+    #   Path-based  — Belt-and-suspenders for probes that reach this server with
+    #                 the box domain in the Host header (unlikely but possible).
+    # -------------------------------------------------------------------------
+
+    # Hostname catch-all: redirect any request that is not addressed to the box
+    # domain to the captive portal landing page.  Covers Ubuntu/GNOME/Debian NM
+    # connectivity checks (which probe / on an external hostname), Apple CNA,
+    # Android, Windows, Firefox, and any future check we haven't enumerated.
+    #
+    if ($http_host !~* "^{{ box.domain }}\.?$") {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+
+    # Apple CNA — iOS / macOS
+    location = /hotspot-detect.html {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+    location = /library/test/success.html {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+
+    # Android / Chrome OS connectivity check
+    location = /generate_204 {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+
+    # Windows NCSI
+    location = /ncsi.txt {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+    location = /connecttest.txt {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+    location = /redirect {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+
+    # Firefox
+    location = /success.txt {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+    location = /canonical.html {
+        return 302 http://{{ box.domain }}/captive-portal.html;
+    }
+{% endif %}
 
 {% if services.chat is defined and services.chat.enabled %}
     # -------------------------------------------------------------------------
@@ -81,7 +132,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /chat { return 301 /chat/; }
+    location = /chat { return 301 $scheme://$http_host/chat/; }
 
     # WebSocket proxy — must come before /chat/ to avoid alias match
     location /chat/ws {
@@ -107,7 +158,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /library { return 301 /library/; }
+    location = /library { return 301 $scheme://$http_host/library/; }
 
     # Reverse proxy — kiwix-serve is configured with --urlRootLocation /library
     # so it expects to receive the full /library/... path unchanged.
@@ -124,7 +175,7 @@ server {
     # -------------------------------------------------------------------------
 
     # No-trailing-slash redirect
-    location = /jukebox { return 301 /jukebox/; }
+    location = /jukebox { return 301 $scheme://$http_host/jukebox/; }
 
     # WebSocket proxy — must come before the API block
     location /jukebox/ws {

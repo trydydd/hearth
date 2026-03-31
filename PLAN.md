@@ -1,8 +1,7 @@
 # Hearth — Agent Build Plan
 
 A self-contained offline community server running on a Raspberry Pi Zero 2 W.
-Broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
-content through a clean landing page. Extensible by design: each service is
+Broadcasts a WiFi hotspot and serves content through a clean landing page. Extensible by design: each service is
 an independent systemd unit routed through a single nginx reverse proxy.
 
 This project is a spiritual descendant of **PirateBox**:
@@ -35,14 +34,14 @@ hearth/
 │   └── roles/
 │       ├── common/             # Base packages, system users, directory layout
 │       ├── nginx/              # Web server, portal reverse-proxy
-│       ├── conduit/            # Matrix homeserver
-│       ├── element_web/        # Matrix web client
+│       ├── wifi/               # hostapd + dnsmasq hotspot
+│       ├── firewall/           # nftables rules
+│       ├── admin/              # Admin backend (FastAPI) + frontend
+│       ├── chat/               # Ephemeral anonymous chat
 │       ├── calibre_web/        # eBook library
 │       ├── kiwix/              # Offline Wikipedia / ZIM reader
-│       ├── navidrome/          # Music streaming server
-│       ├── admin/              # Admin backend + frontend
-│       ├── wifi/               # hostapd + dnsmasq hotspot
-│       └── firewall/           # nftables rules
+│       ├── jukebox/            # Communal music jukebox
+│       └── diagnostics/        # Boot-partition diagnostic report
 ├── scripts/
 │   ├── dev-hosts.sh            # Adds *.hearth.local to /etc/hosts
 │   ├── config.py               # Loads hearth.yaml
@@ -62,7 +61,7 @@ hearth/
 This is a personal project, so keep the workflow simple and pragmatic.
 
 - **Build-time (builder/CI)**
-  - Allowed to download upstream releases (Conduit, Element Web, Kiwix tools, Navidrome, etc.)
+  - Allowed to download upstream releases (Kiwix tools, etc.)
   - The resulting **image must be self-contained** so the box can run offline
   - Prefer pinned versions for repeatable releases (optional early on, but recommended)
 
@@ -103,14 +102,6 @@ APIs use **tile ids**. Internals map tile ids → unit/storage keys.
 - Default-deny firewall; allow only DHCP/DNS/HTTP on hotspot interface.
 - Enable AP client isolation if feasible.
 
-### 0.4 — nginx Captive Portal
-
-Change Android `/generate_204` handler to redirect to the portal:
-
-```nginx
-location /generate_204 { return 302 http://{{ box.domain }}/; }
-```
-
 ### 0.5 — Development VM (Vagrant + Ansible)
 
 The development VM is managed with **Vagrant**. A `Vagrantfile` at the repo root
@@ -148,8 +139,10 @@ Keep the password banner:
 
 ---
 
-## Stage 2 — Matrix Chat (Conduit + Element Web)
+## Stage 2 — Ephemeral Chat
 
-### 2.0 — Reality Check: E2EE vs Ephemerality
+### 2.0 — Ephemerality Model
 
-Hearth does not promise messages are erased when users disconnect.
+Messages are stored in an encrypted volume whose key is generated at boot and
+never written to disk. All messages are permanently deleted when the box restarts
+or powers off.
