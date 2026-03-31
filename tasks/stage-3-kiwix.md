@@ -1,7 +1,7 @@
 # Stage 3 — Kiwix Offline Wikipedia Tasks
 
 These tasks implement the Kiwix offline content reader, serving a full offline
-copy of Wikipedia (and optionally other ZIM content) at `/wiki/`. Content is
+copy of Wikipedia (and optionally other ZIM content) at `/library/`. Content is
 served directly from the box with no internet connection required.
 
 Complete tasks in the order they are numbered. Each task is scoped to
@@ -17,8 +17,8 @@ starting Stage 3.
 ```
 ┌─────────────────────────────────────────────────┐
 │ nginx                                           │
-│  /wiki     → 301 /wiki/                        │
-│  /wiki/    → proxy to kiwix-serve:8888         │
+│  /library     → 301 /library/                  │
+│  /library/    → proxy to kiwix-serve:8888      │
 └────────────────────┬────────────────────────────┘
                      │ HTTP reverse proxy
 ┌────────────────────▼────────────────────────────┐
@@ -141,21 +141,21 @@ Create and enable the systemd service that runs kiwix-serve.
 Update the nginx configuration template to reverse-proxy to kiwix-serve.
 
 **Location blocks (conditional on `services.kiwix.enabled`):**
-- `location = /wiki` → `return 301 /wiki/`
-- `location /wiki/` → `proxy_pass http://127.0.0.1:8888`
+- `location = /library` → `return 301 /library/`
+- `location /library/` → `proxy_pass http://127.0.0.1:8888`
 
 kiwix-serve generates internal links relative to its own root. The nginx
-`location /wiki/` block must forward the path correctly so article links
+`location /library/` block must forward the path correctly so article links
 work without rewriting. Test with and without trailing slash.
 
 **Deliverables:**
 - Updated `ansible/roles/nginx/templates/nginx.conf.j2`.
 
 **Acceptance criteria:**
-- `curl -I http://hearth.local/wiki` returns 301 to `/wiki/`.
-- `curl http://hearth.local/wiki/` returns a valid HTML response from kiwix-serve.
+- `curl -I http://hearth.local/library` returns 301 to `/library/`.
+- `curl http://hearth.local/library/` returns a valid HTML response from kiwix-serve.
 - Blocks are absent when `services.kiwix.enabled: false`.
-- Tests pass: rendered config contains `= /wiki` redirect and `/wiki/` proxy
+- Tests pass: rendered config contains `= /library` redirect and `/library/` proxy
   block when enabled; both are absent when disabled.
 
 ---
@@ -178,7 +178,7 @@ a manual service restart.
   "kiwix": {
       "unit": "kiwix.service",
       "name": "Wikipedia",
-      "url_path": "/wiki/",
+      "url_path": "/library/",
   }
   ```
 - Update `ansible/roles/admin/templates/sudoers-hearth.j2` to include
@@ -201,14 +201,14 @@ Wire Kiwix into the portal tile system and `hearth.yaml`.
 - `hearth.yaml` — `services.kiwix.enabled` is already present; verify it
   drives the nginx conditional and the public API tile.
 - `ansible/roles/nginx/files/index.html` — ensure the Wikipedia tile links
-  to `/wiki/` (currently the tile may link to a placeholder URL).
+  to `/library/` (currently the tile may link to a placeholder URL).
 - Brief operator note added to `hearth.yaml` comments explaining storage
   requirements and where to find ZIM files.
 
 **Acceptance criteria:**
 - When `services.kiwix.enabled: true`, the portal tile appears and links
-  to `/wiki/`.
+  to `/library/`.
 - When `services.kiwix.enabled: false`, the tile is absent from the portal.
 - `hearth.yaml` comments explain minimum storage requirements.
 - Tests pass: public services API includes/excludes kiwix tile based on
-  enabled flag; index.html links to `/wiki/` when enabled.
+  enabled flag; index.html links to `/library/` when enabled.

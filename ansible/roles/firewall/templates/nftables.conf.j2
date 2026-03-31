@@ -48,14 +48,21 @@ table inet filter {
         iifname "{{ wifi.interface }}" udp dport 67 accept comment "DHCP: clients request address on AP interface"
 
         # Threat-model: Allow DNS queries from clients (port 53) so dnsmasq
-        # can serve *.hearth.local resolution and captive-portal intercept.
+        # can serve *.{{ box.domain }} resolution and captive-portal intercept.
         iifname "{{ wifi.interface }}" tcp dport 53 accept comment "DNS/TCP: client name resolution on AP interface"
         iifname "{{ wifi.interface }}" udp dport 53 accept comment "DNS/UDP: client name resolution on AP interface"
 
         # Threat-model: Allow HTTP (port 80) from clients so the portal and
-        # captive-portal redirect are reachable; HTTPS is intentionally absent
-        # (offline box, self-signed certs would break captive-portal detection).
+        # captive-portal redirect are reachable.
         iifname "{{ wifi.interface }}" tcp dport 80 accept comment "HTTP: portal access for AP clients"
+
+        # Reject HTTPS (port 443) with an immediate TCP RST rather than silently
+        # dropping it.  Firefox HTTPS-First mode upgrades all http:// navigations
+        # to https:// before sending the original request.  A DROP causes a
+        # ~3-second connection timeout before Firefox falls back to HTTP; a RST
+        # tells Firefox immediately that port 443 is closed so the HTTP fallback
+        # happens with no perceptible delay.
+        iifname "{{ wifi.interface }}" tcp dport 443 reject with tcp reset comment "HTTPS: instant RST so browsers fall back to HTTP without delay"
 
         # Admin backend API (only from AP interface — not exposed to WAN)
         iifname "{{ wifi.interface }}" tcp dport 8000 accept comment "Admin API: accessible from AP interface only"

@@ -1,8 +1,7 @@
 # Hearth
 
 A self-contained offline community server running on a **Raspberry Pi Zero 2 W**.
-Hearth broadcasts a WiFi hotspot, intercepts captive portal detection, and serves
-content through a clean landing page. Each service is an independent systemd unit
+Hearth broadcasts a WiFi hotspot and serves content through a clean landing page. Each service is an independent systemd unit
 routed through a single nginx reverse proxy.
 
 Hearth is a spiritual descendant of **PirateBox**:
@@ -24,29 +23,27 @@ Hearth is a spiritual descendant of **PirateBox**:
 `hearth.yaml` is the **only file an operator ever needs to edit**. Set the box name,
 domain, WiFi credentials, and toggle which services you want.
 
-### 2 — Generate system configs
-
-```bash
-make generate-configs
-```
-
-This renders all Jinja2 templates in `system/templates/` into `system/generated/`
-using the values from `hearth.yaml`.
-
-### 3 — Bootstrap the VM or Pi
+### 2 — Bootstrap the VM or Pi
 
 ```bash
 vagrant up         # start the dev VM
 vagrant ssh        # open a shell inside the VM
 ```
 
-### 4 — (Optional) Build a flashable image
+### 3 — (Optional) Build a flashable image
 
 ```bash
-bash image/build.sh
+bash scripts/build-image.sh
 ```
 
 See [`image/README.md`](image/README.md) for build prerequisites and flashing instructions.
+
+### 4 — (Optional) Inject content onto a flashed SD card
+
+```bash
+# Place .zim files in zims/ and music files in music/, then:
+sudo bash scripts/inject-content.sh /dev/mmcblk0
+```
 
 ### 5 — Testing and quality guidelines
 
@@ -61,54 +58,57 @@ and Python runtime environment standards.
 hearth/
 ├── README.md
 ├── Vagrantfile                 # Dev VM definition (Vagrant / debian/trixie64)
-├── hearth.yaml                   # *** Single user-facing config file ***
-├── install.sh                  # Bootstrap script (run on VM or Pi — identical)
+├── hearth.yaml                 # *** Single user-facing config file ***
+├── ansible/
+│   ├── ansible.cfg
+│   ├── site.yml                # Top-level playbook
+│   ├── inventory/
+│   │   ├── development         # Vagrant dev VM
+│   │   └── production          # Real Pi targets
+│   └── roles/
+│       ├── common/             # Base packages, system users, directory layout
+│       ├── nginx/              # Web server, portal reverse-proxy
+│       ├── wifi/               # hostapd + dnsmasq hotspot
+│       ├── firewall/           # nftables rules
+│       ├── admin/              # Admin backend (FastAPI) + frontend
+│       ├── chat/               # Ephemeral anonymous chat
+│       ├── calibre_web/        # eBook library
+│       ├── kiwix/              # Offline Wikipedia / ZIM reader
+│       ├── jukebox/            # Communal music jukebox
+│       └── diagnostics/        # Boot-partition diagnostic report
 ├── scripts/
-│   ├── dev-hosts.sh            # Adds *.hearth.local to /etc/hosts
-│   ├── config.py               # Loads hearth.yaml, used by install.sh + admin backend
-│   └── generate-configs.py     # Renders all Jinja2 templates from hearth.yaml
+│   ├── build-image.sh          # Builds a flashable .img.xz
+│   ├── inject-content.sh       # Copies ZIMs and music onto a flashed SD card
+│   ├── config.py               # Loads hearth.yaml
+│   ├── generate-configs.py     # Renders Jinja2 templates locally (developer preview)
+│   └── dev-hosts.sh            # Adds *.hearth.local to /etc/hosts
 ├── image/
-│   ├── build.sh                # Builds a flashable .img.xz
-│   ├── first-boot.sh           # Runs once on first boot: generates password, sets flag
-│   ├── first-boot.service      # systemd oneshot unit that calls first-boot.sh
 │   └── README.md               # Instructions for building and flashing the image
-├── .github/
-│   └── workflows/
-│       └── build-image.yml     # GitHub Action: builds and publishes image on tag
-├── system/
-│   ├── templates/              # Jinja2 templates — never edit these directly
-│   └── generated/              # Auto-generated — never edit directly
-├── storage/
-│   └── setup-symlinks.py       # Creates /srv/hearth/* symlinks from hearth.yaml
-├── services/
-│   ├── conduit/                # Matrix homeserver
-│   ├── element-web/            # Matrix web client
-│   ├── calibre-web/            # eBook library
-│   ├── kiwix/                  # Offline Wikipedia / ZIM reader
-│   └── navidrome/              # Music streaming server
-├── admin/
-│   ├── backend/                # Admin API (FastAPI)
-│   └── frontend/               # Admin web UI
-└── portal/
-    └── index.html              # Landing page served to hotspot clients
+├── tasks/                      # Stage-by-stage implementation task documents
+├── tests/                      # Automated test suite
+├── zims/                       # Drop .zim files here (gitignored)
+├── music/                      # Drop music files here (gitignored)
+└── .github/
+    └── workflows/
+        └── build-image.yml     # GitHub Action: builds and publishes image on tag
 ```
 
 ---
 
 ## Configuration Reference
 
-`hearth.yaml` contains four top-level sections:
+`hearth.yaml` contains five top-level sections:
 
 | Section | Purpose |
 |---------|---------|
 | `box` | Identity: `name`, `domain`, `ip` |
 | `wifi` | Hotspot: SSID, passphrase, interface, channel, DHCP range |
 | `storage` | Base path and per-service data directories |
-| `services` | Per-service `enabled` flags |
+| `services` | Per-service `enabled` flags and configuration |
+| `usb_ssh` | USB OTG SSH access (operator cable access) |
 
 All system-level configs (nginx, hostapd, dnsmasq, nftables) are **auto-generated**
-from `hearth.yaml` by `scripts/generate-configs.py`. Never edit files in
-`system/generated/` by hand.
+from `hearth.yaml` by Ansible at provision time.
 
 ### Storage locations
 
@@ -119,22 +119,21 @@ and re-provisioning.
 
 | Path (default) | Service | Data stored |
 |----------------|---------|-------------|
-| `/srv/hearth/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
-| `/srv/hearth/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
-| `/srv/hearth/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
-| `/srv/hearth/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+| `/srv/hearth/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images |
+| `/srv/hearth/kiwix` | Kiwix | ZIM files (offline Wikipedia, etc.) — can be 1–90 GB each |
+| `/srv/hearth/music` | Jukebox | Music files (MP3, OGG, FLAC, AAC/M4A) |
 
 ---
 
 ## Services
 
-| Service | Description | Port |
+| Service | Description | Path |
 |---------|-------------|------|
-| [Conduit](https://conduit.rs) | Matrix homeserver | 6167 |
-| [Element Web](https://element.io) | Matrix web client | 8080 |
-| [Calibre-Web](https://github.com/janeczku/calibre-web) | eBook library | 8083 |
-| [Kiwix](https://kiwix.org) | Offline Wikipedia / ZIM reader | 8888 |
-| [Navidrome](https://navidrome.org) | Music streaming server | 4533 |
+| Admin UI | Operator dashboard — password, service management, uploads | `/admin/` |
+| Chat | Ephemeral anonymous chat (messages deleted on reboot) | `/chat/` |
+| [Calibre-Web](https://github.com/janeczku/calibre-web) | eBook library | `/calibre/` |
+| [Kiwix](https://kiwix.org) | Offline Wikipedia / ZIM reader | `/library/` |
+| Jukebox | Communal music player with shared queue | `/jukebox/` |
 
 All services are reverse-proxied through nginx on port 80 and reachable at
 `http://<box.domain>/<service-path>/`.
@@ -224,7 +223,9 @@ principles, including role boundaries and dependency ownership.
 |-------|-------------|
 | **Stage 0** | Base infrastructure: config system, templates, networking, image builder |
 | **Stage 1** | Admin UI: FastAPI backend + web frontend, authentication |
-| **Stage 2** | Matrix Chat: Conduit homeserver + Element Web client |
+| **Stage 2** | Ephemeral Chat: encrypted tmpfs-backed anonymous chat |
+| **Stage 3** | Kiwix: offline Wikipedia and ZIM content reader |
+| **Stage 4** | Jukebox: communal music player with shared queue |
 
 ---
 

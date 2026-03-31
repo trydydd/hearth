@@ -220,8 +220,10 @@ mount "/dev/mapper/$(basename "${LOOP_DEV}")p1" "${BOOT_MOUNT_DIR}"
 # ---------------------------------------------------------------------------
 log "Step 4: Provisioning image with Ansible (native ARM64 chroot)..."
 
-# Copy the repo into the image so the playbook has access to all templates
-CHROOT_REPO="/opt/cafe-box"
+# Copy the repo into the image so the playbook has access to all templates.
+# Must NOT overlap with /opt/hearth — the admin role deploys the backend there
+# and the cleanup rm -rf below would otherwise wipe it from the final image.
+CHROOT_REPO="/root/hearth-provisioner"
 mkdir -p "${MOUNT_DIR}${CHROOT_REPO}"
 rsync -a --exclude='.git' --exclude='image/' \
     "${REPO_ROOT}/" "${MOUNT_DIR}${CHROOT_REPO}/"
@@ -333,11 +335,27 @@ fi
     && ok "dnsmasq drop-in present" \
     || fail "dnsmasq drop-in MISSING at dnsmasq.service.d/hearth-wlan-wait.conf"
 
-# country code in wpa_supplicant.conf — required to lift rfkill soft-block
+# cfg80211.ieee80211_regdom in cmdline.txt — primary regulatory domain mechanism
+# on RPi OS Trixie (raspberrypi-sys-mods firstboot no longer reads wpa_supplicant.conf)
+FOUND_CMDLINE_REGDOM=0
+for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+    if [ -f "$f" ]; then
+        if grep -q "cfg80211.ieee80211_regdom=" "$f"; then
+            ok "cfg80211.ieee80211_regdom= found in $f"
+        else
+            fail "cfg80211.ieee80211_regdom= NOT found in $f (WiFi regulatory domain not set — BCM43430 AP will not broadcast)"
+        fi
+        FOUND_CMDLINE_REGDOM=1
+        break
+    fi
+done
+[ "$FOUND_CMDLINE_REGDOM" -eq 1 ] || fail "No cmdline.txt found — cannot verify regulatory domain kernel parameter"
+
+# country code in wpa_supplicant.conf — legacy fallback for older RPi OS images
 if grep -qE "^country=" /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null; then
-    ok "country= set in wpa_supplicant.conf (rfkill soft-block will be lifted)"
+    ok "country= set in wpa_supplicant.conf (legacy fallback present)"
 else
-    fail "country= NOT set in wpa_supplicant.conf (BCM43430 will remain rfkill soft-blocked)"
+    warn "country= NOT set in wpa_supplicant.conf — OK on Trixie (cmdline.txt is the primary mechanism)"
 fi
 
 # NetworkManager must not manage the AP interface
@@ -408,7 +426,7 @@ LOOP_DEV=""
 
 log "Step 7: Compressing to ${OUTPUT_IMAGE}..."
 mkdir -p "$(dirname "${OUTPUT_IMAGE}")"
-xz -T0 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
+xz -T1 -c "${WORK_IMAGE}" > "${OUTPUT_IMAGE}"
 
 COMPRESSED_SIZE="$(du -sh "${OUTPUT_IMAGE}" | cut -f1)"
 log "Done. Output: ${OUTPUT_IMAGE} (${COMPRESSED_SIZE})"

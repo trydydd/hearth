@@ -420,3 +420,35 @@
           Common role phase 5 (USB OTG SSH) failed.
           Check the task output above for details.
 
+# ---------------------------------------------------------------------------
+# Phase 6 — Network identity: hostname
+# ---------------------------------------------------------------------------
+# Sets the system hostname to the first label of box.domain.
+# e.g. box.domain "hearth.home" → hostname "hearth"
+#
+# /etc/hosts must be updated alongside the hostname.  Debian/Ubuntu maps
+# 127.0.1.1 to the system hostname; without this every sudo call tries to
+# resolve the new hostname via DNS and hangs, making provisioning very slow.
+#
+# DNS resolution (hearth.home → 10.0.0.1) is handled entirely by dnsmasq via
+# unicast DNS on the AP interface — no mDNS / avahi required.  box.domain
+# must never be a .local name; see hearth.yaml for the full explanation.
+- name: "Phase 6 — Set system hostname"
+  block:
+    - name: Set system hostname from box.domain
+      ansible.builtin.hostname:
+        name: "{{ box.domain.split('.')[0] }}"
+
+    - name: Update /etc/hosts with new hostname
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s'
+        line: "127.0.1.1\t{{ box.domain.split('.')[0] }}"
+
+  rescue:
+    - name: "Phase 6 FAILED — hostname setup error"
+      ansible.builtin.fail:
+        msg: >-
+          Common role phase 6 (hostname) failed.
+          Check the task output above for details.
+

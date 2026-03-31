@@ -184,14 +184,16 @@ roles can be enabled/disabled independently via `hearth.yaml`.
   |------|---------------|
   | `common` | Base packages, system users, directory layout |
   | `nginx` | Web server, portal reverse-proxy |
-  | `conduit` | Matrix homeserver |
-  | `element_web` | Matrix web client |
-  | `calibre_web` | eBook library |
-  | `kiwix` | Offline Wikipedia / ZIM reader |
-  | `navidrome` | Music streaming server |
-  | `admin` | Admin backend + frontend |
+  | `common` | Base packages, system users, directory layout |
+  | `nginx` | Web server, portal reverse-proxy |
   | `wifi` | hostapd + dnsmasq hotspot |
   | `firewall` | nftables rules |
+  | `admin` | Admin backend + frontend |
+  | `chat` | Ephemeral anonymous chat |
+  | `calibre_web` | eBook library |
+  | `kiwix` | Offline Wikipedia / ZIM reader |
+  | `jukebox` | Communal music jukebox |
+  | `diagnostics` | Boot-partition diagnostic report |
 
 **Acceptance criteria:**
 - `ansible-lint ansible/site.yml` reports no errors (requires ansible-lint).
@@ -289,11 +291,10 @@ hotspot and captive-portal DNS are driven by `hearth.yaml`.
 
 ---
 
-## Task 0.11 — nginx Configuration Template + Captive Portal Redirect ✅
+## Task 0.11 — nginx Configuration Template ✅
 
 Create a Jinja2 template for the main `nginx.conf` that:
 - Serves the landing portal on port 80.
-- Includes the captive-portal redirect: `location /generate_204 { return 302 http://{{ box.domain }}/; }`.
 - Includes stub `location` blocks for each service (commented-out until the
   service is installed).
 
@@ -303,7 +304,6 @@ Create a Jinja2 template for the main `nginx.conf` that:
 **Acceptance criteria:**
 - Template renders to valid nginx configuration (`nginx -t` passes against the
   rendered file).
-- `/generate_204` block is present and points to `box.domain`.
 
 **Status: Complete**
 
@@ -377,10 +377,9 @@ updating `storage.base` in `hearth.yaml` and re-provisioning.
 
 | Path (default) | Service | Data stored |
 |----------------|---------|-------------|
-| `/srv/hearth/conduit` | Conduit (Matrix homeserver) | SQLite/RocksDB database, room state, media uploads, session keys |
 | `/srv/hearth/calibre` | Calibre-Web | eBook library (`metadata.db`), user database, cover images, uploaded books |
-| `/srv/hearth/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 10–100 GB each |
-| `/srv/hearth/navidrome` | Navidrome | Music library database, scan cache, transcoding state |
+| `/srv/hearth/kiwix` | Kiwix | Downloaded ZIM files (offline Wikipedia, etc.) — can be 1–90 GB each |
+| `/srv/hearth/music` | Jukebox | Music files (MP3, OGG, FLAC, AAC/M4A) |
 
 Centralising all writable data under a single `storage.base` means backup is one
 `rsync /srv/hearth/` command, and moving to an external drive requires updating

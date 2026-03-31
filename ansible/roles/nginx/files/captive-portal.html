@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Hearth</title>
+  <!--
+    Captive portal landing page — served when a device's connectivity check
+    is intercepted by nginx and redirected here.
+
+    Intentionally self-contained (no external stylesheets or scripts) so it
+    renders correctly inside iOS CNA and Android captive-portal WebViews,
+    which do not reliably load sub-resources from the same origin.
+  -->
+  <style>
+    /* --- Design tokens -------------------------------------------------- */
+    :root {
+      --bg-top:    #fde8c8;
+      --bg-bottom: #faf0dc;
+      --surface-1: #fffaf3;
+      --ink-strong:  #2c1206;
+      --ink-soft:    #6b3d20;
+      --ink-inverse: #fff8f0;
+      --accent-primary:       #c84010;
+      --accent-primary-hover: #a83208;
+      --border-strong: #2c1206;
+      --shadow-pixel:  4px 4px 0 #2c1206;
+      --focus-ring:    #c84010;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-top:    #0d0806;
+        --bg-bottom: #080503;
+        --surface-1: #3d1f08;
+        --ink-strong:  #f5e6c8;
+        --ink-soft:    #c8a070;
+        --ink-inverse: #1c0d04;
+        --accent-primary:       #ff6820;
+        --accent-primary-hover: #e05010;
+        --border-strong: #d4a060;
+        --shadow-pixel:  4px 4px 0 #050302;
+        --focus-ring:    #ff6820;
+      }
+    }
+
+    /* --- Reset & base --------------------------------------------------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Verdana, Tahoma, sans-serif;
+      font-size: 16px;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      min-height: 100vh;
+      color: var(--ink-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    /* --- Card ----------------------------------------------------------- */
+    .card {
+      background: var(--surface-1);
+      border: 3px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: 8px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    /* --- Logo ----------------------------------------------------------- */
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      display: block;
+    }
+
+    /* --- Typography ----------------------------------------------------- */
+    h1 {
+      font-size: 28px;
+      font-weight: bold;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .tagline {
+      font-size: 15px;
+      color: var(--ink-soft);
+      margin-bottom: 28px;
+      line-height: 1.4;
+    }
+
+    /* --- Enter button --------------------------------------------------- */
+    .btn-enter {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--accent-primary);
+      color: var(--ink-inverse);
+      border: 2px solid var(--border-strong);
+      box-shadow: var(--shadow-pixel);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      text-align: center;
+      min-height: 44px;
+      line-height: 1.2;
+      /* Vertically center the label inside the min-height */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 120ms;
+    }
+
+    .btn-enter:hover  { background: var(--accent-primary-hover); }
+    .btn-enter:focus  { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+    .btn-enter:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--border-strong); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-enter { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Hearth fireplace logo (inline — no external request) -->
+    <svg class="logo" aria-hidden="true" focusable="false"
+         viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Mantle shelf -->
+      <rect x="0" y="4" width="32" height="5" fill="#a08464"/>
+      <rect x="10" y="5" width="1" height="3" fill="#7a6040"/>
+      <rect x="21" y="5" width="1" height="3" fill="#7a6040"/>
+      <!-- Left surround -->
+      <rect x="0" y="9" width="6" height="19" fill="#8a6848"/>
+      <!-- Right surround -->
+      <rect x="26" y="9" width="6" height="19" fill="#8a6848"/>
+      <!-- Hearth base -->
+      <rect x="0" y="28" width="32" height="4" fill="#a08464"/>
+      <!-- Opening -->
+      <rect x="6" y="9" width="20" height="19" fill="#180c04"/>
+      <!-- Log -->
+      <rect x="8" y="26" width="16" height="2" rx="1" fill="#5c3014"/>
+      <!-- Outer flame -->
+      <path d="M10 27 Q9 21 12 17 Q15 12 16 10 Q17 12 20 17 Q23 21 22 27Z" fill="#c43808"/>
+      <!-- Mid flame -->
+      <path d="M13 27 Q12 22 14 18 Q16 14 18 18 Q19 22 18 27Z" fill="#e87020"/>
+      <!-- Inner flame -->
+      <path d="M15 27 Q14.5 23 16 20 Q16.5 23 17 27Z" fill="#ffc030"/>
+    </svg>
+
+    <h1>Welcome to Hearth</h1>
+    <p class="tagline">A network that doesn't watch back</p>
+
+    <!--
+      href starts as "/" (relative fallback for no-JS environments).
+      The script below replaces it with the absolute origin URL, which is
+      what iOS CNA and Android captive-portal WebViews need to break out of
+      the mini-browser and open the device's real browser.
+    -->
+    <a id="enter-link" href="/" class="btn-enter">
+      Enter
+    </a>
+
+  </div>
+
+  <script>
+    document.getElementById("enter-link").href = window.location.origin + "/";
+  </script>
+</body>
+</html>

@@ -161,7 +161,7 @@ class TestTask004TemplateRenderer(unittest.TestCase):
 
             with self.assertRaises(SystemExit) as ctx:
                 generate_module.render_templates(
-                    {"box": {"domain": "hearth.local"}},
+                    {"box": {"domain": "hearth.home"}},
                     str(templates_dir),
                     str(output_dir),
                 )

@@ -38,7 +38,13 @@ Vagrant.configure("2") do |config|
       "firewall_management_interface" => "eth0",
       # Deploy diagnostic scripts inside the VM (dev only; false by default in production).
       # Override for production: ansible-playbook -i inventory/production site.yml -e diagnostics_enabled=true
-      "diagnostics_enabled" => true
+      "diagnostics_enabled" => true,
+      # Captive portal is a WiFi AP feature — it intercepts requests based on Host
+      # header, which means localhost:8080 dev access gets redirected to an
+      # unresolvable hearth.local address.  Disabled in dev; enabled in production
+      # via hearth.yaml.  scripts/test-vagrant.sh detects the live state from the
+      # rendered nginx config, not hearth.yaml, so tests stay honest.
+      "captive_portal" => {"enabled" => false}
     }
     #TODO get inventory working so we can target just the vm instead of all hosts.
     # ansible.inventory_path = "ansible/inventory/development"

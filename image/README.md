@@ -231,10 +231,10 @@ flashes automatically.
 1. Insert the SD card and power on the Raspberry Pi.
 2. The box broadcasts a WiFi hotspot named **Hearth** (configurable in
    `hearth.yaml`).
-3. Connect any device to the hotspot. The captive portal detection redirect
-   opens the landing page automatically on most devices.
+3. Connect any device to the hotspot and navigate to `http://hearth.local`
+   (or the IP shown in your device's network settings).
 4. The landing page displays a **one-time admin password** generated on first
-   boot. Log in at `http://admin.hearth.local` and change it immediately.
+   boot. Log in at `/admin/` and change it immediately.
 
 ---
 

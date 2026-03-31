@@ -60,7 +60,7 @@ async def services_status():
           "first_boot": true,
           "initial_password": "Ab3Xy7Pq1Rz4",
           "services": [
-            {"id": "calibre_web", "name": "Calibre", "enabled": true, "url": "http://hearth.local/calibre_web/"},
+            {"id": "calibre_web", "name": "Calibre", "enabled": true, "url": "http://hearth.home/calibre_web/"},
             ...
           ]
         }
@@ -78,7 +78,7 @@ async def services_status():
         cfg = {}
 
     services_cfg: dict = cfg.get("services", {})
-    box_domain: str = cfg.get("box", {}).get("domain", "hearth.local")
+    box_domain: str = cfg.get("box", {}).get("domain", "hearth.home")
 
     service_list = []
     for tile_id, info in SERVICE_MAP.items():
