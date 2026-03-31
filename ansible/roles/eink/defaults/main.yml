@@ -4,6 +4,9 @@
 # Absolute path where the display renderer script is installed
 eink_script: /usr/local/bin/hearth-eink.py
 
+# Directory for eink server files (requirements.txt, etc.)
+eink_dir: /opt/hearth/eink
+
 # Python virtualenv that owns the inky + pillow dependencies
 eink_venv: /usr/local/lib/hearth-eink
 

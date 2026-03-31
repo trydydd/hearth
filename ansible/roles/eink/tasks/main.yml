@@ -39,13 +39,31 @@
 # ---------------------------------------------------------------------------
 - name: "eink — Phase 2: Create virtualenv and install Python libraries"
   block:
-    - name: Install inky and pillow into isolated virtualenv
+    - name: Create eink directory
+      ansible.builtin.file:
+        path: "{{ eink_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy eink Python requirements
+      ansible.builtin.copy:
+        src: requirements.txt
+        dest: "{{ eink_dir }}/requirements.txt"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create Python virtualenv for eink
+      ansible.builtin.command:
+        cmd: python3 -m venv {{ eink_venv }}
+        creates: "{{ eink_venv }}/pyvenv.cfg"
+
+    - name: Install eink Python dependencies
       ansible.builtin.pip:
-        name:
-          - "inky[rpi]"
-          - pillow
+        requirements: "{{ eink_dir }}/requirements.txt"
         virtualenv: "{{ eink_venv }}"
-        virtualenv_python: python3
 
   rescue:
     - name: "eink Phase 2 FAILED — pip/virtualenv error"
