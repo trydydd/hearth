@@ -105,7 +105,7 @@
       # /run/systemd/private only exists when systemd is running as PID 1.
       ansible.builtin.stat:
         path: /run/systemd/private
-      register: _eink_systemd_active
+      register: _systemd_active
 
     - name: Enable hearth-eink service (symlink — works in chroot and on live system)
       ansible.builtin.file:
@@ -118,7 +118,7 @@
         name: "{{ eink_service_name }}.service"
         daemon_reload: true
         state: started
-      when: _eink_systemd_active.stat.exists
+      when: _systemd_active.stat.exists
 
   rescue:
     - name: "eink Phase 4 FAILED — service enablement error"

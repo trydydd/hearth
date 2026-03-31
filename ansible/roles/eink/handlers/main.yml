@@ -4,4 +4,4 @@
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
-  when: _eink_systemd_active.stat.exists
+  when: _systemd_active.stat.exists
