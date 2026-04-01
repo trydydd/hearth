@@ -25,6 +25,7 @@
           - python3-venv
           - fonts-dejavu-core
           - python3-libgpiod
+          - libcairo2
         state: present
 
   rescue:
@@ -51,6 +52,14 @@
       ansible.builtin.copy:
         src: requirements.txt
         dest: "{{ eink_dir }}/requirements.txt"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy fireplace SVG icon
+      ansible.builtin.copy:
+        src: fireplace.svg
+        dest: "{{ eink_icon }}"
         owner: root
         group: root
         mode: "0644"

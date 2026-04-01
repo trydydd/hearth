@@ -1,2 +1,3 @@
-inky[rpi]
+inky[rpi]==1.5.0
 pillow
+cairosvg
