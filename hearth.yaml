@@ -113,6 +113,12 @@ usb_ssh:
   # Static IP assigned to the usb0 gadget interface
   ip: "192.168.7.2"
 
+  # Fixed MAC addresses for the g_ether USB gadget.
+  # Pinning these prevents a random MAC (and a different enx* interface name)
+  # on every boot. Change per-device if running multiple Hearth boxes.
+  host_mac: "12:34:56:78:9a:bc"
+  dev_mac:  "12:34:56:78:9a:bd"
+
 # ---------------------------------------------------------------------------
 # Captive portal
 #
