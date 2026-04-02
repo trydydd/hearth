@@ -10,6 +10,7 @@ Layout:
 Values are injected by Ansible from hearth.yaml at provision time.
 """
 
+import argparse
 import io
 import logging
 import sys
@@ -154,6 +155,12 @@ def _getbuffer(image):
     return buf
 
 
+def _blank_canvas():
+    """Return a fully white canvas (all pixels 0xFF)."""
+    from PIL import Image
+    return Image.new("RGB", (EPD_HEIGHT, EPD_WIDTH), (255, 255, 255))
+
+
 def _build_canvas():
     import cairosvg
     from PIL import Image, ImageDraw, ImageFont
@@ -195,12 +202,27 @@ def _blank_white_buffer():
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Hearth e-ink display renderer")
+    parser.add_argument(
+        "--mode",
+        choices=["logo", "blank"],
+        default="logo",
+        help="Display mode: 'logo' renders the Hearth logo and URL; 'blank' clears to white",
+    )
+    args = parser.parse_args()
+
     try:
         import RPi.GPIO  # noqa — confirm we're on Pi hardware
-        import cairosvg  # noqa
     except ImportError as exc:
         log.warning("Required library not available (%s) — display render skipped", exc)
         sys.exit(0)
+
+    if args.mode == "logo":
+        try:
+            import cairosvg  # noqa
+        except ImportError as exc:
+            log.warning("Required library not available (%s) — display render skipped", exc)
+            sys.exit(0)
 
     try:
         GPIO, spi = _init_gpio_spi()
@@ -212,7 +234,10 @@ def main():
         _send_image(GPIO, spi, _getbuffer(canvas))
         spi.close()
         GPIO.cleanup()
-        log.info("Display updated: url=%r", DISPLAY_URL)
+        if args.mode == "blank":
+            log.info("Display cleared to white")
+        else:
+            log.info("Display updated: url=%r", DISPLAY_URL)
     except Exception as exc:  # noqa: BLE001
         log.warning("Display update failed (%s)", exc)
         sys.exit(0)
