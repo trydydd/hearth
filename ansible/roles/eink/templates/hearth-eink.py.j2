@@ -188,6 +188,12 @@ def _build_canvas():
     return canvas
 
 
+def _blank_white_buffer():
+    """Return a full-white pixel buffer for the display."""
+    lw = EPD_WIDTH // 8 + (1 if EPD_WIDTH % 8 else 0)
+    return [0xFF] * (lw * EPD_HEIGHT)
+
+
 def main():
     try:
         import RPi.GPIO  # noqa — confirm we're on Pi hardware
@@ -199,6 +205,9 @@ def main():
     try:
         GPIO, spi = _init_gpio_spi()
         _init_display(GPIO, spi)
+        log.info("Blanking display to white")
+        _send_image(GPIO, spi, _blank_white_buffer())
+        time.sleep(2)
         canvas = _build_canvas()
         _send_image(GPIO, spi, _getbuffer(canvas))
         spi.close()
