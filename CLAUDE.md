@@ -7,9 +7,17 @@ A self-contained offline community server for Raspberry Pi Zero 2 W. Broadcasts 
 ### Testing
 
 ```bash
+# Create venv (first time — python3.12-venv apt package may not be available,
+# so bootstrap pip manually if needed)
+python3 -m venv --without-pip .venv
+curl -sS https://bootstrap.pypa.io/get-pip.py | .venv/bin/python3
+
 # Install test dependencies (first time)
-pip install pytest pyyaml jinja2 aiofiles mutagen pillow
-pip install -r ansible/roles/admin/files/backend/requirements.txt
+.venv/bin/pip install pytest pyyaml jinja2 aiofiles mutagen pillow
+.venv/bin/pip install -r ansible/roles/admin/files/backend/requirements.txt
+
+# Activate (optional, or prefix commands with .venv/bin/)
+source .venv/bin/activate
 
 # Run full test suite
 python3 -m pytest tests/ -v
