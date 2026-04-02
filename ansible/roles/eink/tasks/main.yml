@@ -116,6 +116,15 @@
         mode: "0644"
       notify: Reload systemd daemon
 
+    - name: Deploy hearth-eink-blank systemd service unit
+      ansible.builtin.template:
+        src: hearth-eink-blank.service.j2
+        dest: /etc/systemd/system/hearth-eink-blank.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd daemon
+
   rescue:
     - name: "eink Phase 3 FAILED — deployment error"
       ansible.builtin.fail:
