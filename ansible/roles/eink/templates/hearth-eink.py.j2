@@ -195,6 +195,12 @@ def _build_canvas():
     return canvas
 
 
+def _blank_white_buffer():
+    """Return a full-white pixel buffer for the display."""
+    lw = EPD_WIDTH // 8 + (1 if EPD_WIDTH % 8 else 0)
+    return [0xFF] * (lw * EPD_HEIGHT)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Hearth e-ink display renderer")
     parser.add_argument(
@@ -221,7 +227,10 @@ def main():
     try:
         GPIO, spi = _init_gpio_spi()
         _init_display(GPIO, spi)
-        canvas = _blank_canvas() if args.mode == "blank" else _build_canvas()
+        log.info("Blanking display to white")
+        _send_image(GPIO, spi, _blank_white_buffer())
+        time.sleep(2)
+        canvas = _build_canvas()
         _send_image(GPIO, spi, _getbuffer(canvas))
         spi.close()
         GPIO.cleanup()
